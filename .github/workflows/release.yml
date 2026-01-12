@@ -1,0 +1,75 @@
+name: Build and Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (ex: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create extension ZIP
+        run: |
+          # Créer le dossier de build
+          mkdir -p build
+
+          # Copier les fichiers nécessaires (exclure les fichiers de dev)
+          cp -r manifest.json build/
+          cp -r background build/
+          cp -r content build/
+          cp -r lib build/
+          cp -r popup build/
+          cp -r options build/
+          cp -r assets build/
+          cp -r _locales build/
+
+          # Supprimer les fichiers inutiles
+          rm -f build/assets/generate-icons.html 2>/dev/null || true
+
+          # Créer le ZIP
+          cd build
+          zip -r ../anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip .
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Installation
+
+            1. Téléchargez le fichier ZIP ci-dessous
+            2. Décompressez le fichier
+            3. Ouvrez Chrome et accédez à `chrome://extensions`
+            4. Activez le **Mode développeur** (en haut à droite)
+            5. Cliquez sur **"Charger l'extension non empaquetée"**
+            6. Sélectionnez le dossier décompressé
+
+            Et voilà, l'extension est installée ! 🎉
+          files: |
+            anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
