@@ -98,6 +98,10 @@ Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou un
 
 Cette extension est un outil personnel de suivi. Elle n'est pas affiliée au Ministère de l'Intérieur ni à aucun service officiel. Utilisez-la à vos propres risques.
 
+## Remerciements
+
+Un grand merci aux auteurs de l'extension [status_naturalisation](https://github.com/divisi0n/status_naturalisation) dont le travail a servi de base et d'inspiration pour ce projet. Leur contribution à la communauté a permis de rendre le suivi de naturalisation accessible à tous.
+
 ## Licence
 
 MIT License - Voir le fichier [LICENSE](LICENSE) pour plus de détails.
