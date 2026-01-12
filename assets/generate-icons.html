@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate ANEF Extension Icons</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #002654; }
+    .icons { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
+    .icon-box { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .icon-box canvas { display: block; margin: 0 auto 10px; }
+    .icon-box a { display: block; margin-top: 10px; color: #2563eb; }
+    .instructions { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-top: 30px; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ANEF Extension - Icon Generator</h1>
+    <p>Click on each link to download the icon files.</p>
+
+    <div class="icons" id="icons"></div>
+
+    <div class="instructions">
+      <h3>Instructions:</h3>
+      <ol>
+        <li>Click each download link to save the PNG files</li>
+        <li>Save them in the <code>assets/</code> folder of the extension</li>
+        <li>Make sure the filenames are exactly: <code>icon-16.png</code>, <code>icon-32.png</code>, <code>icon-48.png</code>, <code>icon-128.png</code></li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const sizes = [16, 32, 48, 128];
+    const container = document.getElementById('icons');
+
+    function drawIcon(ctx, size) {
+      const scale = size / 128;
+
+      // Background circle
+      ctx.fillStyle = '#002654';
+      ctx.beginPath();
+      ctx.arc(64 * scale, 64 * scale, 60 * scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Document background
+      ctx.fillStyle = 'white';
+      roundRect(ctx, 35 * scale, 25 * scale, 58 * scale, 78 * scale, 4 * scale);
+      ctx.fill();
+
+      // Document header
+      ctx.fillStyle = '#3b82f6';
+      roundRect(ctx, 35 * scale, 25 * scale, 58 * scale, 20 * scale, 4 * scale);
+      ctx.fill();
+
+      // Document lines
+      ctx.fillStyle = '#e5e7eb';
+      [
+        { y: 55, w: 42 },
+        { y: 65, w: 35 },
+        { y: 75, w: 28 },
+        { y: 85, w: 38 }
+      ].forEach(line => {
+        roundRect(ctx, 43 * scale, line.y * scale, line.w * scale, 4 * scale, 2 * scale);
+        ctx.fill();
+      });
+
+      // Checkmark circle
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(95 * scale, 90 * scale, 18 * scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Checkmark
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 4 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(86 * scale, 90 * scale);
+      ctx.lineTo(92 * scale, 96 * scale);
+      ctx.lineTo(104 * scale, 84 * scale);
+      ctx.stroke();
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    sizes.forEach(size => {
+      const box = document.createElement('div');
+      box.className = 'icon-box';
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      drawIcon(ctx, size);
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `icon-${size}.png`;
+      link.textContent = `Download icon-${size}.png`;
+
+      const label = document.createElement('div');
+      label.textContent = `${size}x${size}`;
+      label.style.fontWeight = 'bold';
+      label.style.marginBottom = '10px';
+
+      box.appendChild(label);
+      box.appendChild(canvas);
+      box.appendChild(link);
+      container.appendChild(box);
+    });
+  </script>
+</body>
+</html>

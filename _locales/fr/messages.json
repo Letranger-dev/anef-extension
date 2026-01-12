@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "ANEF Status Tracker",
+    "description": "Nom de l'extension"
+  },
+  "extDescription": {
+    "message": "Suivez votre statut de naturalisation ANEF en temps réel",
+    "description": "Description de l'extension"
+  }
+}

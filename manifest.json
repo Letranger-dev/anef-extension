@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "ANEF Status Tracker",
+  "version": "1.0.0",
+  "description": "Suivez votre statut de naturalisation ANEF en temps réel",
+  "author": "ANEF Bot",
+  "default_locale": "fr",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://administration-etrangers-en-france.interieur.gouv.fr/*",
+    "https://*.interieur.gouv.fr/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://administration-etrangers-en-france.interieur.gouv.fr/*",
+        "https://*.interieur.gouv.fr/*"
+      ],
+      "js": ["content/content-script.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    },
+    "default_title": "ANEF Status Tracker"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/*.js", "content/injected-script.js", "content/auto-login.js"],
+      "matches": ["https://administration-etrangers-en-france.interieur.gouv.fr/*", "https://*.gouv.fr/*"]
+    }
+  ]
+}
