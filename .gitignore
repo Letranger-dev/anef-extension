@@ -1,0 +1,32 @@
+# Dépendances
+node_modules/
+
+# Build
+build/
+dist/
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporaire
+*.tmp
+*.temp
+.cache/
+
+# Extension packagée
+*.crx
+*.pem
