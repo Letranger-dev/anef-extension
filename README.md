@@ -2,6 +2,9 @@
 
 Extension Chrome pour suivre votre statut de naturalisation française en temps réel.
 
+> **💬 Bugs ou suggestions ?** Rejoignez le groupe Facebook pour en discuter :
+> 👉 [Groupe Facebook - ANEF Status Tracker](https://www.facebook.com/groups/1206709331640208)
+
 ## Fonctionnalités
 
 - **Affichage du statut réel** - Déchiffre et affiche le vrai code statut de votre dossier ANEF
