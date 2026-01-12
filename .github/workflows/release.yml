@@ -2,14 +2,9 @@ name: Build and Release Extension
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (ex: v1.0.0)'
-        required: true
-        default: 'v1.0.0'
 
 jobs:
   build:
@@ -19,14 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get version from tag or input
+      - name: Get version from manifest
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
+          VERSION=$(grep -oP '"version":\s*"\K[^"]+' manifest.json)
+          echo "VERSION=v${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create extension ZIP
         run: |
@@ -50,6 +42,13 @@ jobs:
           cd build
           zip -r ../anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip .
           cd ..
+
+      - name: Delete existing release
+        run: |
+          gh release delete ${{ steps.get_version.outputs.VERSION }} --yes 2>/dev/null || true
+          git push origin :refs/tags/${{ steps.get_version.outputs.VERSION }} 2>/dev/null || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
