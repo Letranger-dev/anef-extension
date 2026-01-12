@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANEF Status Tracker - Paramètres</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div>
+          <h1>ANEF Status Tracker</h1>
+          <p class="subtitle">Paramètres et historique</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="history">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 8v4l3 3"></path>
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+        Historique
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Paramètres
+      </button>
+      <button class="tab" data-tab="export">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export
+      </button>
+      <button class="tab" data-tab="debug">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+        Debug
+      </button>
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+      <!-- Historique Tab -->
+      <section id="tab-history" class="tab-content active">
+        <div class="section-header">
+          <h2>Historique des statuts</h2>
+          <button id="btn-clear-history" class="btn btn-danger btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Effacer
+          </button>
+        </div>
+
+        <div id="history-list" class="history-list">
+          <div class="empty-state">
+            <span class="empty-icon">📊</span>
+            <p>Aucun historique disponible</p>
+            <p class="empty-hint">Visitez le site ANEF pour commencer à enregistrer votre historique.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Paramètres Tab -->
+      <section id="tab-settings" class="tab-content">
+        <h2>Paramètres</h2>
+
+        <div class="settings-group">
+          <h3>Connexion automatique</h3>
+          <p class="settings-description">Enregistrez vos identifiants ANEF pour permettre l'actualisation automatique même si votre session a expiré.</p>
+
+          <div class="credential-form">
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Numéro étranger</span>
+                <span class="setting-description">Votre identifiant de connexion ANEF</span>
+              </div>
+              <input type="text" id="setting-username" class="input" placeholder="Ex: 0123456789" autocomplete="username">
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Mot de passe</span>
+              </div>
+              <div class="password-input-wrapper">
+                <input type="password" id="setting-password" class="input" placeholder="••••••••" autocomplete="current-password">
+                <button type="button" id="btn-toggle-password" class="btn-icon-small" title="Afficher/Masquer">
+                  <svg id="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg id="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="credential-status" id="credential-status">
+              <span class="status-indicator" id="credential-indicator"></span>
+              <span id="credential-status-text">Aucun identifiant enregistré</span>
+            </div>
+
+            <div class="credential-actions">
+              <button id="btn-save-credentials" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Enregistrer
+              </button>
+              <button id="btn-clear-credentials" class="btn btn-danger btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Supprimer
+              </button>
+            </div>
+
+            <div class="credential-warning">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>Vos identifiants sont stockés localement sur votre appareil et ne sont jamais envoyés à des serveurs externes.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Notifications</h3>
+
+          <label class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Activer les notifications</span>
+              <span class="setting-description">Recevoir une notification lors d'un changement de statut</span>
+            </div>
+            <input type="checkbox" id="setting-notifications" class="toggle">
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <h3>Général</h3>
+
+          <label class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Limite de l'historique</span>
+              <span class="setting-description">Nombre maximum d'entrées à conserver</span>
+            </div>
+            <select id="setting-history-limit" class="select">
+              <option value="50">50 entrées</option>
+              <option value="100">100 entrées</option>
+              <option value="200">200 entrées</option>
+              <option value="500">500 entrées</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="settings-actions">
+          <button id="btn-save-settings" class="btn btn-primary">
+            Sauvegarder
+          </button>
+          <button id="btn-reset-settings" class="btn btn-secondary">
+            Réinitialiser
+          </button>
+        </div>
+      </section>
+
+      <!-- Export Tab -->
+      <section id="tab-export" class="tab-content">
+        <h2>Exporter / Importer</h2>
+
+        <div class="export-section">
+          <h3>Exporter les données</h3>
+          <p>Téléchargez une sauvegarde de toutes vos données (historique, paramètres).</p>
+          <button id="btn-export" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Exporter (JSON)
+          </button>
+        </div>
+
+        <div class="export-section">
+          <h3>Importer des données</h3>
+          <p>Restaurez vos données depuis un fichier de sauvegarde.</p>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+          <button id="btn-import" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Importer
+          </button>
+        </div>
+
+        <div class="export-section danger-zone">
+          <h3>Zone de danger</h3>
+          <p>Supprimer toutes les données de l'extension.</p>
+          <button id="btn-clear-all" class="btn btn-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            Tout supprimer
+          </button>
+        </div>
+      </section>
+
+      <!-- Debug Tab -->
+      <section id="tab-debug" class="tab-content">
+        <div class="section-header">
+          <h2>Logs de debug</h2>
+          <div class="debug-actions">
+            <button id="btn-refresh-logs" class="btn btn-secondary btn-sm">
+              Actualiser
+            </button>
+            <button id="btn-clear-logs" class="btn btn-danger btn-sm">
+              Effacer
+            </button>
+          </div>
+        </div>
+
+        <div class="debug-info">
+          <p>Ces logs aident à diagnostiquer les problèmes de l'extension.</p>
+        </div>
+
+        <div id="logs-container" class="logs-container">
+          <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <p>Aucun log disponible</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>ANEF Status Tracker v1.0.0</p>
+      <p class="footer-links">
+        <a href="https://github.com" target="_blank">GitHub</a>
+        •
+        <a href="#" id="link-support">Support</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast" class="toast"></div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
