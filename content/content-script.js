@@ -114,6 +114,13 @@
         sendResponse({ started: true });
         return true;
 
+      // Déclencher la récupération des données
+      case 'TRIGGER_DATA_FETCH':
+        logger.info('📥 Demande de récupération des données');
+        triggerDataFetch();
+        sendResponse({ triggered: true });
+        return true;
+
       // Vérifier si la page contient un formulaire de connexion
       case 'CHECK_LOGIN_FORM':
         const hasForm = !!(
@@ -178,6 +185,7 @@
   // ─────────────────────────────────────────────────────────────
 
   let lastUrl = location.href;
+  let injectedScriptTriggered = false;
 
   function setupNavigationObserver() {
     const target = document.body || document.documentElement;
@@ -188,10 +196,36 @@
 
     new MutationObserver(() => {
       if (location.href !== lastUrl) {
+        const previousUrl = lastUrl;
         lastUrl = location.href;
+        logger.info('📍 Navigation détectée:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
         chrome.runtime.sendMessage({ type: 'PAGE_CHANGED', url: lastUrl }).catch(() => {});
+
+        // Si on arrive sur mon-compte après une connexion, relancer le script d'injection
+        const wasOnLogin = previousUrl.includes('connexion-inscription') ||
+                          previousUrl.includes('authentification') ||
+                          previousUrl.includes('/auth') ||
+                          previousUrl.includes('/login');
+        const isOnMonCompte = lastUrl.includes('mon-compte');
+
+        if (isOnMonCompte && (wasOnLogin || !injectedScriptTriggered)) {
+          logger.info('🔄 Relance du script d\'interception après navigation');
+          injectedScriptTriggered = true;
+          // Déclencher rapidement - le script injecté gère lui-même l'attente Angular
+          setTimeout(() => {
+            triggerDataFetch();
+          }, 800);
+        }
       }
     }).observe(target, { childList: true, subtree: true });
+  }
+
+  /** Déclenche la récupération des données via le script injecté */
+  function triggerDataFetch() {
+    window.postMessage({
+      source: 'ANEF_EXTENSION',
+      type: 'TRIGGER_DATA_FETCH'
+    }, '*');
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -204,6 +238,29 @@
       url: window.location.href,
       isLoggedIn: checkLoginStatus()
     }).catch(() => {});
+
+    // Optimisation: si on est sur la page d'accueil, naviguer directement vers mon-compte
+    // Cela évite d'attendre que le service-worker détecte l'URL
+    checkAndRedirectToMonCompte();
+  }
+
+  /** Redirige vers mon-compte si on est sur la page d'accueil après login */
+  function checkAndRedirectToMonCompte() {
+    const url = window.location.href;
+    const isHomepage = url.endsWith('/#/') || url.endsWith('/#') || url.match(/particuliers\/#\/?$/);
+
+    if (!isHomepage) return;
+
+    // Ne rediriger que si on vient d'une page SSO (referrer contient sso ou auth)
+    const referrer = document.referrer || '';
+    const cameFromLogin = referrer.includes('sso.') ||
+                          referrer.includes('/auth') ||
+                          referrer.includes('connexion');
+
+    if (cameFromLogin) {
+      logger.info('🏠 Page d\'accueil après login, redirection vers mon-compte...');
+      window.location.href = 'https://administration-etrangers-en-france.interieur.gouv.fr/particuliers/#/espace-personnel/mon-compte';
+    }
   }
 
   // ─────────────────────────────────────────────────────────────

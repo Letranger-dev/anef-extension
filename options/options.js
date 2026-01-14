@@ -122,9 +122,32 @@ function attachEventListeners() {
 
 async function loadHistory() {
   const history = await storage.getHistory();
+  const lastCheck = await storage.getLastCheck();
+
+  // Afficher la dernière vérification en haut
+  let lastCheckHtml = '';
+  if (lastCheck) {
+    const lastCheckDate = new Date(lastCheck);
+    const formattedDate = lastCheckDate.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    const formattedTime = lastCheckDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    lastCheckHtml = `
+      <div class="last-check-banner">
+        <span class="last-check-icon">🔄</span>
+        <span>Dernière vérification : <strong>${formattedDate} à ${formattedTime}</strong></span>
+      </div>
+    `;
+  }
 
   if (!history || history.length === 0) {
     elements.historyList.innerHTML = `
+      ${lastCheckHtml}
       <div class="empty-state">
         <span class="empty-icon">📊</span>
         <p>Aucun historique disponible</p>
@@ -136,9 +159,8 @@ async function loadHistory() {
 
   const sorted = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-  elements.historyList.innerHTML = sorted.map(item => {
+  elements.historyList.innerHTML = lastCheckHtml + sorted.map(item => {
     const info = getStatusExplanation(item.statut);
-    const timestamp = formatDate(item.timestamp, true);
     const statusDate = formatDate(item.date_statut);
     const days = daysSince(item.date_statut);
     const duration = formatDuration(days);
@@ -150,11 +172,14 @@ async function loadHistory() {
           <div class="history-phase">${info.phase}</div>
           <code class="history-code">${item.statut}</code>
           <div class="history-date">
-            Vérifié le ${timestamp}
-            ${item.date_statut ? `• Mis à jour le ${statusDate} (il y a ${duration})` : ''}
+            ${item.date_statut ? `Depuis le ${statusDate} <span class="duration-badge">${duration}</span>` : 'Date inconnue'}
           </div>
         </div>
-        <div class="history-step">Étape ${info.etape}/12</div>
+        <div class="history-step">
+          <span class="step-label">étape</span>
+          <span class="step-number">${info.etape}</span>
+          <span class="step-total">sur 12</span>
+        </div>
       </div>
     `;
   }).join('');

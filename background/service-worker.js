@@ -395,8 +395,9 @@ async function backgroundRefresh() {
   // Configuration des délais
   const TIMEOUT_MS = 45000;
   const LOGIN_TIMEOUT_MS = 90000;
-  const CHECK_INTERVAL_MS = 1000;
-  const WAIT_BEFORE_CHECK_MS = 5000;
+  const CHECK_INTERVAL_MS = 500;     // Vérification 2x plus fréquente
+  const WAIT_BEFORE_CHECK_MS = 1500; // Réduit
+  const POST_LOGIN_WAIT_MS = 1000;   // Réduit - le script injecté gère l'attente Angular
   const MON_COMPTE_URL = ANEF_BASE_URL + '/#/espace-personnel/mon-compte';
 
   // État
@@ -404,6 +405,7 @@ async function backgroundRefresh() {
   let dataReceived = false;
   let needsLogin = false;
   let loginAttempted = { anef: false, sso: false };
+  let loginCompleted = false;
   let lastUrl = '';
 
   // Références pour détecter les nouvelles données
@@ -441,6 +443,51 @@ async function backgroundRefresh() {
       const elapsed = Date.now() - startTime;
       const currentUrl = tabInfo.url || '';
 
+      // Détecter les changements d'URL
+      if (currentUrl !== lastUrl) {
+        logger.info('📍 URL:', currentUrl.substring(0, 80));
+
+        // Détecter si on revient sur mon-compte après login
+        const wasOnLogin = lastUrl.includes('connexion-inscription') ||
+                          lastUrl.includes('authentification') ||
+                          lastUrl.includes('/auth') ||
+                          lastUrl.includes('/login') ||
+                          lastUrl.includes('sso.');
+        const isOnMonCompte = currentUrl.includes('mon-compte');
+        const isOnHomepage = currentUrl.endsWith('/#/') || currentUrl.endsWith('/#') ||
+                            currentUrl.match(/particuliers\/#\/?$/);
+
+        // Si on arrive sur la page d'accueil après login, naviguer vers mon-compte
+        if (isOnHomepage && (loginAttempted.anef || loginAttempted.sso) && !loginCompleted) {
+          logger.info('🏠 Page d\'accueil détectée après login, navigation vers mon-compte...');
+          try {
+            await chrome.tabs.update(tabId, { url: MON_COMPTE_URL });
+            logger.info('📤 Navigation vers mon-compte lancée');
+          } catch (e) {
+            logger.warn('Erreur navigation:', e.message);
+          }
+          lastUrl = currentUrl;
+          continue;
+        }
+
+        if (isOnMonCompte && (loginAttempted.anef || loginAttempted.sso)) {
+          logger.info('✅ Connexion réussie, arrivé sur mon-compte');
+          loginCompleted = true;
+          // Attendre que Angular charge la page
+          await new Promise(r => setTimeout(r, POST_LOGIN_WAIT_MS));
+
+          // Déclencher explicitement la récupération des données
+          try {
+            await chrome.tabs.sendMessage(tabId, { type: 'TRIGGER_DATA_FETCH' });
+            logger.info('📤 Demande de récupération envoyée');
+          } catch (e) {
+            logger.warn('Erreur envoi TRIGGER_DATA_FETCH:', e.message);
+          }
+        }
+
+        lastUrl = currentUrl;
+      }
+
       // Attendre que la page soit chargée
       if (elapsed > WAIT_BEFORE_CHECK_MS && tabInfo.status === 'complete') {
         const isAnefLogin = currentUrl.includes('connexion-inscription');
@@ -451,18 +498,13 @@ async function backgroundRefresh() {
           currentUrl.includes('/login')
         );
 
-        // Détecter les changements d'URL
-        if (currentUrl !== lastUrl) {
-          logger.info('📍 URL:', currentUrl.substring(0, 80));
-          lastUrl = currentUrl;
-        }
-
         // Page de connexion ANEF détectée
         if (isAnefLogin && !loginAttempted.anef && hasCredentials) {
           logger.info('🔐 Page connexion ANEF détectée');
           needsLogin = true;
           loginAttempted.anef = true;
 
+          // Attendre que Angular soit prêt
           await new Promise(r => setTimeout(r, 3000));
 
           try {
@@ -475,7 +517,8 @@ async function backgroundRefresh() {
             logger.warn('Erreur auto-login ANEF:', e.message);
           }
 
-          await new Promise(r => setTimeout(r, 8000));
+          // Attendre la redirection vers SSO
+          await new Promise(r => setTimeout(r, 5000));
           continue;
         }
 
@@ -484,6 +527,7 @@ async function backgroundRefresh() {
           logger.info('🔐 Page SSO détectée');
           loginAttempted.sso = true;
 
+          // Attendre que le formulaire soit prêt
           await new Promise(r => setTimeout(r, 2000));
 
           try {
@@ -496,7 +540,8 @@ async function backgroundRefresh() {
             logger.warn('Erreur auto-login SSO:', e.message);
           }
 
-          await new Promise(r => setTimeout(r, 10000));
+          // Attendre la soumission et redirection
+          await new Promise(r => setTimeout(r, 8000));
           continue;
         }
 
@@ -512,7 +557,7 @@ async function backgroundRefresh() {
       const currentCheck = await storage.getLastCheck();
       if (currentCheck && (!beforeCheck || currentCheck > beforeCheck)) {
         if (!dossierReceived) {
-          logger.info('✅ Données reçues !');
+          logger.info('✅ Données dossier reçues !');
           dossierReceived = true;
           dossierTime = Date.now();
         }
@@ -522,10 +567,13 @@ async function backgroundRefresh() {
       if (dossierReceived) {
         const currentApiUpdate = (await storage.getApiData())?.lastUpdate;
         if (currentApiUpdate && (!beforeApiUpdate || currentApiUpdate > beforeApiUpdate)) {
+          logger.info('✅ Données API reçues !');
           dataReceived = true;
           break;
         }
-        if (Date.now() - dossierTime > 5000) {
+        // Timeout pour les données API (8 secondes au lieu de 5)
+        if (Date.now() - dossierTime > 8000) {
+          logger.info('⏱️ Timeout données API, on continue avec les données dossier');
           dataReceived = true;
           break;
         }
@@ -550,8 +598,12 @@ async function backgroundRefresh() {
       return { success: false, needsLogin: true };
     }
 
-    if (loginAttempted.anef || loginAttempted.sso) {
-      return { success: false, error: 'Connexion tentée mais pas de données. Vérifiez vos identifiants.' };
+    if ((loginAttempted.anef || loginAttempted.sso) && !loginCompleted) {
+      return { success: false, error: 'Connexion tentée mais échec. Vérifiez vos identifiants.' };
+    }
+
+    if (loginCompleted && !dataReceived) {
+      return { success: false, error: 'Connexion réussie mais données non récupérées. Réessayez.' };
     }
 
     return { success: false, error: 'Délai dépassé - pas de données reçues.' };

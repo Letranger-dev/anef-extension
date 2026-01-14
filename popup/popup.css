@@ -72,6 +72,75 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   Bannière de mise à jour
+   ═══════════════════════════════════════════════════════════════ */
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-bottom: 1px solid #f59e0b;
+}
+
+.update-banner.hidden {
+  display: none;
+}
+
+.update-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.update-icon {
+  font-size: 16px;
+}
+
+.update-text {
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.update-text span {
+  font-weight: 700;
+}
+
+.update-btn {
+  padding: 5px 12px;
+  background: #f59e0b;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.update-btn:hover {
+  background: #d97706;
+}
+
+.update-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #92400e;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.update-close:hover {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    Header
    ═══════════════════════════════════════════════════════════════ */
 
@@ -101,6 +170,12 @@ body {
   gap: 10px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .header .flag {
   font-size: 24px;
 }
@@ -121,6 +196,13 @@ body {
   background: rgba(255, 255, 255, 0.15);
   padding: 2px 6px;
   border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.version:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .btn-icon {
@@ -390,6 +472,9 @@ body {
 }
 
 .status-code-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 12px;
 }
 
@@ -402,6 +487,39 @@ body {
   padding: 6px 12px;
   border-radius: 20px;
   border: 1px solid rgba(0, 38, 84, 0.1);
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--slate-400);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy:hover {
+  color: var(--france-blue);
+  background: var(--france-blue-lighter);
+}
+
+.btn-copy .icon-check {
+  display: none;
+  color: var(--success);
+}
+
+.btn-copy.copied .icon-copy {
+  display: none;
+}
+
+.btn-copy.copied .icon-check {
+  display: block;
 }
 
 .status-description {

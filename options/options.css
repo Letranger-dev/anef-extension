@@ -170,6 +170,27 @@ body {
   overflow-y: auto;
 }
 
+.last-check-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+  border: 1px solid #7dd3fc;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 16px;
+  color: var(--france-blue);
+  font-size: 13px;
+}
+
+.last-check-banner .last-check-icon {
+  font-size: 18px;
+}
+
+.last-check-banner strong {
+  color: var(--primary-dark);
+}
+
 .history-item {
   display: flex;
   gap: 16px;
@@ -225,15 +246,49 @@ body {
 .history-date {
   font-size: 12px;
   color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.duration-badge {
+  display: inline-block;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .history-step {
-  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.history-step .step-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--gray-400);
-  background: var(--gray-100);
-  padding: 4px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
+  font-weight: 500;
+}
+
+.history-step .step-number {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--france-blue);
+  line-height: 1;
+}
+
+.history-step .step-total {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-weight: 500;
 }
 
 /* Empty state */
