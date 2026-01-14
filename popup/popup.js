@@ -8,6 +8,8 @@
  */
 
 import { getStatusExplanation, formatDuration, formatDate, daysSince, isPositiveStatus, isNegativeStatus } from '../lib/status-parser.js';
+import { downloadLogs, clearLogs } from '../lib/logger.js';
+import { checkForUpdate, dismissUpdate, isUpdateDismissed } from '../lib/version-check.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM
@@ -96,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   attachEventListeners();
   await loadData();
+
+  // Vérifier les mises à jour (en arrière-plan)
+  checkForUpdates();
 });
 
 /** Attache les gestionnaires d'événements */
@@ -108,10 +113,89 @@ function attachEventListeners() {
   elements.btnHistory?.addEventListener('click', () => chrome.runtime.openOptionsPage());
   elements.btnSettings?.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
+  // Clic sur la version = export logs (caché pour les devs)
+  document.getElementById('version')?.addEventListener('click', handleExportLogs);
+
+  // Bouton copier le code statut
+  document.getElementById('btn-copy-status')?.addEventListener('click', copyStatusCode);
+
   document.getElementById('link-save-credentials')?.addEventListener('click', (e) => {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
   });
+}
+
+/** Copie le code statut dans le presse-papier */
+async function copyStatusCode() {
+  const statusCode = elements.statusCode?.textContent;
+  const btn = document.getElementById('btn-copy-status');
+
+  if (!statusCode || statusCode === '—' || !btn) return;
+
+  try {
+    await navigator.clipboard.writeText(statusCode);
+
+    // Animation de confirmation
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 1500);
+  } catch (err) {
+    console.error('[Popup] Erreur copie:', err);
+  }
+}
+
+/** Exporte les logs pour le debugging (clic sur version) */
+async function handleExportLogs() {
+  const versionEl = document.getElementById('version');
+  try {
+    await downloadLogs();
+    // Feedback visuel discret
+    if (versionEl) {
+      versionEl.textContent = '✓ logs';
+      versionEl.style.color = '#22c55e';
+      setTimeout(() => {
+        versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+        versionEl.style.color = '';
+      }, 1500);
+    }
+  } catch (error) {
+    console.error('[Popup] Erreur export logs:', error);
+  }
+}
+
+/** Vérifie si une mise à jour est disponible */
+async function checkForUpdates() {
+  try {
+    const result = await checkForUpdate();
+
+    if (!result.updateAvailable || !result.latestVersion) {
+      return;
+    }
+
+    // Vérifier si l'utilisateur a ignoré cette version
+    if (await isUpdateDismissed(result.latestVersion)) {
+      return;
+    }
+
+    // Afficher la bannière
+    const banner = document.getElementById('update-banner');
+    const versionSpan = document.getElementById('update-version');
+    const link = document.getElementById('update-link');
+    const dismissBtn = document.getElementById('update-dismiss');
+
+    if (banner && versionSpan && link) {
+      versionSpan.textContent = result.latestVersion;
+      link.href = result.repoUrl + '/releases';
+      banner.classList.remove('hidden');
+
+      // Gestion du bouton fermer
+      dismissBtn?.addEventListener('click', async () => {
+        await dismissUpdate(result.latestVersion);
+        banner.classList.add('hidden');
+      });
+    }
+  } catch (error) {
+    console.warn('[Popup] Erreur vérification mise à jour:', error);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
