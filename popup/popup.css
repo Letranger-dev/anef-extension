@@ -807,3 +807,69 @@ body {
   margin-bottom: 0 !important;
   font-style: italic;
 }
+
+/* Citations pendant le chargement */
+.quote-container {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--slate-50) 0%, rgba(0, 85, 164, 0.05) 100%);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--france-blue);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quote-wrapper {
+  text-align: center;
+  position: relative;
+}
+
+.quote-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--slate-700);
+  font-style: italic;
+  margin: 0 0 8px 0;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: quoteReveal 0.6s ease-out forwards;
+}
+
+.quote-author {
+  font-size: 11px;
+  color: var(--france-blue);
+  font-weight: 600;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(5px);
+  animation: quoteReveal 0.6s ease-out 0.2s forwards;
+}
+
+.quote-text.fade-out,
+.quote-author.fade-out {
+  animation: quoteFadeOut 0.4s ease-in forwards;
+}
+
+@keyframes quoteReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes quoteFadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}

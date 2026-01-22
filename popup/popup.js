@@ -12,6 +12,79 @@ import { downloadLogs, clearLogs } from '../lib/logger.js';
 import { checkForUpdate, dismissUpdate, isUpdateDismissed } from '../lib/version-check.js';
 
 // ─────────────────────────────────────────────────────────────
+// Citations sur la patience
+// ─────────────────────────────────────────────────────────────
+
+const QUOTES = [
+  { text: "La patience est la clé du bien-être.", author: "Mohammed ﷺ" },
+  { text: "Tout vient à point à qui sait attendre.", author: "Proverbe français" },
+  { text: "La patience est amère, mais son fruit est doux.", author: "Jean-Jacques Rousseau" },
+  { text: "Adoptez le rythme de la nature : son secret est la patience.", author: "Ralph Waldo Emerson" },
+  { text: "La patience est l'art d'espérer.", author: "Luc de Clapiers" },
+  { text: "Ce qui est différé n'est pas perdu.", author: "Proverbe italien" },
+  { text: "Les grandes œuvres naissent de la patience.", author: "Gustave Flaubert" },
+  { text: "La patience et le temps font plus que force ni que rage.", author: "Jean de La Fontaine" },
+  { text: "Qui va lentement va sûrement.", author: "Proverbe latin" },
+  { text: "La persévérance vient à bout de tout.", author: "Proverbe français" },
+  { text: "Un voyage de mille lieues commence par un premier pas.", author: "Lao Tseu" },
+  { text: "L'attente est déjà la moitié du bonheur.", author: "Proverbe chinois" }
+];
+
+let quoteInterval = null;
+let currentQuoteIndex = 0;
+
+function startQuoteCarousel() {
+  currentQuoteIndex = Math.floor(Math.random() * QUOTES.length);
+  showQuote(currentQuoteIndex);
+
+  quoteInterval = setInterval(() => {
+    const textEl = document.getElementById('quote-text');
+    const authorEl = document.getElementById('quote-author');
+
+    if (textEl && authorEl) {
+      textEl.classList.add('fade-out');
+      authorEl.classList.add('fade-out');
+
+      setTimeout(() => {
+        currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
+        showQuote(currentQuoteIndex);
+      }, 400);
+    }
+  }, 5000);
+}
+
+function showQuote(index) {
+  const quote = QUOTES[index];
+  const textEl = document.getElementById('quote-text');
+  const authorEl = document.getElementById('quote-author');
+
+  if (textEl && authorEl && quote) {
+    textEl.classList.remove('fade-out');
+    authorEl.classList.remove('fade-out');
+
+    // Force reflow pour relancer l'animation
+    void textEl.offsetWidth;
+
+    textEl.textContent = `« ${quote.text} »`;
+    authorEl.textContent = `— ${quote.author}`;
+
+    // Réappliquer l'animation
+    textEl.style.animation = 'none';
+    authorEl.style.animation = 'none';
+    void textEl.offsetWidth;
+    textEl.style.animation = '';
+    authorEl.style.animation = '';
+  }
+}
+
+function stopQuoteCarousel() {
+  if (quoteInterval) {
+    clearInterval(quoteInterval);
+    quoteInterval = null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Éléments DOM
 // ─────────────────────────────────────────────────────────────
 
@@ -486,6 +559,7 @@ function updateLoadingStep(step) {
 async function refreshInBackground() {
   showView('loading');
   updateLoadingStep(1);
+  startQuoteCarousel();
 
   if (elements.btnRefresh) {
     elements.btnRefresh.classList.add('loading');
@@ -525,6 +599,7 @@ async function refreshInBackground() {
     console.error('[Popup] Erreur refresh:', error);
     await loadData();
   } finally {
+    stopQuoteCarousel();
     if (elements.btnRefresh) {
       elements.btnRefresh.classList.remove('loading');
       elements.btnRefresh.disabled = false;

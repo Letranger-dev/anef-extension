@@ -62,6 +62,7 @@ const elements = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
+  initVersion();
 
   await loadHistory();
   await loadSettings();
@@ -76,6 +77,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     switchTab('settings');
   }
 });
+
+function initVersion() {
+  const versionEl = document.getElementById('app-version');
+  if (versionEl) {
+    const manifest = chrome.runtime.getManifest();
+    versionEl.textContent = `ANEF Status Tracker v${manifest.version}`;
+  }
+}
 
 function initTabs() {
   tabs.forEach(tab => {
