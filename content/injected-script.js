@@ -131,7 +131,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       }
 
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js';
+      script.src = 'https://cdn.jsdelivr.net/npm/node-forge@1.3.2/dist/forge.min.js';
       script.onload = () => {
         log('✅ forge.js chargé');
         resolve();

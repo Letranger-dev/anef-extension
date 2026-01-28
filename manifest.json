@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ANEF Status Tracker",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Suivez votre statut de naturalisation ANEF en temps réel",
   "author": "ANEF Bot",
   "default_locale": "fr",
