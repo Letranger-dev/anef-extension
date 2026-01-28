@@ -144,10 +144,6 @@ function initializeElements() {
     detailPrefectureValue: document.getElementById('detail-prefecture-value'),
     detailTypeDemande: document.getElementById('detail-type-demande'),
     detailTypeDemandeValue: document.getElementById('detail-type-demande-value'),
-    detailDepot: document.getElementById('detail-depot'),
-    detailDepotValue: document.getElementById('detail-depot-value'),
-    detailEntretien: document.getElementById('detail-entretien'),
-    detailEntretienValue: document.getElementById('detail-entretien-value'),
     detailEntretienLieu: document.getElementById('detail-entretien-lieu'),
     detailEntretienLieuValue: document.getElementById('detail-entretien-lieu-value'),
     detailDecret: document.getElementById('detail-decret'),
@@ -451,26 +447,6 @@ function displayDetails(statusData, apiData) {
     hasDetails = true;
   } else {
     elements.detailTypeDemande?.classList.add('hidden');
-  }
-
-  // Durée depuis le dépôt
-  if (apiData?.dateDepot && elements.detailDepot) {
-    const days = daysSince(apiData.dateDepot);
-    const depotDate = formatDate(apiData.dateDepot, true);
-    elements.detailDepotValue.textContent = `${formatDuration(days)} (${depotDate})`;
-    elements.detailDepot.classList.remove('hidden');
-    hasDetails = true;
-  } else {
-    elements.detailDepot?.classList.add('hidden');
-  }
-
-  // Date d'entretien
-  if (apiData?.dateEntretien && elements.detailEntretien) {
-    elements.detailEntretienValue.textContent = formatDate(apiData.dateEntretien, true);
-    elements.detailEntretien.classList.remove('hidden');
-    hasDetails = true;
-  } else {
-    elements.detailEntretien?.classList.add('hidden');
   }
 
   // Lieu entretien
@@ -869,3 +845,11 @@ function drawStatCard(ctx, x, y, width, label, value, accentColor) {
     ctx.fillText(line.trim(), x + 12, lineY);
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Cleanup
+// ─────────────────────────────────────────────────────────────
+
+window.addEventListener('unload', () => {
+  stopQuoteCarousel();
+});

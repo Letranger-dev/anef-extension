@@ -10,14 +10,14 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor } from '../lib/status-parser.js';
+import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
 // ─────────────────────────────────────────────────────────────
 
-const ANEF_BASE_URL = 'https://administration-etrangers-en-france.interieur.gouv.fr';
-const LOG_STORAGE_KEY = 'debug_logs';
-const MAX_LOGS = 500;
+const LOG_STORAGE_KEY = LogConfig.STORAGE_KEY;
+const MAX_LOGS = LogConfig.MAX_LOGS;
 
 // ─────────────────────────────────────────────────────────────
 // Système de logs
@@ -383,25 +383,37 @@ async function openAnefPage(page) {
 // Actualisation en arrière-plan
 // ─────────────────────────────────────────────────────────────
 
+// Protection contre les appels simultanés (race condition)
+let isRefreshing = false;
+
 /**
- * Actualise le statut en arrière-plan.
- * Ouvre un onglet invisible, attend les données, puis le ferme.
+ * Actualise le statut en arrière-plan de manière discrète.
+ * Crée une fenêtre minimisée, attend les données, puis la ferme.
  * Si la session est expirée et que des identifiants sont enregistrés,
  * effectue une connexion automatique.
  */
 async function backgroundRefresh() {
+  // Éviter les appels simultanés
+  if (isRefreshing) {
+    logger.warn('⚠️ Actualisation déjà en cours, ignoré');
+    return { success: false, error: 'Actualisation déjà en cours' };
+  }
+
+  isRefreshing = true;
   logger.info('🔄 Démarrage actualisation...');
 
   // Configuration des délais
   const TIMEOUT_MS = 45000;
   const LOGIN_TIMEOUT_MS = 90000;
-  const CHECK_INTERVAL_MS = 500;     // Vérification 2x plus fréquente
-  const WAIT_BEFORE_CHECK_MS = 1500; // Réduit
-  const POST_LOGIN_WAIT_MS = 1000;   // Réduit - le script injecté gère l'attente Angular
-  const MON_COMPTE_URL = ANEF_BASE_URL + '/#/espace-personnel/mon-compte';
+  const CHECK_INTERVAL_MS = 500;
+  const WAIT_BEFORE_CHECK_MS = 1500;
+  const POST_LOGIN_WAIT_MS = 1000;
+  const MON_COMPTE_URL = ANEF_BASE_URL + ANEF_ROUTES.MON_COMPTE;
 
   // État
   let tabId = null;
+  let windowId = null;
+  let useWindow = true;
   let dataReceived = false;
   let needsLogin = false;
   let loginAttempted = { anef: false, sso: false };
@@ -417,10 +429,27 @@ async function backgroundRefresh() {
   const hasCredentials = !!(credentials?.username && credentials?.password);
 
   try {
-    // Créer un onglet en arrière-plan
-    const newTab = await chrome.tabs.create({ url: MON_COMPTE_URL, active: false });
-    tabId = newTab.id;
-    logger.info('✅ Onglet créé:', { tabId });
+    // Créer une fenêtre minimisée dès le départ
+    try {
+      const newWindow = await chrome.windows.create({
+        url: 'about:blank',
+        state: 'minimized'
+      });
+      windowId = newWindow.id;
+      tabId = newWindow.tabs[0].id;
+      useWindow = true;
+
+      // Naviguer vers l'URL après que la fenêtre soit minimisée
+      await chrome.tabs.update(tabId, { url: MON_COMPTE_URL });
+      logger.info('✅ Fenêtre minimisée créée:', { windowId, tabId });
+    } catch (winErr) {
+      // Fallback: créer un onglet inactif
+      logger.warn('Fenêtre impossible:', winErr.message);
+      const tab = await chrome.tabs.create({ url: MON_COMPTE_URL, active: false });
+      tabId = tab.id;
+      useWindow = false;
+      logger.info('✅ Onglet inactif créé:', { tabId });
+    }
 
     const startTime = Date.now();
     const timeout = hasCredentials ? LOGIN_TIMEOUT_MS : TIMEOUT_MS;
@@ -447,15 +476,10 @@ async function backgroundRefresh() {
       if (currentUrl !== lastUrl) {
         logger.info('📍 URL:', currentUrl.substring(0, 80));
 
-        // Détecter si on revient sur mon-compte après login
-        const wasOnLogin = lastUrl.includes('connexion-inscription') ||
-                          lastUrl.includes('authentification') ||
-                          lastUrl.includes('/auth') ||
-                          lastUrl.includes('/login') ||
-                          lastUrl.includes('sso.');
-        const isOnMonCompte = currentUrl.includes('mon-compte');
-        const isOnHomepage = currentUrl.endsWith('/#/') || currentUrl.endsWith('/#') ||
-                            currentUrl.match(/particuliers\/#\/?$/);
+        // Détecter si on revient sur mon-compte après login (utiliser URLPatterns)
+        const wasOnLogin = URLPatterns.isLoginPage(lastUrl);
+        const isOnMonCompte = URLPatterns.isMonCompte(currentUrl);
+        const isOnHomepage = URLPatterns.isHomepage(currentUrl);
 
         // Si on arrive sur la page d'accueil après login, naviguer vers mon-compte
         if (isOnHomepage && (loginAttempted.anef || loginAttempted.sso) && !loginCompleted) {
@@ -490,13 +514,8 @@ async function backgroundRefresh() {
 
       // Attendre que la page soit chargée
       if (elapsed > WAIT_BEFORE_CHECK_MS && tabInfo.status === 'complete') {
-        const isAnefLogin = currentUrl.includes('connexion-inscription');
-        const isSSOPage = !isAnefLogin && currentUrl.includes('.gouv.fr') && (
-          currentUrl.includes('authentification') ||
-          currentUrl.includes('agentconnect') ||
-          currentUrl.includes('/auth') ||
-          currentUrl.includes('/login')
-        );
+        const isAnefLogin = URLPatterns.isANEFLogin(currentUrl);
+        const isSSOPage = !isAnefLogin && URLPatterns.isSSOPage(currentUrl);
 
         // Page de connexion ANEF détectée
         if (isAnefLogin && !loginAttempted.anef && hasCredentials) {
@@ -580,8 +599,13 @@ async function backgroundRefresh() {
       }
     }
 
-    // Fermer l'onglet
-    if (tabId) {
+    // Fermer la fenêtre ou l'onglet
+    if (useWindow && windowId) {
+      try {
+        await chrome.windows.remove(windowId);
+        logger.info('🗑️ Fenêtre fermée');
+      } catch {}
+    } else if (tabId) {
       try {
         await chrome.tabs.remove(tabId);
         logger.info('🗑️ Onglet fermé');
@@ -611,11 +635,15 @@ async function backgroundRefresh() {
   } catch (error) {
     logger.error('Erreur actualisation:', error.message);
 
-    if (tabId) {
+    if (useWindow && windowId) {
+      try { await chrome.windows.remove(windowId); } catch {}
+    } else if (tabId) {
       try { await chrome.tabs.remove(tabId); } catch {}
     }
 
     return { success: false, error: error.message };
+  } finally {
+    isRefreshing = false;
   }
 }
 
