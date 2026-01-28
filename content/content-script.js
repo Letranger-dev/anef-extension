@@ -74,10 +74,28 @@
   // Réception des données interceptées
   // ─────────────────────────────────────────────────────────────
 
+  // Types de messages autorisés depuis le script injecté (whitelist sécurité)
+  const ALLOWED_MESSAGE_TYPES = [
+    'DOSSIER_DATA',
+    'DOSSIER_STEPPER',
+    'API_DATA',
+    'NOTIFICATIONS',
+    'USER_INFO',
+    'HISTORIQUE',
+    'MAINTENANCE',
+    'LOG'
+  ];
+
   window.addEventListener('ANEF_EXTENSION_DATA', function(event) {
     const { type, data } = event.detail || {};
 
-    if (type && data) {
+    // Validation: rejeter les types non autorisés
+    if (!type || !ALLOWED_MESSAGE_TYPES.includes(type)) {
+      logger.warn('Type de message non autorisé ignoré:', type);
+      return;
+    }
+
+    if (data) {
       chrome.runtime.sendMessage({ type, data })
         .then(() => logger.info('📤 Données envoyées:', type))
         .catch(e => logger.error('Erreur envoi:', e.message));
@@ -186,15 +204,19 @@
 
   let lastUrl = location.href;
   let injectedScriptTriggered = false;
+  let navigationObserver = null; // Référence pour éviter les créations multiples
 
   function setupNavigationObserver() {
+    // Éviter de créer plusieurs observers
+    if (navigationObserver) return;
+
     const target = document.body || document.documentElement;
     if (!target) {
       setTimeout(setupNavigationObserver, 500);
       return;
     }
 
-    new MutationObserver(() => {
+    navigationObserver = new MutationObserver(() => {
       if (location.href !== lastUrl) {
         const previousUrl = lastUrl;
         lastUrl = location.href;
@@ -217,7 +239,9 @@
           }, 800);
         }
       }
-    }).observe(target, { childList: true, subtree: true });
+    });
+
+    navigationObserver.observe(target, { childList: true, subtree: true });
   }
 
   /** Déclenche la récupération des données via le script injecté */
