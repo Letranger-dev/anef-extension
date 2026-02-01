@@ -10,7 +10,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, formatDate, formatDuration, daysSince } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince } from '../lib/status-parser.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM
@@ -136,20 +136,10 @@ async function loadHistory() {
   // Afficher la dernière vérification en haut
   let lastCheckHtml = '';
   if (lastCheck) {
-    const lastCheckDate = new Date(lastCheck);
-    const formattedDate = lastCheckDate.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-    const formattedTime = lastCheckDate.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
     lastCheckHtml = `
       <div class="last-check-banner">
         <span class="last-check-icon">🔄</span>
-        <span>Dernière vérification : <strong>${formattedDate} à ${formattedTime}</strong></span>
+        <span>Dernière vérification : <strong>${formatDate(lastCheck, true)}</strong></span>
       </div>
     `;
   }

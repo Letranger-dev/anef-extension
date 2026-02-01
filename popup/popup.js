@@ -7,7 +7,7 @@
  * - Les détails du dossier
  */
 
-import { getStatusExplanation, formatDuration, formatDate, daysSince, isPositiveStatus, isNegativeStatus } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus } from '../lib/status-parser.js';
 import { downloadLogs, clearLogs } from '../lib/logger.js';
 import { checkForUpdate, dismissUpdate, isUpdateDismissed } from '../lib/version-check.js';
 
@@ -475,13 +475,7 @@ function displayLastCheck(lastCheck) {
   if (!elements.lastCheckDate) return;
 
   if (lastCheck) {
-    const date = new Date(lastCheck);
-    elements.lastCheckDate.textContent = date.toLocaleString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    elements.lastCheckDate.textContent = formatDateShort(lastCheck);
   } else {
     elements.lastCheckDate.textContent = 'Jamais';
   }
@@ -635,8 +629,8 @@ async function downloadStatusImage() {
 
     // Date et heure
     const now = new Date();
-    const dateStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = formatDate(now);
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
     ctx.font = '11px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ctx.fillText(`${dateStr} à ${timeStr}`, 20, 42);
