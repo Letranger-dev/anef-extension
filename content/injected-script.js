@@ -14,7 +14,7 @@
   const SOURCE = 'InjectedScript';
 
   function log(msg, data) {
-    const timestamp = new Date().toISOString().substring(11, 23);
+    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
     console.log(data ? `${LOG_PREFIX} [${timestamp}] ${msg}` : `${LOG_PREFIX} [${timestamp}] ${msg}`, data || '');
 
     // Envoyer le log au content-script pour stockage centralisé
@@ -27,7 +27,7 @@
   }
 
   function logError(msg, data) {
-    const timestamp = new Date().toISOString().substring(11, 23);
+    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
     console.error(`${LOG_PREFIX} [${timestamp}] ${msg}`, data || '');
 
     sendToExtension('LOG', {

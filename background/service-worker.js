@@ -9,7 +9,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor } from '../lib/status-parser.js';
+import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp } from '../lib/status-parser.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ const MAX_LOGS = LogConfig.MAX_LOGS;
 // ─────────────────────────────────────────────────────────────
 
 function formatTime() {
-  return new Date().toISOString().replace('T', ' ').substring(0, 23);
+  return formatTimestamp();
 }
 
 async function saveLog(entry) {

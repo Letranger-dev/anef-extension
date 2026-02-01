@@ -19,7 +19,7 @@
   const LOG_PREFIX = '[ANEF-CS]';
 
   function log(level, message, data = null) {
-    const timestamp = new Date().toISOString().substring(11, 23);
+    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
     const prefix = `${LOG_PREFIX} [${timestamp}] [${level}]`;
 
     console.log(data ? `${prefix} ${message}` : `${prefix} ${message}`, data || '');
