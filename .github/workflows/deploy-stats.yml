@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'docs/**'
+      - '.github/workflows/deploy-stats.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,12 +31,16 @@ jobs:
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" docs/shared/constants.js
           sed -i "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" docs/shared/constants.js
 
+      - name: Debug - Show first 15 lines of constants.js
+        run: head -15 docs/shared/constants.js
+
       - name: Verify no remaining tokens
         run: |
           if grep -q '__SUPABASE_URL__\|__SUPABASE_ANON_KEY__' docs/shared/constants.js; then
             echo "::error::Supabase tokens not replaced. Check that SUPABASE_URL and SUPABASE_ANON_KEY secrets are configured."
             exit 1
           fi
+          echo "Tokens successfully injected."
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
