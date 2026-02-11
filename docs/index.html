@@ -104,12 +104,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Dossiers suivis</div>
           <div class="kpi-value" id="kpi-dossiers">&mdash;</div>
-          <div class="kpi-sub">dossiers uniques</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Observations</div>
-          <div class="kpi-value violet" id="kpi-observations">&mdash;</div>
-          <div class="kpi-sub">changements de statut</div>
+          <div class="kpi-sub" id="kpi-dossiers-sub">dans la communaute</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Duree moyenne</div>
@@ -117,28 +112,8 @@
           <div class="kpi-sub" id="kpi-avg-sub">depuis le depot</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Duree mediane</div>
-          <div class="kpi-value orange" id="kpi-med-days">&mdash;</div>
-          <div class="kpi-sub" id="kpi-med-sub">depuis le depot</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Prefectures couvertes</div>
-          <div class="kpi-value" id="kpi-prefectures">&mdash;</div>
-          <div class="kpi-sub">prefectures differentes</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Taux de succes</div>
-          <div class="kpi-value green" id="kpi-success-rate">&mdash;</div>
-          <div class="kpi-sub" id="kpi-success-sub">etape 12 positive</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Dossier le plus rapide</div>
-          <div class="kpi-value green" id="kpi-fastest">&mdash;</div>
-          <div class="kpi-sub" id="kpi-fastest-sub"></div>
-        </div>
-        <div class="kpi-card">
           <div class="kpi-label">Derniere mise a jour</div>
-          <div class="kpi-value green" id="kpi-updated" style="font-size:1.25rem">&mdash;</div>
+          <div class="kpi-value green" id="kpi-updated" style="font-size:1.1rem">&mdash;</div>
           <div class="kpi-sub">de la base de donnees</div>
         </div>
       </div>
@@ -151,33 +126,63 @@
       <div class="timeline-wrapper" id="timeline-wrapper"></div>
     </div>
 
-    <!-- Doughnut + Summary -->
-    <div class="section" id="charts-section">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="chart-container" style="min-height:350px">
-          <h3>Répartition par étape actuelle</h3>
-          <canvas id="doughnut-chart"></canvas>
-          <p class="no-data" id="doughnut-no-data" style="display:none">Pas de donnees</p>
+    <!-- Attente SDANF -->
+    <div class="section" id="sdanf-wait-section">
+      <h2>File d'attente SDANF</h2>
+      <p class="section-subtitle">Dossiers au statut <code style="font-size:0.82rem;background:rgba(0,0,0,0.2);padding:0.1rem 0.3rem;border-radius:3px">controle_a_affecter</code> en attente de prise en charge</p>
+      <div class="dossier-toolbar" id="sdanf-toolbar" style="display:none">
+        <span class="dossier-count" id="sdanf-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="sdanf-sort" class="page-size-select" title="Trier">
+            <option value="days-desc">Attente &darr;</option>
+            <option value="days-asc">Attente &uarr;</option>
+            <option value="pref">Prefecture</option>
+          </select>
+          <select id="sdanf-pref-filter" class="page-size-select" title="Prefecture">
+            <option value="">Toutes</option>
+          </select>
+          <select id="sdanf-page-size" class="page-size-select" title="Par page">
+            <option value="5" selected>5 par page</option>
+            <option value="10">10 par page</option>
+            <option value="20">20 par page</option>
+          </select>
         </div>
-        <div id="summary-cards-section">
-          <h3>Statut global</h3>
-          <div class="summary-grid" id="summary-cards"></div>
+        <div class="pagination">
+          <button id="sdanf-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="sdanf-page-info" class="page-info">1/1</span>
+          <button id="sdanf-btn-next" class="btn-page">&rarr;</button>
         </div>
       </div>
+      <div id="sdanf-kpis" class="kpi-grid" style="margin-bottom:0.75rem"></div>
+      <div class="dossier-list" id="sdanf-list"></div>
     </div>
 
-    <!-- Passages SDANF — CAE -->
-    <div class="section" id="cae-section">
-      <h2>Passages SDANF (contr&ocirc;le_a_effectuer)</h2>
-      <p class="section-subtitle">Transition contr&ocirc;le_a_affecter &rarr; contr&ocirc;le_a_effectuer : prise en charge du dossier par la SDANF</p>
-      <div id="cae-today" class="cae-today-banner"></div>
-      <ul class="activity-feed" id="cae-feed"></ul>
+    <!-- Summary Cards -->
+    <div class="section" id="charts-section">
+      <h2>Statut global</h2>
+      <div class="summary-grid" id="summary-cards"></div>
     </div>
 
     <!-- Recent Activity -->
     <div class="section" id="activity-section">
       <h2>Activite recente</h2>
-      <p class="section-subtitle">15 dernieres transitions d'etape</p>
+      <p class="section-subtitle">Transitions d'etape observees</p>
+      <div class="dossier-toolbar" id="activity-toolbar" style="display:none">
+        <span class="dossier-count" id="activity-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="activity-page-size" class="page-size-select" title="Par page">
+            <option value="5" selected>5 par page</option>
+            <option value="10">10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="50">50 par page</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="activity-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="activity-page-info" class="page-info">1/1</span>
+          <button id="activity-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
       <ul class="activity-feed" id="activity-feed"></ul>
     </div>
 
@@ -203,6 +208,7 @@
   <script src="shared/constants.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/stats-math.js"></script>
+  <script src="config.local.js" onerror="/* not in local dev */"></script>
   <script src="shared/data.js"></script>
   <script src="shared/charts.js"></script>
   <script src="shared/filters.js"></script>

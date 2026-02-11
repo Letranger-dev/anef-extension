@@ -234,6 +234,8 @@ async function handleApiData(data) {
     dateEntretien: data.entretien_date,
     lieuEntretien: data.entretien_lieu,
     prefecture: data.prefecture,
+    domicileCodePostal: data.domicile_code_postal,
+    domicileVille: data.domicile_ville,
     typeDemande: data.type_demande,
     complementInstruction: data.complement_instruction,
     rawTaxePayee: data.raw_taxe_payee,
