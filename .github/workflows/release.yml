@@ -59,16 +59,23 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
           body: |
-            ## Installation
+            ## Première installation
 
             1. Téléchargez le fichier ZIP ci-dessous
-            2. Décompressez le fichier
-            3. Ouvrez Chrome et accédez à `chrome://extensions`
+            2. Décompressez dans un **dossier permanent** (ex: `C:\Extensions\anef-tracker\`)
+            3. Ouvrez Chrome → `chrome://extensions`
             4. Activez le **Mode développeur** (en haut à droite)
             5. Cliquez sur **"Charger l'extension non empaquetée"**
             6. Sélectionnez le dossier décompressé
 
-            Et voilà, l'extension est installée ! 🎉
+            ## Mise à jour
+
+            1. Téléchargez le nouveau ZIP
+            2. Décompressez **dans le même dossier** que l'installation existante (écraser les fichiers)
+            3. Allez sur `chrome://extensions`
+            4. Cliquez sur le bouton **"Actualiser"** (🔄) de l'extension
+
+            > ⚠️ **Ne supprimez pas l'extension avant de recharger** — vous perdriez votre historique local. L'extension sauvegarde aussi vos données dans le cloud Chrome (sync), mais il est préférable de simplement actualiser.
           files: |
             anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
           draft: false

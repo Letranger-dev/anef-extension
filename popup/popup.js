@@ -7,7 +7,7 @@
  * - Les détails du dossier
  */
 
-import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep } from '../lib/status-parser.js';
 import { downloadLogs, clearLogs } from '../lib/logger.js';
 import { checkForUpdate, dismissUpdate, isUpdateDismissed } from '../lib/version-check.js';
 
@@ -324,7 +324,7 @@ function displayStatus(statusData, apiData, lastCheck) {
   // Icône et phase
   if (elements.statusIcon) elements.statusIcon.textContent = statusInfo.icon || '📋';
   if (elements.statusPhase) elements.statusPhase.textContent = statusInfo.phase;
-  if (elements.statusStep) elements.statusStep.textContent = `Étape ${statusInfo.etape}/12`;
+  if (elements.statusStep) elements.statusStep.textContent = `Étape ${formatSubStep(statusInfo.rang)}/12`;
 
   // Code et description
   if (elements.statusCode) elements.statusCode.textContent = statut;
@@ -336,7 +336,9 @@ function displayStatus(statusData, apiData, lastCheck) {
       const days = daysSince(date_statut);
       const formattedDate = formatDate(date_statut, true);
       const duration = formatDuration(days);
-      elements.statusDate.textContent = `Mis à jour le ${formattedDate} (il y a ${duration})`;
+      elements.statusDate.textContent = days === 0
+        ? `Mis à jour le ${formattedDate} (aujourd'hui)`
+        : `Mis à jour le ${formattedDate} (il y a ${duration})`;
     } else {
       elements.statusDate.textContent = '—';
     }
@@ -385,7 +387,9 @@ function displayTemporalStats(statusData, apiData) {
 
     if (isPast) {
       const days = daysSince(dateEntretien);
-      elements.statEntretienValue.textContent = `Il y a ${formatDuration(days)}`;
+      elements.statEntretienValue.textContent = days === 0
+        ? "Aujourd'hui"
+        : `Il y a ${formatDuration(days)}`;
     } else {
       const days = Math.ceil((entretienDateObj - now) / 86400000);
       elements.statEntretienValue.textContent = `Dans ${formatDuration(days)}`;
@@ -667,7 +671,7 @@ async function downloadStatusImage() {
     ctx.fill();
     ctx.fillStyle = bleuFrance;
     ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`Étape ${statusInfo.etape}/12`, 46, cardY + 48);
+    ctx.fillText(`Étape ${formatSubStep(statusInfo.rang)}/12`, 46, cardY + 48);
 
     // Badge code statut
     ctx.font = '11px Monaco, Consolas, monospace';
@@ -734,8 +738,9 @@ async function downloadStatusImage() {
       const isPast = entretienDate < new Date();
       const label = isPast ? 'ENTRETIEN' : 'ENTRETIEN PRÉVU';
       const dateFormatted = formatDate(apiData.dateEntretien, true);
+      const entretienDays = daysSince(apiData.dateEntretien);
       const duration = isPast
-        ? `Il y a ${formatDuration(daysSince(apiData.dateEntretien))}`
+        ? (entretienDays === 0 ? "Aujourd'hui" : `Il y a ${formatDuration(entretienDays)}`)
         : `Dans ${formatDuration(Math.ceil((entretienDate - new Date()) / 86400000))}`;
       drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, label, `${dateFormatted} (${duration})`, bleuFrance);
       statIndex++;

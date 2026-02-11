@@ -10,7 +10,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep } from '../lib/status-parser.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM
@@ -26,6 +26,7 @@ const elements = {
 
   // Paramètres
   settingNotifications: document.getElementById('setting-notifications'),
+  settingAnonymousStats: document.getElementById('setting-anonymous-stats'),
   settingHistoryLimit: document.getElementById('setting-history-limit'),
   btnSaveSettings: document.getElementById('btn-save-settings'),
   btnResetSettings: document.getElementById('btn-reset-settings'),
@@ -176,7 +177,7 @@ async function loadHistory() {
         </div>
         <div class="history-step">
           <span class="step-label">étape</span>
-          <span class="step-number">${info.etape}</span>
+          <span class="step-number">${formatSubStep(info.rang)}</span>
           <span class="step-total">sur 12</span>
         </div>
       </div>
@@ -199,12 +200,14 @@ async function handleClearHistory() {
 async function loadSettings() {
   const settings = await storage.getSettings();
   elements.settingNotifications.checked = settings.notificationsEnabled;
+  elements.settingAnonymousStats.checked = settings.anonymousStatsEnabled;
   elements.settingHistoryLimit.value = settings.historyLimit.toString();
 }
 
 async function handleSaveSettings() {
   await storage.saveSettings({
     notificationsEnabled: elements.settingNotifications.checked,
+    anonymousStatsEnabled: elements.settingAnonymousStats.checked,
     historyLimit: parseInt(elements.settingHistoryLimit.value, 10)
   });
   showToast('Paramètres sauvegardés', 'success');
@@ -350,12 +353,12 @@ async function handleImport(event) {
 }
 
 async function handleClearAll() {
-  if (!confirm('Supprimer toutes les données ? Cette action est irréversible.')) return;
+  if (!confirm('Supprimer toutes les données (historique, paramètres) ?\nVos identifiants de connexion seront conservés.\nCette action est irréversible.')) return;
 
-  await storage.clear();
+  await storage.clearExceptCredentials();
   await loadHistory();
   await loadSettings();
-  showToast('Données supprimées', 'success');
+  showToast('Données supprimées (identifiants conservés)', 'success');
 }
 
 // ─────────────────────────────────────────────────────────────
