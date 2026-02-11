@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjHcKjXopwPkpDO4yzntzQDXaLmxXroeXlp7Lq1co1ys/u5KdKCFHAe7Muj1I1MwYvU34iQgJOgrmJivGXa8OhfOrH14kqwXL31oX4FMPQIrQS99e/fh/fY+LlasFiV2cckJ3sUygprD8L2T1K4rqoAF4yJGhbjW9JK+dcKroRrnoaHBLEh7STgArWd9r/EPRL3klMpUU8ZF7atVSb9aFNrTf8D2E918LHb/92tVivF4kfkgsYzGXGgAEW+Pzjy+0tlszo7vuiJHd/XyX5AdP3rIHkIL7YUcoiXk400KR4G4NM+/dCnsSO5VZkJmpxOWjFKa6MNHTkpLg+2ZoSrvW/QIDAQAB",
   "name": "ANEF Status Tracker",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Suivez votre statut de naturalisation ANEF en temps réel",
   "author": "ANEF Bot",
   "default_locale": "fr",

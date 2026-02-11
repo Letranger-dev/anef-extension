@@ -26,7 +26,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
         return;
       }
 
@@ -110,7 +110,7 @@
     var values = keys.map(function(k) { return groups[k].length; });
 
     var datasets = [{
-      label: 'Depots',
+      label: 'Dépôts',
       data: values,
       backgroundColor: 'rgba(59,130,246,0.3)',
       borderColor: '#3b82f6',
@@ -146,7 +146,7 @@
     });
 
     var datasets = [{
-      label: 'Duree moyenne (jours)',
+      label: 'Durée moyenne (jours)',
       data: avgValues,
       borderColor: '#f59e0b',
       backgroundColor: 'rgba(245,158,11,0.1)',
@@ -218,7 +218,7 @@
 
     var datasets = [
       {
-        label: 'Atteint etape 6+',
+        label: 'Atteint étape 6+',
         data: keys.map(function(k) { return cohorts[k].pctStep6; }),
         borderColor: '#8b5cf6',
         backgroundColor: 'rgba(139,92,246,0.1)',
@@ -226,7 +226,7 @@
         fill: false
       },
       {
-        label: 'Atteint etape 9+',
+        label: 'Atteint étape 9+',
         data: keys.map(function(k) { return cohorts[k].pctStep9; }),
         borderColor: '#f59e0b',
         backgroundColor: 'rgba(245,158,11,0.1)',
@@ -234,7 +234,7 @@
         fill: false
       },
       {
-        label: 'Atteint etape 12',
+        label: 'Atteint étape 12',
         data: keys.map(function(k) { return cohorts[k].pctStep12; }),
         borderColor: '#10b981',
         backgroundColor: 'rgba(16,185,129,0.1)',
@@ -265,7 +265,7 @@
 
     var allDays = Object.keys(dayCounts).sort();
     if (!allDays.length) {
-      container.innerHTML = '<p class="no-data">Pas de donnees</p>';
+      container.innerHTML = '<p class="no-data">Pas de données</p>';
       return;
     }
 

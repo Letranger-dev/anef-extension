@@ -41,7 +41,7 @@
     <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
       <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
       <p class="text-text-muted text-base">Statistiques communautaires</p>
-      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
     </div>
   </header>
 
@@ -50,8 +50,8 @@
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
       <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
     </div>
@@ -67,10 +67,10 @@
         <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
       </a>
       <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
         <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
@@ -84,7 +84,7 @@
   <!-- Evolution banner -->
   <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
     <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
     </div>
   </div>
 
@@ -100,7 +100,7 @@
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">Prefecture</span>
+        <span class="filter-label">Préfecture</span>
         <div id="filter-prefecture-container"></div>
       </div>
       <div class="filter-group">
@@ -108,7 +108,7 @@
         <div id="filter-status-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Granularite</span>
+        <span class="filter-label">Granularité</span>
         <div id="filter-granularity-container" class="filter-pills"></div>
       </div>
       <span class="filter-count" id="filter-count"></span>
@@ -116,48 +116,48 @@
 
     <!-- Deposit Timeline -->
     <div class="section">
-      <h2>Timeline des depots</h2>
-      <p class="section-subtitle">Nombre de dossiers deposes par periode</p>
+      <h2>Timeline des dépôts</h2>
+      <p class="section-subtitle">Nombre de dossiers déposés par période</p>
       <div class="chart-container" style="min-height:350px">
         <canvas id="deposit-chart"></canvas>
-        <p class="no-data" id="deposit-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="deposit-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
     <!-- Average duration trend -->
     <div class="section">
-      <h2>Tendance de la duree moyenne</h2>
-      <p class="section-subtitle">Duree moyenne par periode de depot</p>
+      <h2>Tendance de la durée moyenne</h2>
+      <p class="section-subtitle">Durée moyenne par période de dépôt</p>
       <div class="chart-container" style="min-height:350px">
         <canvas id="trend-chart"></canvas>
-        <p class="no-data" id="trend-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="trend-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
     <!-- Velocity -->
     <div class="section">
-      <h2>Velocite des transitions</h2>
-      <p class="section-subtitle">Nombre de changements d'etape par periode</p>
+      <h2>Vélocité des transitions</h2>
+      <p class="section-subtitle">Nombre de changements d'étape par période</p>
       <div class="chart-container" style="min-height:350px">
         <canvas id="velocity-chart"></canvas>
-        <p class="no-data" id="velocity-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="velocity-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
     <!-- Cohort Analysis -->
     <div class="section">
       <h2>Analyse de cohortes</h2>
-      <p class="section-subtitle">Progression des dossiers par periode de depot</p>
+      <p class="section-subtitle">Progression des dossiers par période de dépôt</p>
       <div class="chart-container" style="min-height:400px">
         <canvas id="cohort-chart"></canvas>
-        <p class="no-data" id="cohort-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="cohort-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
     <!-- Activity Calendar -->
     <div class="section">
-      <h2>Calendrier d'activite</h2>
-      <p class="section-subtitle">Activite quotidienne des observations (style GitHub)</p>
+      <h2>Calendrier d'activité</h2>
+      <p class="section-subtitle">Activité quotidienne des observations (style GitHub)</p>
       <div class="chart-container">
         <div class="calendar-grid" id="calendar-container"></div>
       </div>
@@ -166,10 +166,10 @@
     <!-- Snapshot Volume -->
     <div class="section">
       <h2>Volume de snapshots</h2>
-      <p class="section-subtitle">Nombre d'observations par periode (adoption de l'extension)</p>
+      <p class="section-subtitle">Nombre d'observations par période (adoption de l'extension)</p>
       <div class="chart-container" style="min-height:350px">
         <canvas id="volume-chart"></canvas>
-        <p class="no-data" id="volume-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="volume-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 

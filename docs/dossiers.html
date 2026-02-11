@@ -41,7 +41,7 @@
     <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
       <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
       <p class="text-text-muted text-base">Statistiques communautaires</p>
-      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
     </div>
   </header>
 
@@ -50,8 +50,8 @@
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
       <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
     </div>
@@ -67,10 +67,10 @@
         <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
       </a>
       <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
         <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
@@ -84,7 +84,7 @@
   <!-- Evolution banner -->
   <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
     <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
     </div>
   </div>
 
@@ -104,7 +104,7 @@
         <div id="filter-status-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Prefecture</span>
+        <span class="filter-label">Préfecture</span>
         <div id="filter-prefecture-container"></div>
       </div>
       <div class="filter-group">
@@ -112,7 +112,7 @@
         <div id="filter-outcome-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Complement</span>
+        <span class="filter-label">Complément</span>
         <div id="filter-complement-container"></div>
       </div>
       <div class="filter-group">
@@ -133,9 +133,9 @@
             <button class="view-btn" data-view="cards" title="Vue cartes">&#x25A6;</button>
           </div>
           <select id="sort-dossiers" title="Trier">
-            <option value="step-desc">Etape &darr;</option>
-            <option value="step-asc">Etape &uarr;</option>
-            <option value="duration-desc">Duree &darr;</option>
+            <option value="step-desc">Étape &darr;</option>
+            <option value="step-asc">Étape &uarr;</option>
+            <option value="duration-desc">Durée &darr;</option>
             <option value="status-recent">Statut recent</option>
           </select>
           <select id="page-size" class="page-size-select" title="Par page">
@@ -158,7 +158,7 @@
     <!-- Detail Table -->
     <div class="section" id="table-section">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-        <h2 style="border:none;margin:0;padding:0">Tableau detaille</h2>
+        <h2 style="border:none;margin:0;padding:0">Tableau détaillé</h2>
         <button class="btn-export" id="btn-export-csv">Exporter CSV</button>
       </div>
       <div class="dossier-toolbar" id="table-toolbar" style="display:none">
@@ -182,16 +182,16 @@
           <thead>
             <tr>
               <th class="sortable" data-col="hash">Hash</th>
-              <th class="sortable" data-col="step">Etape</th>
+              <th class="sortable" data-col="step">Étape</th>
               <th>Statut</th>
               <th class="sortable" data-col="daysAtStatus">Jours au statut</th>
-              <th class="sortable" data-col="deposit">Depot</th>
+              <th class="sortable" data-col="deposit">Dépôt</th>
               <th>Dernier statut</th>
               <th>Entretien</th>
               <th>Lieu</th>
-              <th>Decret</th>
-              <th>Prefecture</th>
-              <th>Complement</th>
+              <th>Décret</th>
+              <th>Préfecture</th>
+              <th>Complément</th>
             </tr>
           </thead>
           <tbody id="detail-tbody"></tbody>
@@ -201,10 +201,10 @@
 
     <!-- Histogram -->
     <div class="section" id="histogram-section">
-      <h2>Distribution des durees depuis le depot</h2>
+      <h2>Distribution des durées depuis le dépôt</h2>
       <div class="chart-container" style="min-height:350px">
         <canvas id="histogram-chart"></canvas>
-        <p class="no-data" id="histogram-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="histogram-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 

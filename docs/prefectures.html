@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ANEF Stats — Prefectures</title>
+  <title>ANEF Stats — Préfectures</title>
   <link rel="stylesheet" href="shared/common.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -41,7 +41,7 @@
     <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
       <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
       <p class="text-text-muted text-base">Statistiques communautaires</p>
-      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
     </div>
   </header>
 
@@ -50,8 +50,8 @@
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
       <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
     </div>
@@ -67,10 +67,10 @@
         <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
       </a>
       <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
         <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
@@ -84,14 +84,14 @@
   <!-- Evolution banner -->
   <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
     <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
     </div>
   </div>
 
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
     <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des prefectures...</p>
+    <p class="text-base">Chargement des préfectures...</p>
   </div>
 
   <!-- Main Content -->
@@ -104,7 +104,7 @@
         <div id="filter-status-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Echantillon min.</span>
+        <span class="filter-label">Échantillon min.</span>
         <div id="filter-min-sample" style="display:flex;align-items:center;gap:0.5rem"></div>
       </div>
       <span class="filter-count" id="filter-count"></span>
@@ -112,18 +112,18 @@
 
     <!-- Ranking table -->
     <div class="section">
-      <h2>Classement des prefectures</h2>
+      <h2>Classement des préfectures</h2>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-col="prefecture">Prefecture</th>
+              <th class="sortable" data-col="prefecture">Préfecture</th>
               <th class="sortable" data-col="total">Dossiers</th>
-              <th class="sortable" data-col="avg_days">Duree moy.</th>
-              <th class="sortable" data-col="median_days">Duree med.</th>
-              <th class="sortable" data-col="avg_step">Etape moy.</th>
+              <th class="sortable" data-col="avg_days">Durée moy.</th>
+              <th class="sortable" data-col="median_days">Durée méd.</th>
+              <th class="sortable" data-col="avg_step">Étape moy.</th>
               <th class="sortable" data-col="favorable_pct">Taux favorable</th>
-              <th class="sortable" data-col="complement_pct">Complements</th>
+              <th class="sortable" data-col="complement_pct">Compléments</th>
             </tr>
           </thead>
           <tbody id="ranking-tbody"></tbody>
@@ -133,17 +133,17 @@
 
     <!-- Horizontal bar chart -->
     <div class="section">
-      <h2>Comparaison des durees moyennes</h2>
+      <h2>Comparaison des durées moyennes</h2>
       <div class="chart-container" id="bar-chart-container" style="min-height:400px">
         <canvas id="prefecture-bar-chart"></canvas>
-        <p class="no-data" id="bar-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="bar-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
     <!-- Heatmap -->
     <div class="section">
-      <h2>Heatmap prefecture x etape</h2>
-      <p class="section-subtitle">Duree moyenne par cellule (jours)</p>
+      <h2>Heatmap préfecture x étape</h2>
+      <p class="section-subtitle">Durée moyenne par cellule (jours)</p>
       <div class="chart-container">
         <div class="heatmap-grid" id="heatmap-container"></div>
       </div>
@@ -155,16 +155,16 @@
       <div class="chart-container" style="min-height:400px">
         <div class="radar-controls" id="radar-controls"></div>
         <canvas id="radar-chart"></canvas>
-        <p class="no-data" id="radar-no-data" style="display:none">Selectionnez au moins 2 prefectures</p>
+        <p class="no-data" id="radar-no-data" style="display:none">Sélectionnez au moins 2 préfectures</p>
       </div>
     </div>
 
     <!-- Stacked bar: distribution par etape -->
     <div class="section">
-      <h2>Distribution par etape</h2>
+      <h2>Distribution par étape</h2>
       <div class="chart-container" style="min-height:400px">
         <canvas id="stacked-chart"></canvas>
-        <p class="no-data" id="stacked-no-data" style="display:none">Pas de donnees</p>
+        <p class="no-data" id="stacked-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 
