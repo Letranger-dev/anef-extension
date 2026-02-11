@@ -324,18 +324,30 @@ html { scroll-behavior: smooth; }
 /* ─── Global Timeline (metro) ──────────────────────────────── */
 
 .timeline-wrapper { overflow-x: auto; padding-bottom: 1rem; -webkit-overflow-scrolling: touch; position: relative; }
-.global-timeline { display: flex; position: relative; min-width: 540px; padding: 1.5rem 0 0.75rem; }
+.global-timeline { display: flex; position: relative; min-width: 700px; padding: 1.5rem 0 0.75rem; gap: 4px; }
 .global-timeline::before { content:''; position:absolute; top:calc(1.5rem + 9px); left:20px; right:20px; height:3px; background:var(--border); z-index:0; }
-.timeline-station { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; z-index:1; min-width:0; }
+.timeline-station { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; z-index:1; min-width:52px; padding:0 2px; }
 .station-dot { width:18px; height:18px; border-radius:50%; background:var(--bg); border:3px solid var(--border); margin-bottom:0.5rem; transition:all 0.3s; }
 .timeline-station.active .station-dot { border-color:var(--dot-color,var(--primary)); background:var(--dot-color,var(--primary)); box-shadow:0 0 8px var(--dot-color,var(--primary)); }
 .station-number { font-size:0.7rem; font-weight:700; color:var(--text-dim); }
 .timeline-station.active .station-number { color:var(--text); }
 .station-name { font-size:0.6rem; color:var(--text-dim); text-align:center; max-width:55px; line-height:1.2; }
 .timeline-station.active .station-name { color:var(--text-muted); }
-.station-markers { display:flex; gap:3px; flex-wrap:wrap; justify-content:center; margin-top:0.4rem; }
-.timeline-marker { font-size:0.58rem; color:#fff; padding:0.1rem 0.25rem; border-radius:6px; font-family:monospace; cursor:default; }
-.station-count { font-size:0.72rem; font-weight:700; color:var(--text-muted); margin-top:0.2rem; }
+.station-bubble {
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; color:#fff; font-size:0.7rem; font-weight:700;
+  margin-top:0.4rem; cursor:default; transition:transform 0.15s;
+  min-width:24px; min-height:24px;
+}
+.station-bubble:hover { transform:scale(1.1); }
+.station-sub-bubbles { display:flex; flex-direction:column; align-items:center; gap:3px; margin-top:0.4rem; }
+.station-sub-bubble {
+  display:flex; align-items:center; gap:0.25rem;
+  font-size:0.6rem; font-weight:600; color:#fff;
+  padding:0.15rem 0.4rem; border-radius:10px; cursor:default;
+  white-space:nowrap;
+}
+.station-sub-label { opacity:0.85; font-weight:500; }
 
 /* ─── Charts ───────────────────────────────────────────────── */
 
@@ -943,6 +955,16 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   /* Badges */
   .badge-percentile { font-size: 0.65rem; }
   .badge-complement { font-size: 0.65rem; }
+
+  /* View toggle & page size */
+  .view-btn { padding: 0.25rem 0.5rem; font-size: 0.95rem; }
+  .page-size-select { padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+
+  /* Dossier rows: show more meta */
+  .dossier-row { padding: 0.45rem 0.75rem; }
+  .dossier-row-status code { max-width: 300px; }
+  .dossier-row-meta { gap: 0.8rem; font-size: 0.75rem; }
+  .dossier-row-detail { padding: 1rem 1.15rem; }
 }
 
 
@@ -1005,6 +1027,155 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   gap: 0.3rem;
 }
 .filter-group .status-select { flex: 1; min-width: 0; }
+
+/* ─── View Toggle ─────────────────────────────────────────── */
+
+.view-toggle { display: inline-flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border); }
+.view-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.55rem;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.view-btn:hover { color: var(--text-muted); }
+.view-btn.active { background: var(--primary); color: #fff; }
+
+/* ─── Page Size Select ────────────────────────────────────── */
+
+.page-size-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.page-size-select:hover { border-color: var(--primary); }
+
+/* ─── Dossier List (compact rows) ─────────────────────────── */
+
+.dossier-list { display: flex; flex-direction: column; gap: 4px; }
+
+.dossier-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--card-accent, var(--primary));
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+.dossier-row:hover { background: var(--bg-card-hover); border-color: var(--card-accent, var(--primary)); }
+
+.dossier-row-main { flex: 1; min-width: 0; overflow: hidden; }
+
+.dossier-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.dossier-row-hash {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dossier-row-step {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 0.08rem 0.4rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.dossier-row-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.dossier-row-status code {
+  font-size: 0.75rem;
+  color: var(--text);
+  background: rgba(0,0,0,0.2);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.dossier-row-status .phase-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dossier-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+.dossier-row-meta span { white-space: nowrap; }
+
+.dossier-row-expand {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.dossier-row.expanded .dossier-row-expand { transform: rotate(180deg); }
+
+.dossier-row-detail {
+  display: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 0.75rem 0.85rem;
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+.dossier-row-detail.open { display: block; }
+
+/* ─── Badge Tri ───────────────────────────────────────────── */
+
+.badge-tri {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.15);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+}
 
 /* ─── Touch / hover safety ─────────────────────────────────── */
 

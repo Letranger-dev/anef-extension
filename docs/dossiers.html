@@ -128,11 +128,21 @@
       <div class="dossier-toolbar" id="dossier-toolbar" style="display:none">
         <span class="dossier-count" id="dossier-count">&mdash;</span>
         <div class="toolbar-controls">
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="list" title="Vue liste">&#x2630;</button>
+            <button class="view-btn" data-view="cards" title="Vue cartes">&#x25A6;</button>
+          </div>
           <select id="sort-dossiers" title="Trier">
             <option value="step-desc">Etape &darr;</option>
             <option value="step-asc">Etape &uarr;</option>
             <option value="duration-desc">Duree &darr;</option>
             <option value="status-recent">Statut recent</option>
+          </select>
+          <select id="page-size" class="page-size-select" title="Par page">
+            <option value="5" selected>5 par page</option>
+            <option value="10">10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="50">50 par page</option>
           </select>
         </div>
         <div class="pagination">
@@ -141,6 +151,7 @@
           <button id="btn-next" class="btn-page">&rarr;</button>
         </div>
       </div>
+      <div class="dossier-list" id="dossier-list"></div>
       <div class="dossier-grid" id="dossier-grid"></div>
     </div>
 
@@ -149,6 +160,22 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <h2 style="border:none;margin:0;padding:0">Tableau detaille</h2>
         <button class="btn-export" id="btn-export-csv">Exporter CSV</button>
+      </div>
+      <div class="dossier-toolbar" id="table-toolbar" style="display:none">
+        <span class="dossier-count" id="table-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="table-page-size" class="page-size-select" title="Par page">
+            <option value="5" selected>5 par page</option>
+            <option value="10">10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="50">50 par page</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="table-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="table-page-info" class="page-info">1/1</span>
+          <button id="table-btn-next" class="btn-page">&rarr;</button>
+        </div>
       </div>
       <div class="table-container">
         <table>
