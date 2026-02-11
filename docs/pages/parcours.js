@@ -26,7 +26,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
         return;
       }
 
@@ -102,11 +102,11 @@
     }
 
     var ranges = [
-      { label: 'Etapes 1-2 (Depot)', min: 1, max: 2, color: '#6b7280' },
-      { label: 'Etapes 3-5 (Instruction)', min: 3, max: 5, color: '#3b82f6' },
-      { label: 'Etapes 6-8 (Entretien)', min: 6, max: 8, color: '#8b5cf6' },
-      { label: 'Etapes 9-11 (Controle)', min: 9, max: 11, color: '#f59e0b' },
-      { label: 'Etape 12 (Finalise)', min: 12, max: 12, color: '#10b981' }
+      { label: 'Étapes 1-2 (Dépôt)', min: 1, max: 2, color: '#6b7280' },
+      { label: 'Étapes 3-5 (Instruction)', min: 3, max: 5, color: '#3b82f6' },
+      { label: 'Étapes 6-8 (Entretien)', min: 6, max: 8, color: '#8b5cf6' },
+      { label: 'Étapes 9-11 (Contrôle)', min: 9, max: 11, color: '#f59e0b' },
+      { label: 'Étape 12 (Finalisé)', min: 12, max: 12, color: '#10b981' }
     ];
 
     // Count dossiers that have reached at least this range
@@ -151,7 +151,7 @@
     var tbody = document.getElementById('transition-tbody');
 
     if (!transitions.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Pas de donnees</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Pas de données</td></tr>';
       return;
     }
 
@@ -252,7 +252,7 @@
     var values = curve.map(function(p) { return p.pctRemaining; });
 
     var datasets = [{
-      label: '% encore a l\'etape ' + step,
+      label: '% encore à l\'étape ' + step,
       data: values,
       borderColor: C.STEP_COLORS[step] || '#3b82f6',
       backgroundColor: (C.STEP_COLORS[step] || '#3b82f6') + '22',
@@ -264,7 +264,7 @@
 
     var config = CH.lineConfig(labels, datasets, { ySuffix: '%', beginAtZero: true });
     config.options.scales.y.max = 100;
-    config.options.scales.x.title = { display: true, text: 'Jours a l\'etape', color: '#94a3b8' };
+    config.options.scales.x.title = { display: true, text: 'Jours à l\'étape', color: '#94a3b8' };
     CH.create('survival', 'survival-chart', config);
   }
 
@@ -301,13 +301,13 @@
       return '<div class="comparison-card">' +
         '<h4 style="color:' + accent + '">' + title + '</h4>' +
         '<div class="comparison-stat"><span class="cs-label">Dossiers</span><span class="cs-value">' + stats.count + '</span></div>' +
-        '<div class="comparison-stat"><span class="cs-label">Duree moyenne</span><span class="cs-value">' + stats.avgDays + '</span></div>' +
-        '<div class="comparison-stat"><span class="cs-label">Etape moyenne</span><span class="cs-value">' + stats.avgStep + '</span></div>' +
-        '<div class="comparison-stat"><span class="cs-label">Taux succes</span><span class="cs-value">' + stats.successRate + '</span></div>' +
+        '<div class="comparison-stat"><span class="cs-label">Durée moyenne</span><span class="cs-value">' + stats.avgDays + '</span></div>' +
+        '<div class="comparison-stat"><span class="cs-label">Étape moyenne</span><span class="cs-value">' + stats.avgStep + '</span></div>' +
+        '<div class="comparison-stat"><span class="cs-label">Taux succès</span><span class="cs-value">' + stats.successRate + '</span></div>' +
       '</div>';
     }
 
-    container.innerHTML = card('Avec complement', statsWith, 'var(--orange)') + card('Sans complement', statsWithout, 'var(--green)');
+    container.innerHTML = card('Avec complément', statsWith, 'var(--orange)') + card('Sans complément', statsWithout, 'var(--green)');
   }
 
   // ─── Flow Diagram ───────────────────────────────────────

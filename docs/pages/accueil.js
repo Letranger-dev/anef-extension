@@ -19,8 +19,8 @@
       var snapshots = await D.loadData();
 
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible pour le moment.</p>' +
-          '<p style="font-size:0.85rem;margin-top:0.5rem;color:#94a3b8">Les donnees apparaitront quand des utilisateurs partageront leurs statistiques.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible pour le moment.</p>' +
+          '<p style="font-size:0.85rem;margin-top:0.5rem;color:#94a3b8">Les données apparaîtront quand des utilisateurs partageront leurs statistiques.</p></div>';
         return;
       }
 
@@ -33,7 +33,7 @@
       renderKPIs(summaries, snapshots);
       renderTimeline(summaries);
       renderSdanfWait(summaries);
-      renderSummaryCards(summaries);
+      renderEntretienPipeline(summaries);
       renderActivityFeed(snapshots, grouped);
 
     } catch (error) {
@@ -50,7 +50,7 @@
       if (summaries[j].prefecture) prefSet[summaries[j].prefecture] = true;
     }
     var nbPref = Object.keys(prefSet).length;
-    U.setText('kpi-dossiers-sub', nbPref + ' prefecture' + (nbPref > 1 ? 's' : ''));
+    U.setText('kpi-dossiers-sub', nbPref + ' préfecture' + (nbPref > 1 ? 's' : ''));
 
     // Duree moyenne depuis le depot
     var withDeposit = summaries.filter(function(s) { return s.daysSinceDeposit != null; });
@@ -61,7 +61,7 @@
       }
       var avgDays = Math.round(totalDays / withDeposit.length);
       U.setText('kpi-avg-days', U.formatDuration(avgDays));
-      U.setText('kpi-avg-sub', 'depuis le depot (' + withDeposit.length + ' dossiers)');
+      U.setText('kpi-avg-sub', 'depuis le dépôt (' + withDeposit.length + ' dossiers)');
     }
 
     // Derniere mise a jour
@@ -199,7 +199,7 @@
     kpis.innerHTML =
       '<div class="kpi-card"><div class="kpi-label">En attente</div><div class="kpi-value orange">' + total + '</div></div>' +
       '<div class="kpi-card"><div class="kpi-label">Moyenne</div><div class="kpi-value">' + avg + ' j</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Mediane</div><div class="kpi-value">' + med + ' j</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Médiane</div><div class="kpi-value">' + med + ' j</div></div>' +
       '<div class="kpi-card"><div class="kpi-label">Max</div><div class="kpi-value red">' + maxD + ' j</div></div>';
 
     // Pagination
@@ -261,19 +261,156 @@
     });
   }
 
-  function renderSummaryCards(summaries) {
-    var container = document.getElementById('summary-cards');
+  // ─── Phase entretien & decision prefecture ──────────────
 
-    var enAttente = summaries.filter(function(s) { return s.currentStep >= 3 && s.currentStep <= 11; }).length;
-    var naturalises = summaries.filter(function(s) { return s.currentStep === 12 && C.isPositiveStatus(s.statut); }).length;
-    var negatifs = summaries.filter(function(s) { return C.isNegativeStatus(s.statut); }).length;
-    var complements = summaries.filter(function(s) { return s.hasComplement; }).length;
+  var entretienState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '' };
 
-    container.innerHTML =
-      '<div class="summary-card"><div class="sc-label">En attente</div><div class="sc-value" style="color:var(--orange)">' + enAttente + '</div><div class="sc-sub">etapes 3-11</div></div>' +
-      '<div class="summary-card"><div class="sc-label">Naturalises</div><div class="sc-value" style="color:var(--green)">' + naturalises + '</div><div class="sc-sub">decision favorable</div></div>' +
-      '<div class="summary-card"><div class="sc-label">Decisions negatives</div><div class="sc-value" style="color:var(--red)">' + negatifs + '</div><div class="sc-sub">refus ou irrecevabilite</div></div>' +
-      '<div class="summary-card"><div class="sc-label">Complement demande</div><div class="sc-value" style="color:var(--violet)">' + complements + '</div><div class="sc-sub">pieces supplementaires</div></div>';
+  /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later) */
+  function isEntretienPassed(s) {
+    return s.rang >= 702;
+  }
+
+  function renderEntretienPipeline(summaries) {
+    // Steps 6-8: from completude/enquetes through decision prefecture
+    entretienState.all = summaries.filter(function(s) {
+      return s.currentStep >= 6 && s.currentStep <= 8;
+    });
+
+    // Populate prefecture filter
+    var prefs = {};
+    for (var i = 0; i < entretienState.all.length; i++) {
+      var p = entretienState.all[i].prefecture;
+      if (p) prefs[p] = true;
+    }
+    var prefSelect = document.getElementById('entretien-pref-filter');
+    Object.keys(prefs).sort().forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      prefSelect.appendChild(opt);
+    });
+
+    initEntretienControls();
+    renderEntretienPage();
+  }
+
+  function getEntretienFiltered() {
+    var data = entretienState.all;
+    if (entretienState.filter === 'passed') {
+      data = data.filter(function(s) { return isEntretienPassed(s); });
+    } else if (entretienState.filter === 'pending') {
+      data = data.filter(function(s) { return !isEntretienPassed(s); });
+    }
+    if (entretienState.pref) {
+      data = data.filter(function(s) { return s.prefecture === entretienState.pref; });
+    }
+    switch (entretienState.sort) {
+      case 'days-desc':
+        data = data.slice().sort(function(a, b) { return (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); });
+        break;
+      case 'days-asc':
+        data = data.slice().sort(function(a, b) { return (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); });
+        break;
+      case 'step-desc':
+        data = data.slice().sort(function(a, b) { return b.rang - a.rang || (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); });
+        break;
+      case 'step-asc':
+        data = data.slice().sort(function(a, b) { return a.rang - b.rang || (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); });
+        break;
+    }
+    return data;
+  }
+
+  function renderEntretienPage() {
+    var toolbar = document.getElementById('entretien-toolbar');
+    var list = document.getElementById('entretien-list');
+    var kpis = document.getElementById('entretien-kpis');
+    var data = getEntretienFiltered();
+
+    if (!entretienState.all.length) {
+      toolbar.style.display = 'none';
+      kpis.innerHTML = '';
+      list.innerHTML = '<p class="no-data">Aucun dossier en phase entretien</p>';
+      return;
+    }
+
+    // KPIs
+    var total = data.length;
+    var passed = data.filter(function(s) { return isEntretienPassed(s); }).length;
+    var pending = total - passed;
+    var daysArr = data.filter(function(s) { return s.daysSinceDeposit != null; }).map(function(s) { return s.daysSinceDeposit; });
+    var avg = daysArr.length ? Math.round(daysArr.reduce(function(a, b) { return a + b; }, 0) / daysArr.length) : 0;
+
+    kpis.innerHTML =
+      '<div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value">' + total + '</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Entretien passé</div><div class="kpi-value green">' + passed + '</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">En attente</div><div class="kpi-value orange">' + pending + '</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Durée moy.</div><div class="kpi-value">' + U.formatDuration(avg) + '</div><div class="kpi-sub">depuis le dépôt</div></div>';
+
+    // Pagination
+    var totalPages = Math.max(1, Math.ceil(data.length / entretienState.pageSize));
+    entretienState.page = Math.min(entretienState.page, totalPages);
+    var start = (entretienState.page - 1) * entretienState.pageSize;
+    var pageData = data.slice(start, start + entretienState.pageSize);
+
+    toolbar.style.display = 'flex';
+    document.getElementById('entretien-count').textContent = data.length + ' dossier' + (data.length > 1 ? 's' : '');
+    document.getElementById('entretien-page-info').textContent = entretienState.page + '/' + totalPages;
+    document.getElementById('entretien-btn-prev').disabled = entretienState.page <= 1;
+    document.getElementById('entretien-btn-next').disabled = entretienState.page >= totalPages;
+
+    // Render rows
+    var html = '';
+    for (var i = 0; i < pageData.length; i++) {
+      var s = pageData[i];
+      var color = C.STEP_COLORS[s.currentStep];
+      var passed_flag = isEntretienPassed(s);
+      var badgeClass = passed_flag ? 'badge-entretien-oui' : 'badge-entretien-non';
+      var badgeText = passed_flag ? 'Entretien passé' : 'En attente';
+      var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '—';
+
+      html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
+        '<div class="dossier-row-main">' +
+          '<div class="dossier-row-top">' +
+            '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
+            '<span class="' + badgeClass + '">' + badgeText + '</span>' +
+          '</div>' +
+          '<div class="dossier-row-status">' +
+            '<code class="statut-code">' + U.escapeHtml(s.statut) + '</code>' +
+            '<span class="phase-hint">' + U.escapeHtml(s.currentPhase) + '</span>' +
+          '</div>' +
+          '<div class="dossier-row-meta">' +
+            '<span>' + daysLabel + ' depuis le dépôt</span>' +
+            (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            (s.dateEntretien ? '<span>Entretien: ' + U.formatDateFr(s.dateEntretien) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    list.innerHTML = html;
+  }
+
+  function initEntretienControls() {
+    document.getElementById('entretien-sort').addEventListener('change', function(e) {
+      entretienState.sort = e.target.value; entretienState.page = 1; renderEntretienPage();
+    });
+    document.getElementById('entretien-filter').addEventListener('change', function(e) {
+      entretienState.filter = e.target.value; entretienState.page = 1; renderEntretienPage();
+    });
+    document.getElementById('entretien-pref-filter').addEventListener('change', function(e) {
+      entretienState.pref = e.target.value; entretienState.page = 1; renderEntretienPage();
+    });
+    var sel = document.getElementById('entretien-page-size');
+    sel.addEventListener('change', function() {
+      entretienState.pageSize = parseInt(sel.value, 10); entretienState.page = 1; renderEntretienPage();
+    });
+    document.getElementById('entretien-btn-prev').addEventListener('click', function() {
+      if (entretienState.page > 1) { entretienState.page--; renderEntretienPage(); }
+    });
+    document.getElementById('entretien-btn-next').addEventListener('click', function() {
+      var totalPages = Math.ceil(getEntretienFiltered().length / entretienState.pageSize);
+      if (entretienState.page < totalPages) { entretienState.page++; renderEntretienPage(); }
+    });
   }
 
   // ─── Activity Feed with pagination ──────────────────────
@@ -336,7 +473,7 @@
 
     if (!all.length) {
       toolbar.style.display = 'none';
-      feed.innerHTML = '<li class="no-data">Aucune activite recente</li>';
+      feed.innerHTML = '<li class="no-data">Aucune activité récente</li>';
       return;
     }
 
@@ -358,11 +495,11 @@
 
       var text;
       if (t.fromStep === null) {
-        var toLabel = t.toExplication || C.PHASE_NAMES[t.toStep] || 'etape ' + t.toStep;
-        text = 'debut a l\'etape ' + t.toSousEtape + ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>';
+        var toLabel = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
+        text = 'début à l\'étape ' + t.toSousEtape + ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>';
       } else {
-        var fromLabel = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'etape ' + t.fromStep;
-        var toLabel2 = t.toExplication || C.PHASE_NAMES[t.toStep] || 'etape ' + t.toStep;
+        var fromLabel = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
+        var toLabel2 = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
         var durationBadge = '';
         if (t.daysForTransition !== null) {
           durationBadge = ' <span class="activity-duration">' + U.formatDuration(t.daysForTransition) + '</span>';

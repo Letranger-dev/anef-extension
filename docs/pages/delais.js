@@ -27,7 +27,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
         return;
       }
 
@@ -135,11 +135,11 @@
 
     var confEl = document.getElementById('est-confidence');
     if (result.confidence === 'none') {
-      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de donnees';
+      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de données';
     } else {
       var cls = result.confidence === 'high' ? 'confidence-high' : result.confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
-      var label = result.confidence === 'high' ? 'Fiabilite elevee' : result.confidence === 'medium' ? 'Fiabilite moyenne' : 'Fiabilite faible';
-      confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label + ' (echantillon moy. ' + result.sampleSize + ')';
+      var label = result.confidence === 'high' ? 'Fiabilité élevée' : result.confidence === 'medium' ? 'Fiabilité moyenne' : 'Fiabilité faible';
+      confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label + ' (échantillon moy. ' + result.sampleSize + ')';
     }
   }
 
@@ -194,7 +194,7 @@
         borderRadius: 4
       },
       {
-        label: 'Mediane (jours)',
+        label: 'Médiane (jours)',
         data: medValues,
         backgroundColor: '#f59e0b55',
         borderColor: '#f59e0b',
@@ -212,7 +212,7 @@
   function renderPercentileTable(durations) {
     var tbody = document.getElementById('percentile-tbody');
     if (!durations.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Pas de donnees</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Pas de données</td></tr>';
       return;
     }
 
@@ -269,7 +269,7 @@
 
     var datasets = [
       { label: 'P25 (optimiste)', data: cumP25, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: false, tension: 0.3 },
-      { label: 'P50 (mediane)', data: cumP50, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: false, tension: 0.3, borderWidth: 3 },
+      { label: 'P50 (médiane)', data: cumP50, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: false, tension: 0.3, borderWidth: 3 },
       { label: 'P75 (pessimiste)', data: cumP75, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: false, tension: 0.3 }
     ];
 
@@ -282,7 +282,7 @@
   function renderDurationTable(durations) {
     var tbody = document.getElementById('duration-tbody');
     if (!durations.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="no-data">Pas de donnees</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="no-data">Pas de données</td></tr>';
       return;
     }
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ANEF Stats — Accueil</title>
-  <meta name="description" content="Statistiques anonymes sur les delais de naturalisation francaise - donnees communautaires ANEF">
+  <meta name="description" content="Statistiques anonymes sur les délais de naturalisation française - données communautaires ANEF">
   <link rel="stylesheet" href="shared/common.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -41,8 +41,8 @@
   <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
     <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
       <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
-      <p class="text-text-muted text-base">Statistiques communautaires sur les delais de naturalisation</p>
-      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+      <p class="text-text-muted text-base">Statistiques communautaires sur les délais de naturalisation</p>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
     </div>
   </header>
 
@@ -51,8 +51,8 @@
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
       <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
     </div>
@@ -68,10 +68,10 @@
         <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
       </a>
       <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
         <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
@@ -85,7 +85,7 @@
   <!-- Evolution banner -->
   <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
     <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
     </div>
   </div>
 
@@ -104,17 +104,17 @@
         <div class="kpi-card">
           <div class="kpi-label">Dossiers suivis</div>
           <div class="kpi-value" id="kpi-dossiers">&mdash;</div>
-          <div class="kpi-sub" id="kpi-dossiers-sub">dans la communaute</div>
+          <div class="kpi-sub" id="kpi-dossiers-sub">dans la communauté</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Duree moyenne</div>
+          <div class="kpi-label">Durée moyenne</div>
           <div class="kpi-value orange" id="kpi-avg-days">&mdash;</div>
-          <div class="kpi-sub" id="kpi-avg-sub">depuis le depot</div>
+          <div class="kpi-sub" id="kpi-avg-sub">depuis le dépôt</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Derniere mise a jour</div>
+          <div class="kpi-label">Dernière mise à jour</div>
           <div class="kpi-value green" id="kpi-updated" style="font-size:1.1rem">&mdash;</div>
-          <div class="kpi-sub">de la base de donnees</div>
+          <div class="kpi-sub">de la base de données</div>
         </div>
       </div>
     </div>
@@ -122,7 +122,7 @@
     <!-- Metro Timeline -->
     <div class="section" id="timeline-section">
       <h2>Timeline globale</h2>
-      <p class="section-subtitle">Vue metro : chaque dossier est positionne a son etape actuelle</p>
+      <p class="section-subtitle">Vue métro : chaque dossier est positionné à son étape actuelle</p>
       <div class="timeline-wrapper" id="timeline-wrapper"></div>
     </div>
 
@@ -136,9 +136,9 @@
           <select id="sdanf-sort" class="page-size-select" title="Trier">
             <option value="days-desc">Attente &darr;</option>
             <option value="days-asc">Attente &uarr;</option>
-            <option value="pref">Prefecture</option>
+            <option value="pref">Préfecture</option>
           </select>
-          <select id="sdanf-pref-filter" class="page-size-select" title="Prefecture">
+          <select id="sdanf-pref-filter" class="page-size-select" title="Préfecture">
             <option value="">Toutes</option>
           </select>
           <select id="sdanf-page-size" class="page-size-select" title="Par page">
@@ -157,16 +157,47 @@
       <div class="dossier-list" id="sdanf-list"></div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="section" id="charts-section">
-      <h2>Statut global</h2>
-      <div class="summary-grid" id="summary-cards"></div>
+    <!-- Entretien pipeline -->
+    <div class="section" id="entretien-section">
+      <h2>Phase entretien &amp; décision préfecture</h2>
+      <p class="section-subtitle">Dossiers entre la convocation d'entretien et le passage en SDANF</p>
+      <div class="dossier-toolbar" id="entretien-toolbar" style="display:none">
+        <span class="dossier-count" id="entretien-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="entretien-sort" class="page-size-select" title="Trier">
+            <option value="days-desc">Ancienneté &darr;</option>
+            <option value="days-asc">Ancienneté &uarr;</option>
+            <option value="step-desc">Étape &darr;</option>
+            <option value="step-asc">Étape &uarr;</option>
+          </select>
+          <select id="entretien-filter" class="page-size-select" title="Entretien">
+            <option value="">Tous</option>
+            <option value="passed">Entretien passé</option>
+            <option value="pending">En attente</option>
+          </select>
+          <select id="entretien-pref-filter" class="page-size-select" title="Préfecture">
+            <option value="">Toutes</option>
+          </select>
+          <select id="entretien-page-size" class="page-size-select" title="Par page">
+            <option value="5" selected>5 par page</option>
+            <option value="10">10 par page</option>
+            <option value="20">20 par page</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="entretien-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="entretien-page-info" class="page-info">1/1</span>
+          <button id="entretien-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
+      <div id="entretien-kpis" class="kpi-grid" style="margin-bottom:0.75rem"></div>
+      <div class="dossier-list" id="entretien-list"></div>
     </div>
 
     <!-- Recent Activity -->
     <div class="section" id="activity-section">
-      <h2>Activite recente</h2>
-      <p class="section-subtitle">Transitions d'etape observees</p>
+      <h2>Activité récente</h2>
+      <p class="section-subtitle">Transitions d'étape observées</p>
       <div class="dossier-toolbar" id="activity-toolbar" style="display:none">
         <span class="dossier-count" id="activity-count">&mdash;</span>
         <div class="toolbar-controls">
@@ -188,12 +219,12 @@
 
     <!-- Privacy -->
     <div class="privacy">
-      <h3>Confidentialite et anonymat</h3>
+      <h3>Confidentialité et anonymat</h3>
       <ul>
-        <li>Le numero de dossier est remplace par un hash SHA-256 irreversible</li>
-        <li>Les dates sont tronquees au jour (pas d'heure ni de minute)</li>
-        <li>Aucune donnee personnelle n'est collectee (pas de nom, email, adresse)</li>
-        <li>Le partage est active par defaut et peut etre desactive dans les parametres</li>
+        <li>Le numéro de dossier est remplacé par un hash SHA-256 irréversible</li>
+        <li>Les dates sont tronquées au jour (pas d'heure ni de minute)</li>
+        <li>Aucune donnée personnelle n'est collectée (pas de nom, email, adresse)</li>
+        <li>Le partage est activé par défaut et peut être désactivé dans les paramètres</li>
       </ul>
     </div>
 
@@ -202,7 +233,7 @@
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
     <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Donnees collectees anonymement par les utilisateurs de l'extension</p>
+    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
   <script src="shared/constants.js"></script>

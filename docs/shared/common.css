@@ -1181,6 +1181,27 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   border-radius: 4px;
 }
 
+/* ─── Badges entretien ────────────────────────────────────── */
+
+.badge-entretien-oui {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16,185,129,0.15);
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+.badge-entretien-non {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.15);
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+
 /* ─── Touch / hover safety ─────────────────────────────────── */
 
 @media (hover: none) {

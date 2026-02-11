@@ -33,7 +33,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
         return;
       }
 
@@ -252,7 +252,7 @@
             '<span>' + daysAtStatus + ' au statut</span>' +
             '<span>' + totalDuration + ' total</span>' +
             (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
-            (s.hasComplement ? '<span style="color:var(--orange)">Complement</span>' : '') +
+            (s.hasComplement ? '<span style="color:var(--orange)">Complément</span>' : '') +
           '</div>' +
         '</div>' +
         '<button class="dossier-row-expand" aria-label="Details">&#x25BC;</button>' +
@@ -308,12 +308,12 @@
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
-    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Prefecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Préfecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
     if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
     if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
-    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Decret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
-    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complement demande</span>' : '';
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
 
     return '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
@@ -321,7 +321,7 @@
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
-        '<div class="duration-item"><span class="duration-label">Depuis le depot</span><span class="duration-value">' + totalDuration + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">Depuis le dépôt</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
@@ -366,12 +366,12 @@
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
-    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Prefecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Préfecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
     if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
     if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
-    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Decret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
-    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complement demande</span>' : '';
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
 
     return '<div class="dossier-card" style="--card-accent:' + color + '">' +
       '<div class="dossier-header">' +
@@ -384,7 +384,7 @@
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
-        '<div class="duration-item"><span class="duration-label">Depuis le depot</span><span class="duration-value">' + totalDuration + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">Depuis le dépôt</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
@@ -579,7 +579,7 @@
   function initExportCSV() {
     document.getElementById('btn-export-csv').addEventListener('click', function() {
       var filtered = getFiltered();
-      var headers = ['Hash', 'Etape', 'Statut', 'Jours au statut', 'Date depot', 'Date statut', 'Entretien', 'Lieu', 'Decret', 'Prefecture', 'Complement'];
+      var headers = ['Hash', 'Étape', 'Statut', 'Jours au statut', 'Date dépôt', 'Date statut', 'Entretien', 'Lieu', 'Décret', 'Préfecture', 'Complément'];
       var rows = [headers.join(',')];
 
       for (var i = 0; i < filtered.length; i++) {

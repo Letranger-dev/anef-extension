@@ -28,7 +28,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnee disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
         return;
       }
 
@@ -76,7 +76,7 @@
     // Apply min sample filter
     prefStats = prefStats.filter(function(p) { return p.total >= state.filters.minSample; });
 
-    document.getElementById('filter-count').textContent = filtered.length + ' dossiers, ' + prefStats.length + ' prefectures';
+    document.getElementById('filter-count').textContent = filtered.length + ' dossiers, ' + prefStats.length + ' préfectures';
 
     renderRankingTable(prefStats);
     renderBarChart(prefStats);
@@ -90,7 +90,7 @@
   function renderRankingTable(prefStats) {
     var tbody = document.getElementById('ranking-tbody');
     if (!prefStats.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Aucune prefecture</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Aucune préfecture</td></tr>';
       return;
     }
 
@@ -190,7 +190,7 @@
     var container = document.getElementById('heatmap-container');
 
     if (!prefStats.length) {
-      container.innerHTML = '<p class="no-data">Pas de donnees</p>';
+      container.innerHTML = '<p class="no-data">Pas de données</p>';
       return;
     }
 
@@ -258,7 +258,7 @@
     var html = '';
     for (var i = 0; i < 3; i++) {
       html += '<select class="radar-select" data-idx="' + i + '">' +
-        '<option value="">Prefecture ' + (i + 1) + '</option>';
+        '<option value="">Préfecture ' + (i + 1) + '</option>';
       for (var j = 0; j < prefNames.length; j++) {
         var sel = state.radarSelections[i] === prefNames[j] ? ' selected' : '';
         html += '<option value="' + U.escapeHtml(prefNames[j]) + '"' + sel + '>' + U.escapeHtml(prefNames[j]) + '</option>';
@@ -293,7 +293,7 @@
     noData.style.display = 'none';
 
     var radarColors = ['#3b82f6', '#10b981', '#f59e0b'];
-    var radarLabels = ['Duree moy. (inv.)', 'Echantillon', 'Etape moy.', 'Taux complement (inv.)', 'Taux succes'];
+    var radarLabels = ['Durée moy. (inv.)', 'Échantillon', 'Étape moy.', 'Taux complément (inv.)', 'Taux succès'];
 
     // Normalize values to 0-100
     var maxDays = Math.max.apply(null, prefStats.map(function(p) { return p.avg_days || 0; }));
