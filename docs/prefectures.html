@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANEF Stats — Prefectures</title>
+  <link rel="stylesheet" href="shared/common.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f172a',
+            'bg-card': '#1e293b',
+            'bg-hover': '#334155',
+            border: '#334155',
+            'text-main': '#e2e8f0',
+            'text-muted': '#94a3b8',
+            'text-dim': '#64748b',
+            primary: '#3b82f6',
+            'primary-light': '#60a5fa',
+            success: '#10b981',
+            warning: '#f59e0b',
+            violet: '#8b5cf6',
+            danger: '#ef4444',
+          },
+          maxWidth: { container: '1200px' },
+          borderRadius: { card: '12px' },
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
+    <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
+      <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
+      <p class="text-text-muted text-base">Statistiques communautaires</p>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+    </div>
+  </header>
+
+  <!-- Desktop Nav -->
+  <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
+    <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
+      <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-card/95 backdrop-blur-md border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="flex justify-around items-stretch h-14">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F3E0;</span>Accueil
+      </a>
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+      </a>
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+      </a>
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+      </a>
+      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
+      </a>
+      <a href="parcours.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F5FA;</span>Parcours
+      </a>
+    </div>
+  </nav>
+
+  <!-- Evolution banner -->
+  <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
+    <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
+      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="text-center py-12 text-text-muted">
+    <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
+    <p class="text-base">Chargement des prefectures...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="max-w-container mx-auto px-4 md:px-6 py-4 md:py-6 pb-20 md:pb-6" style="display:none">
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">Statut ANEF</span>
+        <div id="filter-status-container"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Echantillon min.</span>
+        <div id="filter-min-sample" style="display:flex;align-items:center;gap:0.5rem"></div>
+      </div>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+
+    <!-- Ranking table -->
+    <div class="section">
+      <h2>Classement des prefectures</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-col="prefecture">Prefecture</th>
+              <th class="sortable" data-col="total">Dossiers</th>
+              <th class="sortable" data-col="avg_days">Duree moy.</th>
+              <th class="sortable" data-col="median_days">Duree med.</th>
+              <th class="sortable" data-col="avg_step">Etape moy.</th>
+              <th class="sortable" data-col="favorable_pct">Taux favorable</th>
+              <th class="sortable" data-col="complement_pct">Complements</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Horizontal bar chart -->
+    <div class="section">
+      <h2>Comparaison des durees moyennes</h2>
+      <div class="chart-container" id="bar-chart-container" style="min-height:400px">
+        <canvas id="prefecture-bar-chart"></canvas>
+        <p class="no-data" id="bar-no-data" style="display:none">Pas de donnees</p>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="section">
+      <h2>Heatmap prefecture x etape</h2>
+      <p class="section-subtitle">Duree moyenne par cellule (jours)</p>
+      <div class="chart-container">
+        <div class="heatmap-grid" id="heatmap-container"></div>
+      </div>
+    </div>
+
+    <!-- Radar comparison -->
+    <div class="section">
+      <h2>Comparaison radar</h2>
+      <div class="chart-container" style="min-height:400px">
+        <div class="radar-controls" id="radar-controls"></div>
+        <canvas id="radar-chart"></canvas>
+        <p class="no-data" id="radar-no-data" style="display:none">Selectionnez au moins 2 prefectures</p>
+      </div>
+    </div>
+
+    <!-- Stacked bar: distribution par etape -->
+    <div class="section">
+      <h2>Distribution par etape</h2>
+      <div class="chart-container" style="min-height:400px">
+        <canvas id="stacked-chart"></canvas>
+        <p class="no-data" id="stacked-no-data" style="display:none">Pas de donnees</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome</p>
+  </footer>
+
+  <script src="shared/constants.js"></script>
+  <script src="shared/utils.js"></script>
+  <script src="shared/stats-math.js"></script>
+  <script src="shared/data.js"></script>
+  <script src="shared/charts.js"></script>
+  <script src="shared/filters.js"></script>
+  <script src="shared/searchable-select.js"></script>
+  <script src="shared/nav.js"></script>
+  <script src="pages/prefectures.js"></script>
+</body>
+</html>

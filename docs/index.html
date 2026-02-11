@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANEF Stats — Accueil</title>
+  <meta name="description" content="Statistiques anonymes sur les delais de naturalisation francaise - donnees communautaires ANEF">
+  <link rel="stylesheet" href="shared/common.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f172a',
+            'bg-card': '#1e293b',
+            'bg-hover': '#334155',
+            border: '#334155',
+            'text-main': '#e2e8f0',
+            'text-muted': '#94a3b8',
+            'text-dim': '#64748b',
+            primary: '#3b82f6',
+            'primary-light': '#60a5fa',
+            success: '#10b981',
+            warning: '#f59e0b',
+            violet: '#8b5cf6',
+            danger: '#ef4444',
+          },
+          maxWidth: { container: '1200px' },
+          borderRadius: { card: '12px' },
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
+    <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
+      <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
+      <p class="text-text-muted text-base">Statistiques communautaires sur les delais de naturalisation</p>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Donnees anonymes</span>
+    </div>
+  </header>
+
+  <!-- Desktop Nav (top sticky, hidden on mobile) -->
+  <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
+    <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Delais</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Prefectures</a>
+      <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
+      <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav (bottom tab bar, hidden on desktop) -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-card/95 backdrop-blur-md border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="flex justify-around items-stretch h-14">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F3E0;</span>Accueil
+      </a>
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+      </a>
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Delais
+      </a>
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Prefectures
+      </a>
+      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
+      </a>
+      <a href="parcours.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
+        <span class="text-xl leading-none mb-0.5">&#x1F5FA;</span>Parcours
+      </a>
+    </div>
+  </nav>
+
+  <!-- Evolution banner -->
+  <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
+    <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
+      Ce site est en constante evolution et s'ameliore chaque jour. N'hesitez pas a revenir regulierement pour decouvrir les nouveautes !
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="text-center py-12 text-text-muted">
+    <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
+    <p class="text-base">Chargement des statistiques...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="max-w-container mx-auto px-4 md:px-6 py-4 md:py-6 pb-20 md:pb-6" style="display:none">
+
+    <!-- KPIs -->
+    <div class="section" id="kpi-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Dossiers suivis</div>
+          <div class="kpi-value" id="kpi-dossiers">&mdash;</div>
+          <div class="kpi-sub">dossiers uniques</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Observations</div>
+          <div class="kpi-value violet" id="kpi-observations">&mdash;</div>
+          <div class="kpi-sub">changements de statut</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Duree moyenne</div>
+          <div class="kpi-value orange" id="kpi-avg-days">&mdash;</div>
+          <div class="kpi-sub" id="kpi-avg-sub">depuis le depot</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Duree mediane</div>
+          <div class="kpi-value orange" id="kpi-med-days">&mdash;</div>
+          <div class="kpi-sub" id="kpi-med-sub">depuis le depot</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prefectures couvertes</div>
+          <div class="kpi-value" id="kpi-prefectures">&mdash;</div>
+          <div class="kpi-sub">prefectures differentes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Taux de succes</div>
+          <div class="kpi-value green" id="kpi-success-rate">&mdash;</div>
+          <div class="kpi-sub" id="kpi-success-sub">etape 12 positive</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Dossier le plus rapide</div>
+          <div class="kpi-value green" id="kpi-fastest">&mdash;</div>
+          <div class="kpi-sub" id="kpi-fastest-sub"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Derniere mise a jour</div>
+          <div class="kpi-value green" id="kpi-updated" style="font-size:1.25rem">&mdash;</div>
+          <div class="kpi-sub">de la base de donnees</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metro Timeline -->
+    <div class="section" id="timeline-section">
+      <h2>Timeline globale</h2>
+      <p class="section-subtitle">Vue metro : chaque dossier est positionne a son etape actuelle</p>
+      <div class="timeline-wrapper" id="timeline-wrapper"></div>
+    </div>
+
+    <!-- Doughnut + Summary -->
+    <div class="section" id="charts-section">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="chart-container" style="min-height:350px">
+          <h3>Répartition par étape actuelle</h3>
+          <canvas id="doughnut-chart"></canvas>
+          <p class="no-data" id="doughnut-no-data" style="display:none">Pas de donnees</p>
+        </div>
+        <div id="summary-cards-section">
+          <h3>Statut global</h3>
+          <div class="summary-grid" id="summary-cards"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Passages SDANF — CAE -->
+    <div class="section" id="cae-section">
+      <h2>Passages SDANF (contr&ocirc;le_a_effectuer)</h2>
+      <p class="section-subtitle">Transition contr&ocirc;le_a_affecter &rarr; contr&ocirc;le_a_effectuer : prise en charge du dossier par la SDANF</p>
+      <div id="cae-today" class="cae-today-banner"></div>
+      <ul class="activity-feed" id="cae-feed"></ul>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section" id="activity-section">
+      <h2>Activite recente</h2>
+      <p class="section-subtitle">15 dernieres transitions d'etape</p>
+      <ul class="activity-feed" id="activity-feed"></ul>
+    </div>
+
+    <!-- Privacy -->
+    <div class="privacy">
+      <h3>Confidentialite et anonymat</h3>
+      <ul>
+        <li>Le numero de dossier est remplace par un hash SHA-256 irreversible</li>
+        <li>Les dates sont tronquees au jour (pas d'heure ni de minute)</li>
+        <li>Aucune donnee personnelle n'est collectee (pas de nom, email, adresse)</li>
+        <li>Le partage est active par defaut et peut etre desactive dans les parametres</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
+    <p>Donnees collectees anonymement par les utilisateurs de l'extension</p>
+  </footer>
+
+  <script src="shared/constants.js"></script>
+  <script src="shared/utils.js"></script>
+  <script src="shared/stats-math.js"></script>
+  <script src="shared/data.js"></script>
+  <script src="shared/charts.js"></script>
+  <script src="shared/filters.js"></script>
+  <script src="shared/nav.js"></script>
+  <script src="pages/accueil.js"></script>
+</body>
+</html>

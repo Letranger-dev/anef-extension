@@ -9,8 +9,9 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp } from '../lib/status-parser.js';
+import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
+import { sendAnonymousStats } from '../lib/anonymous-stats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -242,6 +243,12 @@ async function handleApiData(data) {
 
   await storage.saveApiData(apiData);
   logger.info('✅ Données API sauvegardées');
+
+  // Statistiques anonymes communautaires (fire-and-forget)
+  const lastStatus = await storage.getLastStatus();
+  if (lastStatus) {
+    sendAnonymousStats(lastStatus, apiData).catch(() => {});
+  }
 }
 
 /** Marque le site en maintenance */
@@ -320,10 +327,12 @@ async function sendStatusChangeNotification(data) {
 // Badge de l'extension
 // ─────────────────────────────────────────────────────────────
 
-/** Met à jour le badge avec l'étape actuelle */
+/** Met à jour le badge avec la sous-étape actuelle */
 async function updateBadge(statut) {
   const statusInfo = getStatusExplanation(statut);
-  const badgeText = statusInfo.etape > 0 ? statusInfo.etape.toString() : '';
+  const subStep = statusInfo.rang > 0 ? formatSubStep(statusInfo.rang) : '';
+  // Badge Chrome : max 4 chars, tronquer si nécessaire
+  const badgeText = subStep.length > 4 ? statusInfo.etape.toString() : subStep;
   const badgeColor = getStepColor(statusInfo.etape);
 
   try {
@@ -331,7 +340,7 @@ async function updateBadge(statut) {
     await chrome.action.setBadgeBackgroundColor({ color: badgeColor });
     await chrome.action.setTitle({
       title: statusInfo.found
-        ? `ANEF: ${statusInfo.phase} (${statusInfo.etape}/12)`
+        ? `ANEF: ${statusInfo.phase} (${subStep}/12)`
         : 'ANEF Status Tracker'
     });
   } catch (error) {
@@ -656,6 +665,28 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
   if (details.reason === 'install') {
     await storage.saveSettings(storage.DEFAULT_SETTINGS);
+    // Tenter de restaurer l'historique depuis sync (migration ou nouveau dossier)
+    const restored = await storage.restoreFromSync();
+    if (restored) {
+      logger.info('✅ Données restaurées depuis sync');
+      const lastStatus = await storage.getLastStatus();
+      if (lastStatus?.statut) await updateBadge(lastStatus.statut);
+    }
+  }
+
+  if (details.reason === 'update') {
+    // Vérifier l'intégrité des identifiants après mise à jour
+    const credCheck = await storage.verifyCredentialsIntegrity();
+    if (credCheck.status === 'ok') {
+      logger.info('✅ Identifiants intacts après mise à jour');
+    } else if (credCheck.status === 'corrupted') {
+      logger.warn('⚠️ Identifiants corrompus après mise à jour');
+    }
+
+    // Sauvegarder les données actuelles vers sync après mise à jour
+    storage.scheduleBackupToSync();
+    const lastStatus = await storage.getLastStatus();
+    if (lastStatus?.statut) await updateBadge(lastStatus.statut);
   }
 });
 
@@ -666,6 +697,9 @@ chrome.runtime.onStartup.addListener(async () => {
   if (lastStatus?.statut) {
     await updateBadge(lastStatus.statut);
   }
+
+  // Synchroniser le backup au démarrage
+  storage.scheduleBackupToSync();
 });
 
 // ─────────────────────────────────────────────────────────────
