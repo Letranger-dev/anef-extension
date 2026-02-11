@@ -103,30 +103,53 @@
   function renderTimeline(summaries) {
     var wrapper = document.getElementById('timeline-wrapper');
     var byStep = {};
+    var maxCount = 0;
     for (var i = 0; i < summaries.length; i++) {
       var s = summaries[i];
       if (!byStep[s.currentStep]) byStep[s.currentStep] = [];
       byStep[s.currentStep].push(s);
     }
+    for (var k in byStep) {
+      if (byStep[k].length > maxCount) maxCount = byStep[k].length;
+    }
+
+    function makeBubble(count, color, tooltip) {
+      var ratio = maxCount > 1 ? (count - 1) / (maxCount - 1) : 0;
+      var size = Math.round(24 + ratio * 28);
+      return '<div class="station-bubble" style="background:' + color + ';width:' + size + 'px;height:' + size + 'px" title="' + U.escapeHtml(tooltip) + '">' + count + '</div>';
+    }
 
     var html = '<div class="global-timeline">';
     for (var step = 1; step <= 12; step++) {
       var dossiers = byStep[step] || [];
+      var count = dossiers.length;
       var color = C.STEP_COLORS[step];
-      var isActive = dossiers.length > 0;
+      var isActive = count > 0;
 
-      var markers = '';
-      for (var j = 0; j < dossiers.length; j++) {
-        var d = dossiers[j];
-        markers += '<span class="timeline-marker" style="background:' + color + '" title="#' + U.escapeHtml(d.hash) + ' \u2014 ' + d.sousEtape + ' ' + U.escapeHtml(d.explication) + ' \u2014 ' + U.formatDuration(d.daysAtCurrentStatus) + '">' + U.escapeHtml(d.hash.substring(0, 3)) + '</span>';
+      var bubbleHtml = '';
+      if (count > 0) {
+        if (step === 9) {
+          // Split SDANF vs SCEC
+          var sdanf = 0, scec = 0;
+          for (var j = 0; j < dossiers.length; j++) {
+            if (dossiers[j].rang >= 903) scec++;
+            else sdanf++;
+          }
+          bubbleHtml = '<div class="station-sub-bubbles">';
+          if (sdanf > 0) bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + sdanf + ' dossier' + (sdanf > 1 ? 's' : '') + ' au controle SDANF"><span class="station-sub-label">SDANF</span>' + sdanf + '</span>';
+          if (scec > 0) bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + scec + ' dossier' + (scec > 1 ? 's' : '') + ' au controle SCEC"><span class="station-sub-label">SCEC</span>' + scec + '</span>';
+          bubbleHtml += '</div>';
+        } else {
+          var tooltip = count + ' dossier' + (count > 1 ? 's' : '') + ' \u2014 ' + C.PHASE_NAMES[step];
+          bubbleHtml = makeBubble(count, color, tooltip);
+        }
       }
 
       html += '<div class="timeline-station ' + (isActive ? 'active' : '') + '">' +
         '<div class="station-dot" style="--dot-color:' + color + '"></div>' +
         '<div class="station-number">' + step + '</div>' +
-        '<div class="station-name">' + C.PHASE_NAMES[step] + '</div>' +
-        '<div class="station-markers">' + markers + '</div>' +
-        (dossiers.length > 0 ? '<div class="station-count">' + dossiers.length + '</div>' : '') +
+        '<div class="station-name">' + C.PHASE_SHORT[step] + '</div>' +
+        bubbleHtml +
         '</div>';
     }
     html += '</div>';

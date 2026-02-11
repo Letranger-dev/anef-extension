@@ -6,16 +6,19 @@
 
   window.ANEF = window.ANEF || {};
 
+  var _SB_URL = '__SUPABASE_URL__';
+  var _SB_KEY = '__SUPABASE_ANON_KEY__';
+
   var CACHE_KEY = 'anef_snapshots';
   var CACHE_TTL = 300000; // 5 min
 
   /** Fetch all snapshots from Supabase REST API */
   async function fetchAllSnapshots() {
-    var url = ANEF.constants.SUPABASE_URL + '/rest/v1/dossier_snapshots?select=*&order=created_at.desc&limit=10000';
+    var url = _SB_URL + '/rest/v1/dossier_snapshots?select=*&order=created_at.desc&limit=10000';
     var res = await fetch(url, {
       headers: {
-        'apikey': ANEF.constants.SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + ANEF.constants.SUPABASE_ANON_KEY
+        'apikey': _SB_KEY,
+        'Authorization': 'Bearer ' + _SB_KEY
       }
     });
     if (!res.ok) throw new Error('Erreur API: ' + res.status);

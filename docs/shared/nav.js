@@ -22,8 +22,21 @@
     }
   }
 
+  /** Inject version tag in footer */
+  function initVersion() {
+    var footer = document.querySelector('footer');
+    if (!footer || !ANEF.constants || !ANEF.constants.SITE_VERSION) return;
+    var tag = document.createElement('p');
+    tag.style.cssText = 'margin-top:0.25rem;font-size:0.65rem;opacity:0.35;';
+    tag.textContent = 'v' + ANEF.constants.SITE_VERSION;
+    footer.appendChild(tag);
+  }
+
   // Auto-init on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', initNav);
+  document.addEventListener('DOMContentLoaded', function() {
+    initNav();
+    initVersion();
+  });
 
   ANEF.nav = {
     initNav: initNav

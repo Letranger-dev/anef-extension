@@ -17,9 +17,12 @@
     grouped: null,
     filters: {},
     page: 1,
-    pageSize: 12,
-    sort: 'step-desc',
-    tableSort: { col: null, dir: 'desc' }
+    pageSize: 5,
+    sort: 'status-recent',
+    view: 'list',
+    tableSort: { col: 'daysAtStatus', dir: 'asc' },
+    tablePage: 1,
+    tablePageSize: 5
   };
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -48,7 +51,10 @@
       var prefectures = D.getUniquePrefectures(state.summaries);
       initFilters(prefectures);
       initDossierControls();
+      initViewToggle();
+      initPageSize();
       initTableSort();
+      initTablePagination();
       initExportCSV();
       renderAll();
 
@@ -100,12 +106,41 @@
       countEl.textContent = filtered.length + ' / ' + state.summaries.length + ' dossiers';
     }
 
-    renderDossierCards(filtered);
+    renderDossiers(filtered);
     renderDetailTable(filtered);
     renderHistogram(filtered);
   }
 
-  // ─── Dossier Cards ───────────────────────────────────────
+  // ─── View Toggle ────────────────────────────────────────
+
+  function initViewToggle() {
+    var btns = document.querySelectorAll('.view-toggle .view-btn');
+    btns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var view = btn.dataset.view;
+        if (view === state.view) return;
+        state.view = view;
+        btns.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        renderAll();
+      });
+    });
+  }
+
+  // ─── Page Size ──────────────────────────────────────────
+
+  function initPageSize() {
+    var sel = document.getElementById('page-size');
+    if (!sel) return;
+    sel.value = String(state.pageSize);
+    sel.addEventListener('change', function() {
+      state.pageSize = parseInt(sel.value, 10);
+      state.page = 1;
+      renderAll();
+    });
+  }
+
+  // ─── Dossier Rendering (dispatch) ──────────────────────
 
   function getSorted(summaries) {
     var data = summaries.slice();
@@ -138,13 +173,17 @@
     return Math.round((1 - rank / (sorted.length - 1)) * 100);
   }
 
-  function renderDossierCards(filtered) {
+  function renderDossiers(filtered) {
     var toolbar = document.getElementById('dossier-toolbar');
     var grid = document.getElementById('dossier-grid');
+    var list = document.getElementById('dossier-list');
 
     if (!filtered.length) {
       toolbar.style.display = 'none';
-      grid.innerHTML = '<p class="no-data">Aucun dossier pour ce filtre</p>';
+      grid.innerHTML = '';
+      grid.style.display = 'none';
+      list.innerHTML = '<p class="no-data">Aucun dossier pour ce filtre</p>';
+      list.style.display = 'flex';
       return;
     }
 
@@ -161,12 +200,135 @@
     document.getElementById('btn-prev').disabled = state.page <= 1;
     document.getElementById('btn-next').disabled = state.page >= totalPages;
 
+    if (state.view === 'list') {
+      grid.innerHTML = '';
+      grid.style.display = 'none';
+      list.style.display = 'flex';
+      renderDossierRows(list, pageData, state.summaries);
+    } else {
+      list.innerHTML = '';
+      list.style.display = 'none';
+      grid.style.display = 'grid';
+      var html = '';
+      for (var i = 0; i < pageData.length; i++) {
+        html += renderOneCard(pageData[i], state.summaries);
+      }
+      grid.innerHTML = html;
+    }
+  }
+
+  // ─── List View (compact rows) ──────────────────────────
+
+  function renderDossierRows(container, pageData, allSummaries) {
     var html = '';
     for (var i = 0; i < pageData.length; i++) {
-      html += renderOneCard(pageData[i], state.summaries);
+      var s = pageData[i];
+      var color = C.getStepColor(s.currentStep);
+      var pct = computePercentile(s, allSummaries);
+      var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+      var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+
+      var pctBadge = '';
+      if (pct !== null) {
+        var pctClass = pct >= 70 ? 'fast' : pct >= 40 ? 'normal' : 'slow';
+        pctBadge = '<span class="badge-percentile ' + pctClass + '">Top ' + pct + '%</span>';
+      }
+
+      var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+
+      html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
+        '<div class="dossier-row-main">' +
+          '<div class="dossier-row-top">' +
+            '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
+            '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
+            pctBadge +
+          '</div>' +
+          '<div class="dossier-row-status">' +
+            '<code>' + U.escapeHtml(s.statut) + '</code>' +
+            '<span class="phase-hint">' + U.escapeHtml(s.explication) + '</span>' +
+            triBadge +
+          '</div>' +
+          '<div class="dossier-row-meta">' +
+            '<span>' + daysAtStatus + ' au statut</span>' +
+            '<span>' + totalDuration + ' total</span>' +
+            (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            (s.hasComplement ? '<span style="color:var(--orange)">Complement</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<button class="dossier-row-expand" aria-label="Details">&#x25BC;</button>' +
+      '</div>' +
+      '<div class="dossier-row-detail" data-detail-idx="' + i + '"></div>';
     }
-    grid.innerHTML = html;
+    container.innerHTML = html;
+
+    // Bind expand/collapse
+    var rows = container.querySelectorAll('.dossier-row');
+    rows.forEach(function(row) {
+      row.addEventListener('click', function() {
+        var idx = parseInt(row.dataset.rowIdx, 10);
+        var detail = container.querySelector('[data-detail-idx="' + idx + '"]');
+        var isOpen = detail.classList.contains('open');
+
+        if (isOpen) {
+          row.classList.remove('expanded');
+          detail.classList.remove('open');
+          detail.innerHTML = '';
+        } else {
+          row.classList.add('expanded');
+          detail.classList.add('open');
+          detail.innerHTML = renderRowDetail(pageData[idx], allSummaries);
+        }
+      });
+    });
   }
+
+  function renderRowDetail(s, allSummaries) {
+    var color = C.getStepColor(s.currentStep);
+
+    // Progress bar
+    var progressHtml = '';
+    for (var step = 1; step <= 12; step++) {
+      var isCompleted = s.stepsTraversed.indexOf(step) !== -1 && step < s.currentStep;
+      var isActive = step === s.currentStep;
+      var segColor = C.STEP_COLORS[step];
+      var cls = 'progress-seg';
+      if (isActive) cls += ' active';
+      else if (isCompleted) cls += ' completed';
+      progressHtml += '<div class="' + cls + '" style="--seg-color:' + segColor + '" title="' + step + '. ' + C.PHASE_NAMES[step] + '"></div>';
+    }
+
+    // Mini timeline
+    var miniTimeline = '';
+    for (var j = 0; j < s.stepsTraversed.length; j++) {
+      var st = s.stepsTraversed[j];
+      miniTimeline += '<span class="step-dot' + (st === s.currentStep ? ' current' : '') + '" style="background:' + C.STEP_COLORS[st] + '" title="' + st + '. ' + C.PHASE_NAMES[st] + '">' + st + '</span>';
+    }
+
+    var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+    var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+
+    var infoItems = '';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Prefecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
+    if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Decret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complement demande</span>' : '';
+
+    return '<div class="dossier-progress">' +
+        '<div class="progress-track">' + progressHtml + '</div>' +
+        '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span></div>' +
+      '</div>' +
+      '<div class="dossier-durations">' +
+        '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">Depuis le depot</span><span class="duration-value">' + totalDuration + '</span></div>' +
+      '</div>' +
+      (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
+      (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
+      '<div class="dossier-mini-timeline">' + miniTimeline + '</div>';
+  }
+
+  // ─── Card View ─────────────────────────────────────────
 
   function renderOneCard(s, allSummaries) {
     var color = C.getStepColor(s.currentStep);
@@ -198,6 +360,8 @@
       pctBadge = '<span class="badge-percentile ' + pctClass + '">Top ' + pct + '%</span>';
     }
 
+    var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+
     var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
@@ -216,7 +380,7 @@
       '</div>' +
       '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span></div>' +
+        '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span>' + triBadge + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
@@ -249,11 +413,8 @@
 
   // ─── Detail Table ────────────────────────────────────────
 
-  function renderDetailTable(filtered) {
-    var tbody = document.getElementById('detail-tbody');
+  function getTableSorted(filtered) {
     var data = filtered.slice();
-
-    // Apply table sort
     if (state.tableSort.col) {
       data.sort(function(a, b) {
         var va, vb;
@@ -269,15 +430,34 @@
         return 0;
       });
     }
+    return data;
+  }
+
+  function renderDetailTable(filtered) {
+    var tbody = document.getElementById('detail-tbody');
+    var toolbar = document.getElementById('table-toolbar');
+    var data = getTableSorted(filtered);
 
     if (!data.length) {
+      toolbar.style.display = 'none';
       tbody.innerHTML = '<tr><td colspan="11" class="no-data">Aucun dossier</td></tr>';
       return;
     }
 
+    var totalPages = Math.max(1, Math.ceil(data.length / state.tablePageSize));
+    state.tablePage = Math.min(state.tablePage, totalPages);
+    var start = (state.tablePage - 1) * state.tablePageSize;
+    var pageData = data.slice(start, start + state.tablePageSize);
+
+    toolbar.style.display = 'flex';
+    document.getElementById('table-count').textContent = data.length + ' dossier' + (data.length > 1 ? 's' : '');
+    document.getElementById('table-page-info').textContent = state.tablePage + '/' + totalPages;
+    document.getElementById('table-btn-prev').disabled = state.tablePage <= 1;
+    document.getElementById('table-btn-next').disabled = state.tablePage >= totalPages;
+
     var html = '';
-    for (var i = 0; i < data.length; i++) {
-      var s = data[i];
+    for (var i = 0; i < pageData.length; i++) {
+      var s = pageData[i];
       html += '<tr>' +
         '<td><code>#' + U.escapeHtml(s.hash) + '</code></td>' +
         '<td class="num">' + s.sousEtape + '/12</td>' +
@@ -297,6 +477,12 @@
 
   function initTableSort() {
     var ths = document.querySelectorAll('th.sortable');
+    // Apply default sort indicator
+    ths.forEach(function(th) {
+      if (th.dataset.col === state.tableSort.col) {
+        th.classList.add('sort-' + state.tableSort.dir);
+      }
+    });
     ths.forEach(function(th) {
       th.addEventListener('click', function() {
         var col = th.dataset.col;
@@ -306,11 +492,31 @@
           state.tableSort.col = col;
           state.tableSort.dir = 'desc';
         }
-        // Update header classes
+        state.tablePage = 1;
         ths.forEach(function(t) { t.classList.remove('sort-asc', 'sort-desc'); });
         th.classList.add('sort-' + state.tableSort.dir);
         renderAll();
       });
+    });
+  }
+
+  function initTablePagination() {
+    var sel = document.getElementById('table-page-size');
+    if (sel) {
+      sel.value = String(state.tablePageSize);
+      sel.addEventListener('change', function() {
+        state.tablePageSize = parseInt(sel.value, 10);
+        state.tablePage = 1;
+        renderAll();
+      });
+    }
+    document.getElementById('table-btn-prev').addEventListener('click', function() {
+      if (state.tablePage > 1) { state.tablePage--; renderAll(); }
+    });
+    document.getElementById('table-btn-next').addEventListener('click', function() {
+      var filtered = getFiltered();
+      var totalPages = Math.ceil(filtered.length / state.tablePageSize);
+      if (state.tablePage < totalPages) { state.tablePage++; renderAll(); }
     });
   }
 

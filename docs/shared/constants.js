@@ -6,8 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  const SUPABASE_URL = '__SUPABASE_URL__';
-  const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+  var SITE_VERSION = '1.5.0';
 
   // Palette par etape (index = numero d'etape)
   const STEP_COLORS = [
@@ -39,6 +38,21 @@
     10: 'Preparation decret',
     11: 'Publication JO',
     12: 'Decision finale'
+  };
+
+  const PHASE_SHORT = {
+    1: 'Brouillon',
+    2: 'Depot',
+    3: 'Verif.',
+    4: 'Affect.',
+    5: 'Instruction',
+    6: 'Completude',
+    7: 'Entretien',
+    8: 'Decision',
+    9: 'Controle',
+    10: 'Decret',
+    11: 'Publication',
+    12: 'Cloture'
   };
 
   const STEP_RANGES = {
@@ -349,10 +363,10 @@
   }
 
   ANEF.constants = {
-    SUPABASE_URL: SUPABASE_URL,
-    SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+    SITE_VERSION: SITE_VERSION,
     STEP_COLORS: STEP_COLORS,
     PHASE_NAMES: PHASE_NAMES,
+    PHASE_SHORT: PHASE_SHORT,
     STEP_RANGES: STEP_RANGES,
     STATUTS: STATUTS,
     isPositiveStatus: isPositiveStatus,
