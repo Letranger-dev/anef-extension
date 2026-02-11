@@ -6,8 +6,10 @@
 
   window.ANEF = window.ANEF || {};
 
-  var _SB_URL = '__SUPABASE_URL__';
-  var _SB_KEY = '__SUPABASE_ANON_KEY__';
+  var _cfg = window.__SB_CONFIG__ || {};
+  var _SB_URL = _cfg.url || '__SUPABASE_URL__';
+  var _SB_KEY = _cfg.key || '__SUPABASE_ANON_KEY__';
+  delete window.__SB_CONFIG__;
 
   var CACHE_KEY = 'anef_snapshots';
   var CACHE_TTL = 300000; // 5 min
@@ -79,6 +81,7 @@
       var hasComplement = false;
       var numeroDecret = latest.numero_decret;
       var lieuEntretien = latest.lieu_entretien;
+      var domicileCP = latest.domicile_code_postal;
 
       for (var j = 0; j < snaps.length; j++) {
         if (!dateEntretien && snaps[j].date_entretien) dateEntretien = snaps[j].date_entretien;
@@ -86,6 +89,12 @@
         if (snaps[j].has_complement) hasComplement = true;
         if (!numeroDecret && snaps[j].numero_decret) numeroDecret = snaps[j].numero_decret;
         if (!lieuEntretien && snaps[j].lieu_entretien) lieuEntretien = snaps[j].lieu_entretien;
+        if (!domicileCP && snaps[j].domicile_code_postal) domicileCP = snaps[j].domicile_code_postal;
+      }
+
+      // Fallback : dériver la préfecture du code postal domicile
+      if (!prefecture && domicileCP) {
+        prefecture = ANEF.constants.getDepartementFromCP(domicileCP);
       }
 
       var statutInfo = ANEF.constants.STATUTS[latest.statut];

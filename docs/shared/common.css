@@ -453,13 +453,14 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .activity-feed { list-style: none; padding: 0; }
 .activity-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.15rem 0.4rem;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.6rem 0;
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 .activity-item:last-child { border-bottom: none; }
 .activity-dot {
@@ -467,9 +468,12 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  grid-row: 1;
+  grid-column: 1;
 }
-.activity-hash { font-family: monospace; color: var(--text-muted); font-size: 0.85rem; }
-.activity-text { color: var(--text-dim); flex-basis: 100%; order: 3; padding-left: calc(10px + 0.4rem); font-size: 0.88rem; }
+.activity-hash { font-family: monospace; color: var(--text-muted); font-size: 0.8rem; grid-row: 1; grid-column: 2; }
+.activity-time { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; grid-row: 1; grid-column: 3; }
+.activity-text { color: var(--text-dim); font-size: 0.8rem; grid-row: 2; grid-column: 2 / -1; line-height: 1.35; }
 .activity-duration {
   display: inline-block;
   font-size: 0.75rem;
@@ -892,11 +896,11 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .summary-card { padding: 1rem 1.25rem; }
   .summary-card .sc-value { font-size: 1.5rem; }
 
-  /* Activity feed: single line */
-  .activity-item { flex-wrap: nowrap; gap: 0.75rem; font-size: 0.85rem; }
-  .activity-text { flex-basis: auto; order: 0; padding-left: 0; font-size: 0.85rem; }
-  .activity-time { order: 0; font-size: 0.75rem; }
-  .activity-hash { font-size: inherit; }
+  /* Activity feed: single row */
+  .activity-item { grid-template-columns: 10px auto 1fr auto; grid-template-rows: auto; gap: 0 0.6rem; font-size: 0.85rem; }
+  .activity-hash { grid-row: 1; grid-column: 2; font-size: 0.82rem; }
+  .activity-text { grid-row: 1; grid-column: 3; font-size: 0.82rem; }
+  .activity-time { grid-row: 1; grid-column: 4; font-size: 0.75rem; }
 
   /* CAE */
   .cae-today-banner { font-size: 0.9rem; padding: 0.85rem 1.1rem; }
