@@ -50,6 +50,33 @@ Puis suivez les étapes 3-6 ci-dessus.
 
 Vos identifiants sont stockés localement et ne sont jamais envoyés ailleurs.
 
+## Statistiques communautaires
+
+L'extension propose un **tableau de bord public** avec des statistiques anonymes sur les dossiers de naturalisation :
+
+**[Voir les statistiques](https://letranger-dev.github.io/anef-extension/)**
+
+### Ce que vous y trouverez
+
+- **Vue d'ensemble** des dossiers suivis par etape
+- **Delais moyens** entre chaque etape (depot, instruction, entretien, decret...)
+- **Comparaison par prefecture** pour situer votre attente
+- **Tendances** et evolution des delais dans le temps
+- **Parcours types** et goulots d'etranglement
+
+### Protection de vos donnees
+
+La confidentialite de vos donnees est notre priorite absolue. Voici les garanties :
+
+- **Aucune donnee personnelle n'est collectee** : ni nom, ni email, ni numero de dossier en clair
+- **Hash SHA-256 irreversible** : votre numero de dossier est transforme en empreinte cryptographique a sens unique — il est mathematiquement impossible de retrouver le numero original
+- **Dates tronquees** : seul le jour est conserve (pas l'heure)
+- **Opt-out possible** : vous pouvez desactiver l'envoi dans les parametres de l'extension a tout moment
+- **Code source ouvert** : le code de collecte (`lib/anonymous-stats.js`) est entierement lisible et verifiable
+- **Aucun cookie, aucun tracking** : le site de stats n'utilise ni cookies ni outils d'analyse
+
+Les donnees collectees se limitent a : statut ANEF, etape, prefecture, type de demande, et dates (depot, statut, entretien). Rien de plus.
+
 ## Codes statut
 
 L'extension traduit les codes cryptés en informations compréhensibles :
@@ -80,6 +107,8 @@ anef-extension/
 ├── lib/
 │   ├── storage.js          # Gestion du stockage
 │   ├── status-parser.js    # Dictionnaire des statuts
+│   ├── constants.js        # Constantes (Supabase, etc.)
+│   ├── anonymous-stats.js  # Envoi des stats anonymes
 │   └── logger.js           # Module de logging
 ├── popup/
 │   ├── popup.html          # Interface du popup
@@ -89,6 +118,14 @@ anef-extension/
 │   ├── options.html        # Page des paramètres
 │   ├── options.js          # Logique des paramètres
 │   └── options.css         # Styles des paramètres
+├── docs/                   # Site de statistiques (GitHub Pages)
+│   ├── index.html          # Accueil
+│   ├── dossiers.html       # Repartition des dossiers
+│   ├── delais.html         # Estimateur de delais
+│   ├── prefectures.html    # Comparaison par prefecture
+│   ├── tendances.html      # Tendances temporelles
+│   ├── parcours.html       # Analyse de parcours
+│   └── shared/             # JS/CSS partages entre les pages
 └── assets/
     └── icon-*.png          # Icônes de l'extension
 ```
