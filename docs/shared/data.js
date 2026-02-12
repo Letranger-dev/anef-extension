@@ -52,9 +52,12 @@
       if (!map.has(s.dossier_hash)) map.set(s.dossier_hash, []);
       map.get(s.dossier_hash).push(s);
     }
+    var STATUTS = ANEF.constants.STATUTS;
     map.forEach(function(snaps) {
       snaps.sort(function(a, b) {
-        return a.etape - b.etape || new Date(a.created_at) - new Date(b.created_at);
+        var rangA = STATUTS[a.statut] ? STATUTS[a.statut].rang : (a.etape * 100);
+        var rangB = STATUTS[b.statut] ? STATUTS[b.statut].rang : (b.etape * 100);
+        return rangA - rangB;
       });
     });
     return map;

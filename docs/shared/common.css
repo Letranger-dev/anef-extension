@@ -359,7 +359,8 @@ html { scroll-behavior: smooth; }
   border: 1px solid var(--border);
   margin-bottom: 1.5rem;
 }
-.chart-container canvas { max-height: 280px; }
+.chart-container canvas { max-height: 340px; }
+.chart-container--tall canvas { max-height: none; }
 .chart-container h3 { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem; }
 .chart-subtitle { font-size: 0.82rem; color: var(--text-dim); margin: -0.5rem 0 1rem; }
 .chart-container select {
@@ -788,6 +789,91 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .no-data { text-align: center; padding: 2rem; color: var(--text-dim); font-style: italic; }
 
 
+/* ─── Table Filters ───────────────────────────────────────── */
+
+.table-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.table-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.table-filter-group label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.table-filter-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 0.25rem 0.45rem;
+  font-size: 0.78rem;
+  width: 140px;
+}
+.table-filter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.date-sep {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+.table-filter-date {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 0.25rem 0.3rem;
+  font-size: 0.72rem;
+  width: 115px;
+  min-width: 0;
+}
+.table-filter-date:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.table-filter-date::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+/* Mobile: stack filter groups */
+@media (max-width: 767px) {
+  .table-filter-group {
+    width: 100%;
+  }
+  .table-filter-input {
+    flex: 1;
+    width: auto;
+  }
+  .table-filter-date {
+    flex: 1;
+    width: auto;
+  }
+}
+
 /* =============================================================
    DESKTOP OVERRIDES (min-width: 768px)
    ============================================================= */
@@ -997,7 +1083,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .status-select-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-select-dropdown {
   position: absolute; top: calc(100% + 4px); left: 0;
-  min-width: 100%; width: max-content; max-width: min(500px, 90vw);
+  width: min(500px, 90vw);
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 100;
   max-height: 350px; display: flex; flex-direction: column;
@@ -1011,12 +1097,13 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .status-select-group-label {
   padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 600;
   color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em;
-  background: rgba(255,255,255,0.03); position: sticky; top: 0;
+  background: var(--bg-card); position: sticky; top: 0; z-index: 1;
+  border-bottom: 1px solid var(--border);
 }
 .status-select-option {
   padding: 0.45rem 0.75rem 0.45rem 1.25rem;
   font-size: 0.82rem; color: var(--text-muted); cursor: pointer;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal; word-break: break-word; line-height: 1.4;
 }
 .status-select-option:hover { background: var(--bg-card-hover); color: var(--text); }
 .status-select-option.selected { color: var(--primary-light); }

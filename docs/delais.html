@@ -129,17 +129,17 @@
         </div>
         <div class="estimator-result" id="estimator-result">
           <div class="estimate-card">
-            <div class="estimate-label">Optimiste (P25)</div>
+            <div class="estimate-label">Rapide</div>
             <div class="estimate-value" style="color:var(--green)" id="est-p25">&mdash;</div>
             <div class="estimate-sub">25% font plus vite</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Médiane (P50)</div>
+            <div class="estimate-label">Typique</div>
             <div class="estimate-value" style="color:var(--primary-light)" id="est-p50">&mdash;</div>
-            <div class="estimate-sub">estimation typique</div>
+            <div class="estimate-sub">la plupart des dossiers</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Pessimiste (P75)</div>
+            <div class="estimate-label">Lent</div>
             <div class="estimate-value" style="color:var(--orange)" id="est-p75">&mdash;</div>
             <div class="estimate-sub">75% font plus vite</div>
           </div>
@@ -151,7 +151,7 @@
     <!-- Duration bar chart -->
     <div class="section">
       <h2>Durée depuis le dépôt par étape</h2>
-      <div class="chart-container" style="min-height:380px">
+      <div class="chart-container chart-container--tall" style="min-height:320px">
         <canvas id="duration-bar-chart"></canvas>
         <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de données</p>
       </div>
@@ -163,7 +163,7 @@
       <div class="table-container">
         <table>
           <thead>
-            <tr><th>Étape</th><th>P10</th><th>P25</th><th>P50</th><th>P75</th><th>P90</th><th>Échantillon</th></tr>
+            <tr><th>Étape</th><th>Très rapide</th><th>Rapide</th><th>Typique</th><th>Lent</th><th>Très lent</th><th>Échantillon</th></tr>
           </thead>
           <tbody id="percentile-tbody"></tbody>
         </table>
@@ -173,8 +173,8 @@
     <!-- Cumulative curve -->
     <div class="section">
       <h2>Courbe cumulative des durées</h2>
-      <p class="section-subtitle">Jours cumulés du dépôt à chaque étape (P25, P50, P75)</p>
-      <div class="chart-container" style="min-height:380px">
+      <p class="section-subtitle">Jours cumulés du dépôt à chaque étape (optimiste, typique, pessimiste)</p>
+      <div class="chart-container chart-container--tall" style="min-height:320px">
         <canvas id="cumulative-chart"></canvas>
         <p class="no-data" id="cumulative-no-data" style="display:none">Pas de données</p>
       </div>
@@ -186,7 +186,7 @@
       <div class="table-container">
         <table>
           <thead>
-            <tr><th>Étape</th><th>Moyenne</th><th>Médiane</th><th>P25</th><th>P75</th><th>Min</th><th>Max</th><th>Échantillon</th><th>~Mois</th></tr>
+            <tr><th>Étape</th><th>Moyenne</th><th>Typique</th><th>Rapide</th><th>Lent</th><th>Min</th><th>Max</th><th>Échantillon</th><th>~Mois</th></tr>
           </thead>
           <tbody id="duration-tbody"></tbody>
         </table>

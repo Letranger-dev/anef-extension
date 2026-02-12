@@ -125,6 +125,28 @@
     <!-- Dossier Cards -->
     <div class="section" id="dossier-section">
       <h2>Parcours des dossiers</h2>
+      <div class="table-filters" id="dossier-filters">
+        <div class="table-filter-group">
+          <label>Statut</label>
+          <input type="text" id="dossier-filter-statut" placeholder="Filtrer par statut..." class="table-filter-input">
+        </div>
+        <div class="table-filter-group">
+          <label>Date dépôt</label>
+          <div class="date-range">
+            <input type="date" id="dossier-filter-depot-min" class="table-filter-date" title="À partir du">
+            <span class="date-sep">→</span>
+            <input type="date" id="dossier-filter-depot-max" class="table-filter-date" title="Jusqu'au">
+          </div>
+        </div>
+        <div class="table-filter-group">
+          <label>Date statut</label>
+          <div class="date-range">
+            <input type="date" id="dossier-filter-statut-min" class="table-filter-date" title="À partir du">
+            <span class="date-sep">→</span>
+            <input type="date" id="dossier-filter-statut-max" class="table-filter-date" title="Jusqu'au">
+          </div>
+        </div>
+      </div>
       <div class="dossier-toolbar" id="dossier-toolbar" style="display:none">
         <span class="dossier-count" id="dossier-count">&mdash;</span>
         <div class="toolbar-controls">
@@ -160,6 +182,28 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <h2 style="border:none;margin:0;padding:0">Tableau détaillé</h2>
         <button class="btn-export" id="btn-export-csv">Exporter CSV</button>
+      </div>
+      <div class="table-filters" id="table-filters">
+        <div class="table-filter-group">
+          <label>Statut</label>
+          <input type="text" id="table-filter-statut" placeholder="Filtrer par statut..." class="table-filter-input">
+        </div>
+        <div class="table-filter-group">
+          <label>Date dépôt</label>
+          <div class="date-range">
+            <input type="date" id="table-filter-depot-min" class="table-filter-date" title="À partir du">
+            <span class="date-sep">→</span>
+            <input type="date" id="table-filter-depot-max" class="table-filter-date" title="Jusqu'au">
+          </div>
+        </div>
+        <div class="table-filter-group">
+          <label>Date statut</label>
+          <div class="date-range">
+            <input type="date" id="table-filter-statut-min" class="table-filter-date" title="À partir du">
+            <span class="date-sep">→</span>
+            <input type="date" id="table-filter-statut-max" class="table-filter-date" title="Jusqu'au">
+          </div>
+        </div>
       </div>
       <div class="dossier-toolbar" id="table-toolbar" style="display:none">
         <span class="dossier-count" id="table-count">&mdash;</span>

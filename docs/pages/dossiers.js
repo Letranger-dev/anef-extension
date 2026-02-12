@@ -22,7 +22,21 @@
     view: 'list',
     tableSort: { col: 'daysAtStatus', dir: 'asc' },
     tablePage: 1,
-    tablePageSize: 5
+    tablePageSize: 5,
+    tableFilters: {
+      statut: '',
+      depotMin: '',
+      depotMax: '',
+      statutDateMin: '',
+      statutDateMax: ''
+    },
+    dossierFilters: {
+      statut: '',
+      depotMin: '',
+      depotMax: '',
+      statutDateMin: '',
+      statutDateMax: ''
+    }
   };
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -51,10 +65,12 @@
       var prefectures = D.getUniquePrefectures(state.summaries);
       initFilters(prefectures);
       initDossierControls();
+      initDossierFilters();
       initViewToggle();
       initPageSize();
       initTableSort();
       initTablePagination();
+      initTableFilters();
       initExportCSV();
       renderAll();
 
@@ -173,12 +189,62 @@
     return Math.round((1 - rank / (sorted.length - 1)) * 100);
   }
 
+  function applyDossierFilters(filtered) {
+    var tf = state.dossierFilters;
+    return filtered.filter(function(s) {
+      if (tf.statut) {
+        var q = tf.statut.toLowerCase();
+        if ((s.statut || '').toLowerCase().indexOf(q) === -1) return false;
+      }
+      if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
+      if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
+      if (tf.statutDateMin && (s.dateStatut || '') < tf.statutDateMin) return false;
+      if (tf.statutDateMax && (s.dateStatut || '') > tf.statutDateMax) return false;
+      return true;
+    });
+  }
+
+  function initDossierFilters() {
+    var statutInput = document.getElementById('dossier-filter-statut');
+    var depotMin = document.getElementById('dossier-filter-depot-min');
+    var depotMax = document.getElementById('dossier-filter-depot-max');
+    var statutMin = document.getElementById('dossier-filter-statut-min');
+    var statutMax = document.getElementById('dossier-filter-statut-max');
+
+    statutInput.addEventListener('input', function() {
+      state.dossierFilters.statut = statutInput.value;
+      state.page = 1;
+      renderAll();
+    });
+    depotMin.addEventListener('change', function() {
+      state.dossierFilters.depotMin = depotMin.value;
+      state.page = 1;
+      renderAll();
+    });
+    depotMax.addEventListener('change', function() {
+      state.dossierFilters.depotMax = depotMax.value;
+      state.page = 1;
+      renderAll();
+    });
+    statutMin.addEventListener('change', function() {
+      state.dossierFilters.statutDateMin = statutMin.value;
+      state.page = 1;
+      renderAll();
+    });
+    statutMax.addEventListener('change', function() {
+      state.dossierFilters.statutDateMax = statutMax.value;
+      state.page = 1;
+      renderAll();
+    });
+  }
+
   function renderDossiers(filtered) {
+    var dossierData = applyDossierFilters(filtered);
     var toolbar = document.getElementById('dossier-toolbar');
     var grid = document.getElementById('dossier-grid');
     var list = document.getElementById('dossier-list');
 
-    if (!filtered.length) {
+    if (!dossierData.length) {
       toolbar.style.display = 'none';
       grid.innerHTML = '';
       grid.style.display = 'none';
@@ -187,7 +253,7 @@
       return;
     }
 
-    var sorted = getSorted(filtered);
+    var sorted = getSorted(dossierData);
     var totalPages = Math.max(1, Math.ceil(sorted.length / state.pageSize));
     state.page = Math.min(state.page, totalPages);
 
@@ -433,10 +499,60 @@
     return data;
   }
 
+  function applyTableFilters(filtered) {
+    var tf = state.tableFilters;
+    return filtered.filter(function(s) {
+      if (tf.statut) {
+        var q = tf.statut.toLowerCase();
+        if ((s.statut || '').toLowerCase().indexOf(q) === -1) return false;
+      }
+      if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
+      if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
+      if (tf.statutDateMin && (s.dateStatut || '') < tf.statutDateMin) return false;
+      if (tf.statutDateMax && (s.dateStatut || '') > tf.statutDateMax) return false;
+      return true;
+    });
+  }
+
+  function initTableFilters() {
+    var statutInput = document.getElementById('table-filter-statut');
+    var depotMin = document.getElementById('table-filter-depot-min');
+    var depotMax = document.getElementById('table-filter-depot-max');
+    var statutMin = document.getElementById('table-filter-statut-min');
+    var statutMax = document.getElementById('table-filter-statut-max');
+
+    statutInput.addEventListener('input', function() {
+      state.tableFilters.statut = statutInput.value;
+      state.tablePage = 1;
+      renderAll();
+    });
+    depotMin.addEventListener('change', function() {
+      state.tableFilters.depotMin = depotMin.value;
+      state.tablePage = 1;
+      renderAll();
+    });
+    depotMax.addEventListener('change', function() {
+      state.tableFilters.depotMax = depotMax.value;
+      state.tablePage = 1;
+      renderAll();
+    });
+    statutMin.addEventListener('change', function() {
+      state.tableFilters.statutDateMin = statutMin.value;
+      state.tablePage = 1;
+      renderAll();
+    });
+    statutMax.addEventListener('change', function() {
+      state.tableFilters.statutDateMax = statutMax.value;
+      state.tablePage = 1;
+      renderAll();
+    });
+  }
+
   function renderDetailTable(filtered) {
     var tbody = document.getElementById('detail-tbody');
     var toolbar = document.getElementById('table-toolbar');
-    var data = getTableSorted(filtered);
+    var tableData = applyTableFilters(filtered);
+    var data = getTableSorted(tableData);
 
     if (!data.length) {
       toolbar.style.display = 'none';

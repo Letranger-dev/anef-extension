@@ -132,17 +132,38 @@
 
   // ─── File d'attente SDANF ────────────────────────────────
 
-  var sdanfState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '' };
+  var sdanfState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '' };
 
   function renderSdanfWait(summaries) {
-    // Filter dossiers at statut "controle_a_affecter"
-    sdanfState.all = summaries.filter(function(s) { return s.statut === 'controle_a_affecter'; });
+    // Filter dossiers at etape 9 (all SDANF & SCEC statuses)
+    sdanfState.all = summaries.filter(function(s) { return s.currentStep === 9; });
 
-    // Populate prefecture filter
+    // Populate statut filter
+    var STATUT_LABELS = {
+      'controle_a_affecter': 'Attente affectation',
+      'controle_a_effectuer': 'Contrôle en cours',
+      'controle_en_attente_pec': 'Transmis SCEC',
+      'controle_pec_a_faire': 'Vérif. état civil'
+    };
+    var statuts = {};
     var prefs = {};
     for (var i = 0; i < sdanfState.all.length; i++) {
+      var st = sdanfState.all[i].statut;
+      if (st) statuts[st] = true;
       var p = sdanfState.all[i].prefecture;
       if (p) prefs[p] = true;
+    }
+    var statutSelect = document.getElementById('sdanf-statut-filter');
+    var statutKeys = Object.keys(statuts).sort(function(a, b) {
+      var ra = C.STATUTS[a] ? C.STATUTS[a].rang : 0;
+      var rb = C.STATUTS[b] ? C.STATUTS[b].rang : 0;
+      return ra - rb;
+    });
+    for (var j = 0; j < statutKeys.length; j++) {
+      var opt = document.createElement('option');
+      opt.value = statutKeys[j];
+      opt.textContent = STATUT_LABELS[statutKeys[j]] || statutKeys[j];
+      statutSelect.appendChild(opt);
     }
     var prefSelect = document.getElementById('sdanf-pref-filter');
     Object.keys(prefs).sort().forEach(function(p) {
@@ -158,6 +179,9 @@
 
   function getSdanfFiltered() {
     var data = sdanfState.all;
+    if (sdanfState.statut) {
+      data = data.filter(function(s) { return s.statut === sdanfState.statut; });
+    }
     if (sdanfState.pref) {
       data = data.filter(function(s) { return s.prefecture === sdanfState.pref; });
     }
@@ -184,23 +208,38 @@
     if (!sdanfState.all.length) {
       toolbar.style.display = 'none';
       kpis.innerHTML = '';
-      list.innerHTML = '<p class="no-data">Aucun dossier en attente SDANF</p>';
+      list.innerHTML = '<p class="no-data">Aucun dossier au contrôle SDANF/SCEC</p>';
       return;
     }
 
-    // KPIs
+    // KPIs — count by exact sub-status
+    var subCounts = {};
+    for (var k = 0; k < data.length; k++) {
+      var st = data[k].statut || 'inconnu';
+      subCounts[st] = (subCounts[st] || 0) + 1;
+    }
     var days = data.map(function(s) { return s.daysAtCurrentStatus || 0; });
     var total = data.length;
-    var avg = total ? Math.round(days.reduce(function(a, b) { return a + b; }, 0) / total) : 0;
     var maxD = total ? Math.max.apply(null, days) : 0;
-    var minD = total ? Math.min.apply(null, days) : 0;
-    var med = total ? U.medianCalc(days) : 0;
 
-    kpis.innerHTML =
-      '<div class="kpi-card"><div class="kpi-label">En attente</div><div class="kpi-value orange">' + total + '</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Moyenne</div><div class="kpi-value">' + avg + ' j</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Médiane</div><div class="kpi-value">' + med + ' j</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Max</div><div class="kpi-value red">' + maxD + ' j</div></div>';
+    var SUB_LABELS = {
+      'controle_a_affecter': { short: 'Attente affectation', cls: 'orange' },
+      'controle_a_effectuer': { short: 'Contrôle en cours', cls: '' },
+      'controle_en_attente_pec': { short: 'Transmis SCEC', cls: 'violet' },
+      'controle_pec_a_faire': { short: 'Vérif. état civil', cls: 'violet' }
+    };
+    var kpiHtml = '<div class="kpi-card"><div class="kpi-label">Total étape 9</div><div class="kpi-value">' + total + '</div></div>';
+    var subKeys = Object.keys(subCounts).sort(function(a, b) {
+      var ra = C.STATUTS[a] ? C.STATUTS[a].rang : 0;
+      var rb = C.STATUTS[b] ? C.STATUTS[b].rang : 0;
+      return ra - rb;
+    });
+    for (var sk = 0; sk < subKeys.length; sk++) {
+      var info = SUB_LABELS[subKeys[sk]] || { short: subKeys[sk], cls: '' };
+      var valCls = info.cls ? ' ' + info.cls : '';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">' + U.escapeHtml(info.short) + '</div><div class="kpi-value' + valCls + '">' + subCounts[subKeys[sk]] + '</div></div>';
+    }
+    kpis.innerHTML = kpiHtml;
 
     // Pagination
     var totalPages = Math.max(1, Math.ceil(data.length / sdanfState.pageSize));
@@ -216,22 +255,33 @@
 
     // Render rows
     var color = C.STEP_COLORS[9];
+    var BADGE_MAP = {
+      'controle_a_affecter': { text: '9.1 Attente affectation', cls: 'badge-entretien-non' },
+      'controle_a_effectuer': { text: '9.2 Contrôle en cours', cls: 'badge-entretien-non' },
+      'controle_en_attente_pec': { text: '9.3 Transmis SCEC', cls: 'badge-entretien-oui' },
+      'controle_pec_a_faire': { text: '9.4 Vérif. état civil', cls: 'badge-entretien-oui' }
+    };
     var html = '';
     for (var i = 0; i < pageData.length; i++) {
       var s = pageData[i];
       var d = s.daysAtCurrentStatus || 0;
       var urgency = d >= 60 ? 'var(--red)' : d >= 30 ? 'var(--orange)' : 'var(--green)';
+      var badge = BADGE_MAP[s.statut] || { text: s.sousEtape + ' ' + s.explication, cls: 'badge-entretien-non' };
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
-            '<span style="font-size:0.75rem;font-weight:700;color:' + urgency + '">' + d + ' j</span>' +
+            '<span class="' + badge.cls + '">' + U.escapeHtml(badge.text) + '</span>' +
+          '</div>' +
+          '<div class="dossier-row-status">' +
+            '<code class="statut-code">' + U.escapeHtml(s.statut) + '</code>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
-            (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            '<span style="font-weight:700;color:' + urgency + '">' + U.formatDuration(d) + '</span>' +
             (s.dateStatut ? '<span>depuis le ' + U.formatDateFr(s.dateStatut) + '</span>' : '') +
           '</div>' +
+          (s.prefecture ? '<div style="margin-top:0.2rem"><span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span></div>' : '') +
         '</div>' +
         '<div style="width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);flex-shrink:0">' +
           '<div style="width:' + Math.min(100, Math.round(d / Math.max(maxD, 1) * 100)) + '%;height:100%;border-radius:3px;background:' + urgency + '"></div>' +
@@ -244,6 +294,9 @@
   function initSdanfControls() {
     document.getElementById('sdanf-sort').addEventListener('change', function(e) {
       sdanfState.sort = e.target.value; sdanfState.page = 1; renderSdanfPage();
+    });
+    document.getElementById('sdanf-statut-filter').addEventListener('change', function(e) {
+      sdanfState.statut = e.target.value; sdanfState.page = 1; renderSdanfPage();
     });
     document.getElementById('sdanf-pref-filter').addEventListener('change', function(e) {
       sdanfState.pref = e.target.value; sdanfState.page = 1; renderSdanfPage();
