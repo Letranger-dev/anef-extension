@@ -128,8 +128,8 @@
 
     <!-- Attente SDANF -->
     <div class="section" id="sdanf-wait-section">
-      <h2>File d'attente SDANF</h2>
-      <p class="section-subtitle">Dossiers au statut <code style="font-size:0.82rem;background:rgba(0,0,0,0.2);padding:0.1rem 0.3rem;border-radius:3px">controle_a_affecter</code> en attente de prise en charge</p>
+      <h2>Contrôle SDANF & SCEC</h2>
+      <p class="section-subtitle">Dossiers à l'étape 9 — contrôle ministériel et vérification d'état civil</p>
       <div class="dossier-toolbar" id="sdanf-toolbar" style="display:none">
         <span class="dossier-count" id="sdanf-count">&mdash;</span>
         <div class="toolbar-controls">
@@ -138,8 +138,11 @@
             <option value="days-asc">Attente &uarr;</option>
             <option value="pref">Préfecture</option>
           </select>
+          <select id="sdanf-statut-filter" class="page-size-select" title="Statut">
+            <option value="">Tous les statuts</option>
+          </select>
           <select id="sdanf-pref-filter" class="page-size-select" title="Préfecture">
-            <option value="">Toutes</option>
+            <option value="">Toutes préfectures</option>
           </select>
           <select id="sdanf-page-size" class="page-size-select" title="Par page">
             <option value="5" selected>5 par page</option>

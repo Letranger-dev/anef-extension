@@ -15,7 +15,6 @@
     summaries: [],
     snapshots: [],
     grouped: null,
-    transitionsDetailed: null,
     filters: {}
   };
 
@@ -34,7 +33,6 @@
       state.snapshots = snapshots;
       state.grouped = D.groupByDossier(snapshots);
       state.summaries = D.computeDossierSummaries(state.grouped);
-      state.transitionsDetailed = M.computeTransitionsDetailed(state.grouped);
       state.filters = F.readFiltersFromURL();
 
       loading.style.display = 'none';
@@ -90,57 +88,100 @@
 
   // ─── Estimator ───────────────────────────────────────────
 
-  var estimatorStep = 3; // default step for estimator
+  var estimatorStatut = 'verification_formelle_a_traiter';
 
   function initEstimator(prefectures) {
-    var prefSelect = document.getElementById('estimator-prefecture');
-    for (var i = 0; i < prefectures.length; i++) {
-      var opt = document.createElement('option');
-      opt.value = prefectures[i];
-      opt.textContent = prefectures[i];
-      prefSelect.appendChild(opt);
-    }
-
-    // Create searchable status select for estimator
     ANEF.ui.createStatusSelect('estimator-status-container', {
       includeAll: false,
       defaultValue: 'verification_formelle_a_traiter',
-      placeholder: 'Rechercher un statut...',
-      onChange: function(statusCode, stepNumber) {
-        estimatorStep = stepNumber || 3;
+      placeholder: 'Rechercher votre statut...',
+      onChange: function(statusCode) {
+        estimatorStatut = statusCode;
         updateEstimator();
       }
     });
 
+    var prefSelect = document.getElementById('estimator-prefecture');
+    for (var j = 0; j < prefectures.length; j++) {
+      var opt = document.createElement('option');
+      opt.value = prefectures[j];
+      opt.textContent = prefectures[j];
+      prefSelect.appendChild(opt);
+    }
     prefSelect.addEventListener('change', updateEstimator);
 
     updateEstimator();
   }
 
   function updateEstimator() {
-    var step = estimatorStep;
+    var statut = estimatorStatut;
     var pref = document.getElementById('estimator-prefecture').value || null;
+    var currentInfo = C.STATUTS[statut];
+    var currentRang = currentInfo ? currentInfo.rang : 0;
+    var currentEtape = currentInfo ? currentInfo.etape : 0;
 
-    var result = M.estimateRemainingDuration(step, pref, state.transitionsDetailed);
+    // Collect all snapshots, optionally filtered by prefecture
+    var snaps = state.snapshots;
+    if (pref) {
+      var prefHashes = {};
+      for (var p = 0; p < state.summaries.length; p++) {
+        if (state.summaries[p].prefecture === pref) prefHashes[state.summaries[p].fullHash] = true;
+      }
+      snaps = snaps.filter(function(s) { return prefHashes[s.dossier_hash]; });
+    }
 
-    if (result.p50 !== null) {
-      U.setText('est-p25', U.formatDuration(result.p25));
-      U.setText('est-p50', U.formatDuration(result.p50));
-      U.setText('est-p75', U.formatDuration(result.p75));
-    } else {
-      U.setText('est-p25', '\u2014');
-      U.setText('est-p50', '\u2014');
-      U.setText('est-p75', '\u2014');
+    // Group days since deposit by etape (most robust grouping)
+    var byEtape = {};
+    for (var i = 0; i < snaps.length; i++) {
+      var sn = snaps[i];
+      if (!sn.date_depot || !sn.date_statut || !sn.etape) continue;
+      var d = U.daysDiff(sn.date_depot, sn.date_statut);
+      if (d === null) continue;
+      if (!byEtape[sn.etape]) byEtape[sn.etape] = [];
+      byEtape[sn.etape].push(d);
+    }
+
+    // Current: all data from the same etape as the selected statut
+    var currentDays = currentEtape && byEtape[currentEtape] ? byEtape[currentEtape] : [];
+
+    // Target: combine ALL data from ALL etapes beyond current
+    var targetDays = [];
+    var targetEtapes = [];
+    var etapes = Object.keys(byEtape).map(Number).sort(function(a, b) { return a - b; });
+    for (var e = 0; e < etapes.length; e++) {
+      if (etapes[e] > currentEtape) {
+        targetDays = targetDays.concat(byEtape[etapes[e]]);
+        targetEtapes.push(etapes[e]);
+      }
     }
 
     var confEl = document.getElementById('est-confidence');
-    if (result.confidence === 'none') {
-      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de données';
-    } else {
-      var cls = result.confidence === 'high' ? 'confidence-high' : result.confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
-      var label = result.confidence === 'high' ? 'Fiabilité élevée' : result.confidence === 'medium' ? 'Fiabilité moyenne' : 'Fiabilité faible';
-      confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label + ' (échantillon moy. ' + result.sampleSize + ')';
+
+    if (!currentDays.length || !targetDays.length) {
+      U.setText('est-p25', '\u2014');
+      U.setText('est-p50', '\u2014');
+      U.setText('est-p75', '\u2014');
+      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de donn\u00e9es pour cette estimation';
+      return;
     }
+
+    // Rapide: cible rapide - vous êtes déjà avancé = peu de temps restant
+    // Lent: cible lente - vous venez d'arriver = beaucoup de temps restant
+    var remainP25 = Math.max(0, Math.round(M.percentile(targetDays, 25) - M.percentile(currentDays, 75)));
+    var remainP50 = Math.max(0, Math.round(M.percentile(targetDays, 50) - M.percentile(currentDays, 50)));
+    var remainP75 = Math.max(0, Math.round(M.percentile(targetDays, 75) - M.percentile(currentDays, 25)));
+
+    U.setText('est-p25', U.formatDuration(remainP25));
+    U.setText('est-p50', U.formatDuration(remainP50));
+    U.setText('est-p75', U.formatDuration(remainP75));
+
+    var totalSample = currentDays.length + targetDays.length;
+    var confidence = totalSample >= 15 ? 'high' : totalSample >= 6 ? 'medium' : 'low';
+    var cls = confidence === 'high' ? 'confidence-high' : confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
+    var label = confidence === 'high' ? 'Fiabilit\u00e9 \u00e9lev\u00e9e' : confidence === 'medium' ? 'Fiabilit\u00e9 moyenne' : 'Fiabilit\u00e9 faible';
+    confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label +
+      ' \u2014 bas\u00e9 sur ' + currentDays.length + ' dossier' + (currentDays.length > 1 ? 's' : '') +
+      ' \u00e0 votre \u00e9tape et ' + targetDays.length + ' dossier' + (targetDays.length > 1 ? 's' : '') + ' plus avanc\u00e9' + (targetDays.length > 1 ? 's' : '');
   }
 
   /** Build label with most common status codes in parentheses */
@@ -159,6 +200,11 @@
     return label;
   }
 
+  /** Short label for chart axes (no status codes) */
+  function shortLabel(d) {
+    return d.etape + '. ' + d.phase;
+  }
+
   // ─── Duration Bar Chart ──────────────────────────────────
 
   function renderDurationBarChart(durations) {
@@ -175,14 +221,13 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
-    var labels = durations.map(labelWithStatus);
+    var isMobile = window.innerWidth < 768;
+    var chartLabels = durations.map(shortLabel);
+    var fullLabels = durations.map(labelWithStatus);
     var colors = durations.map(function(d) { return C.STEP_COLORS[d.etape] || C.STEP_COLORS[0]; });
 
-    // Compute P25/P75 for whiskers
     var avgValues = durations.map(function(d) { return d.avg_days; });
     var medValues = durations.map(function(d) { return d.median_days; });
-    var p25Values = durations.map(function(d) { return d.days ? U.round1(M.percentile(d.days, 25)) : 0; });
-    var p75Values = durations.map(function(d) { return d.days ? U.round1(M.percentile(d.days, 75)) : 0; });
 
     var datasets = [
       {
@@ -194,7 +239,7 @@
         borderRadius: 4
       },
       {
-        label: 'Médiane (jours)',
+        label: 'Typique (jours)',
         data: medValues,
         backgroundColor: '#f59e0b55',
         borderColor: '#f59e0b',
@@ -203,7 +248,18 @@
       }
     ];
 
-    var config = CH.barConfig(labels, datasets, { suffix: 'j', ySuffix: 'j' });
+    var config = CH.barConfig(chartLabels, datasets, { suffix: 'j', ySuffix: 'j', datalabels: isMobile ? false : undefined });
+    // Use full labels in tooltips
+    config.options.plugins.tooltip = config.options.plugins.tooltip || {};
+    config.options.plugins.tooltip.callbacks = config.options.plugins.tooltip.callbacks || {};
+    config.options.plugins.tooltip.callbacks.title = function(items) {
+      return fullLabels[items[0].dataIndex] || items[0].label;
+    };
+    // Mobile: rotate labels more, smaller font
+    if (isMobile) {
+      config.options.scales.x.ticks.maxRotation = 65;
+      config.options.scales.x.ticks.font = { size: 9 };
+    }
     CH.create('durationBar', 'duration-bar-chart', config);
   }
 
@@ -249,7 +305,9 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
-    var labels = durations.map(labelWithStatus);
+    var isMobile = window.innerWidth < 768;
+    var chartLabels = durations.map(shortLabel);
+    var fullLabels = durations.map(labelWithStatus);
 
     // Cumulative P25/P50/P75
     var cumP25 = [], cumP50 = [], cumP75 = [];
@@ -268,12 +326,25 @@
     }
 
     var datasets = [
-      { label: 'P25 (optimiste)', data: cumP25, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: false, tension: 0.3 },
-      { label: 'P50 (médiane)', data: cumP50, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: false, tension: 0.3, borderWidth: 3 },
-      { label: 'P75 (pessimiste)', data: cumP75, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: false, tension: 0.3 }
+      { label: 'Optimiste (rapide)', data: cumP25, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: false, tension: 0.3 },
+      { label: 'Typique', data: cumP50, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: false, tension: 0.3, borderWidth: 3 },
+      { label: 'Pessimiste (lent)', data: cumP75, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: false, tension: 0.3 }
     ];
 
-    var config = CH.lineConfig(labels, datasets, { ySuffix: 'j' });
+    var config = CH.lineConfig(chartLabels, datasets, { ySuffix: 'j' });
+    // Use full labels in tooltips
+    config.options.plugins.tooltip = config.options.plugins.tooltip || {};
+    config.options.plugins.tooltip.callbacks = config.options.plugins.tooltip.callbacks || {};
+    config.options.plugins.tooltip.callbacks.title = function(items) {
+      return fullLabels[items[0].dataIndex] || items[0].label;
+    };
+    // Mobile: compact legend + smaller axis font
+    if (isMobile) {
+      config.options.scales.x.ticks.maxRotation = 65;
+      config.options.scales.x.ticks.font = { size: 9 };
+      config.options.plugins.legend.labels.font = { size: 10 };
+      config.options.plugins.legend.labels.boxWidth = 12;
+    }
     CH.create('cumulative', 'cumulative-chart', config);
   }
 
