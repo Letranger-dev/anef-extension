@@ -132,7 +132,7 @@
       snaps = snaps.filter(function(s) { return prefHashes[s.dossier_hash]; });
     }
 
-    // Group days since deposit by rang (via STATUTS dictionary)
+    // Group days since deposit by rang
     var byRang = {};
     for (var i = 0; i < snaps.length; i++) {
       var sn = snaps[i];
@@ -146,10 +146,9 @@
       byRang[snRang].push(d);
     }
 
-    // Current: data from snapshots at the same rang as the selected statut
     var currentDays = byRang[currentRang] || [];
 
-    // Target: combine ALL data from ALL rangs beyond current
+    // Collect all target days from rangs beyond current
     var targetDays = [];
     var rangs = Object.keys(byRang).map(Number).sort(function(a, b) { return a - b; });
     for (var e = 0; e < rangs.length; e++) {
@@ -168,11 +167,36 @@
       return;
     }
 
-    // Rapide: cible rapide - vous etes deja avance = peu de temps restant
-    // Lent: cible lente - vous venez d'arriver = beaucoup de temps restant
-    var remainP25 = Math.max(0, Math.round(M.percentile(targetDays, 25) - M.percentile(currentDays, 75)));
-    var remainP50 = Math.max(0, Math.round(M.percentile(targetDays, 50) - M.percentile(currentDays, 50)));
-    var remainP75 = Math.max(0, Math.round(M.percentile(targetDays, 75) - M.percentile(currentDays, 25)));
+    // Conditional remaining time estimation:
+    // For each target dossier, compute excess over current median.
+    // Keep only positive diffs (dossiers that took longer than your current median).
+    // This avoids selection bias where fast-completing dossiers skew the estimate to 0.
+    var medianCurrent = M.percentile(currentDays, 50);
+    var remainingDays = [];
+    for (var t = 0; t < targetDays.length; t++) {
+      var diff = targetDays[t] - medianCurrent;
+      if (diff > 0) remainingDays.push(diff);
+    }
+
+    // Fallback: if too few positive diffs, use all diffs clamped to 0
+    if (remainingDays.length < 3) {
+      remainingDays = [];
+      for (var t2 = 0; t2 < targetDays.length; t2++) {
+        remainingDays.push(Math.max(0, targetDays[t2] - medianCurrent));
+      }
+    }
+
+    if (!remainingDays.length) {
+      U.setText('est-p25', '\u2014');
+      U.setText('est-p50', '\u2014');
+      U.setText('est-p75', '\u2014');
+      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de donn\u00e9es pour cette estimation';
+      return;
+    }
+
+    var remainP25 = Math.round(M.percentile(remainingDays, 25));
+    var remainP50 = Math.round(M.percentile(remainingDays, 50));
+    var remainP75 = Math.round(M.percentile(remainingDays, 75));
 
     U.setText('est-p25', U.formatDuration(remainP25));
     U.setText('est-p50', U.formatDuration(remainP50));
