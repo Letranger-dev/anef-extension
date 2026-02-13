@@ -88,8 +88,6 @@
     renderTrendChart(filtered);
     renderVelocityChart(filtered);
     renderCohortChart(filtered);
-    renderCalendar();
-    renderVolumeChart();
   }
 
   // ─── Deposit Timeline ────────────────────────────────────
@@ -218,7 +216,7 @@
 
     var datasets = [
       {
-        label: 'Atteint étape 6+',
+        label: 'Entretien passé (étape 6+)',
         data: keys.map(function(k) { return cohorts[k].pctStep6; }),
         borderColor: '#8b5cf6',
         backgroundColor: 'rgba(139,92,246,0.1)',
@@ -226,7 +224,7 @@
         fill: false
       },
       {
-        label: 'Atteint étape 9+',
+        label: 'Contrôle ministériel (étape 9+)',
         data: keys.map(function(k) { return cohorts[k].pctStep9; }),
         borderColor: '#f59e0b',
         backgroundColor: 'rgba(245,158,11,0.1)',
@@ -234,7 +232,7 @@
         fill: false
       },
       {
-        label: 'Atteint étape 12',
+        label: 'Finalisé (étape 12)',
         data: keys.map(function(k) { return cohorts[k].pctStep12; }),
         borderColor: '#10b981',
         backgroundColor: 'rgba(16,185,129,0.1)',
@@ -246,110 +244,6 @@
     var config = CH.lineConfig(keys, datasets, { ySuffix: '%' });
     config.options.scales.y.max = 100;
     CH.create('cohort', 'cohort-chart', config);
-  }
-
-  // ─── Activity Calendar ───────────────────────────────────
-
-  function renderCalendar() {
-    var container = document.getElementById('calendar-container');
-
-    // Count snapshots per day
-    var dayCounts = {};
-    for (var i = 0; i < state.snapshots.length; i++) {
-      var s = state.snapshots[i];
-      if (!s.created_at) continue;
-      var d = new Date(s.created_at);
-      var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-      dayCounts[key] = (dayCounts[key] || 0) + 1;
-    }
-
-    var allDays = Object.keys(dayCounts).sort();
-    if (!allDays.length) {
-      container.innerHTML = '<p class="no-data">Pas de données</p>';
-      return;
-    }
-
-    // Build 52 weeks of data ending at today
-    var today = new Date();
-    var startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 364); // ~52 weeks
-    // Move to Monday
-    while (startDate.getDay() !== 1) startDate.setDate(startDate.getDate() - 1);
-
-    var maxCount = Math.max.apply(null, Object.values(dayCounts));
-    var dayNames = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-
-    // Build grid: 7 rows (Mon-Sun) x 52+ columns (weeks)
-    var weeks = [];
-    var current = new Date(startDate);
-    var week = [];
-    while (current <= today) {
-      var dayKey = current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0') + '-' + String(current.getDate()).padStart(2,'0');
-      var count = dayCounts[dayKey] || 0;
-      var dow = current.getDay();
-      dow = dow === 0 ? 6 : dow - 1; // Mon=0..Sun=6
-      week[dow] = { count: count, date: dayKey };
-      if (dow === 6) {
-        weeks.push(week);
-        week = [];
-      }
-      current.setDate(current.getDate() + 1);
-    }
-    if (week.length) weeks.push(week);
-
-    var html = '<table class="calendar-table"><tbody>';
-    for (var row = 0; row < 7; row++) {
-      html += '<tr><td class="cal-label">' + dayNames[row] + '</td>';
-      for (var col = 0; col < weeks.length; col++) {
-        var cell = weeks[col][row];
-        if (!cell) {
-          html += '<td class="cal-empty"></td>';
-        } else {
-          var level = 'cal-empty';
-          if (cell.count > 0) {
-            var ratio = cell.count / maxCount;
-            if (ratio > 0.75) level = 'cal-l4';
-            else if (ratio > 0.5) level = 'cal-l3';
-            else if (ratio > 0.25) level = 'cal-l2';
-            else level = 'cal-l1';
-          }
-          html += '<td class="' + level + '" title="' + cell.date + ': ' + cell.count + ' obs."></td>';
-        }
-      }
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-    container.innerHTML = html;
-  }
-
-  // ─── Volume Chart ────────────────────────────────────────
-
-  function renderVolumeChart() {
-    var canvas = document.getElementById('volume-chart');
-    var noData = document.getElementById('volume-no-data');
-
-    if (!state.snapshots.length) {
-      canvas.style.display = 'none'; noData.style.display = 'block'; CH.destroy('volume'); return;
-    }
-
-    canvas.style.display = 'block'; noData.style.display = 'none';
-
-    var groups = getGroupFn()(state.snapshots, 'created_at');
-    var keys = Object.keys(groups).sort();
-    var values = keys.map(function(k) { return groups[k].length; });
-
-    var datasets = [{
-      label: 'Snapshots',
-      data: values,
-      backgroundColor: 'rgba(16,185,129,0.5)',
-      borderColor: '#10b981',
-      borderWidth: 1,
-      borderRadius: 4
-    }];
-
-    var config = CH.barConfig(keys, datasets, { datalabels: false, ySuffix: '' });
-    config.options.plugins.legend = { display: false };
-    CH.create('volume', 'volume-chart', config);
   }
 
 })();

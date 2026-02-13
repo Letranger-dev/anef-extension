@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Délais</title>
+  <title>ANEF Stats — Signaler</title>
   <link rel="stylesheet" href="shared/common.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -33,8 +33,6 @@
       }
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
 
@@ -87,122 +85,49 @@
     </div>
   </nav>
 
-  <!-- Evolution banner -->
-  <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
-    <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
-    </div>
-  </div>
-
-  <!-- Loading -->
-  <div id="loading" class="text-center py-12 text-text-muted">
-    <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des délais...</p>
-  </div>
-
   <!-- Main Content -->
-  <div id="main-content" class="max-w-container mx-auto px-4 md:px-6 py-4 md:py-6 pb-20 md:pb-6" style="display:none">
+  <div class="max-w-container mx-auto px-4 md:px-6 py-8 md:py-12 pb-20 md:pb-12">
+    <div class="text-center max-w-lg mx-auto">
 
-    <!-- Filters -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <span class="filter-label">Préfecture</span>
-        <div id="filter-prefecture-container"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Statut ANEF</span>
-        <div id="filter-status-container"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Issue</span>
-        <div id="filter-outcome-container"></div>
-      </div>
-      <span class="filter-count" id="filter-count"></span>
-    </div>
+      <div class="text-5xl mb-4">&#x1F4AC;</div>
+      <h2 class="text-2xl md:text-3xl font-bold mb-4">Signaler un bug ou proposer une idée</h2>
+      <p class="text-text-muted text-base leading-relaxed mb-8">
+        Vous avez trouvé un bug ? Vous avez une suggestion d'amélioration ou une fonctionnalité à proposer ?
+        Rejoignez notre groupe Facebook pour en discuter avec la communauté !
+      </p>
 
-    <!-- Estimator -->
-    <div class="section" id="estimator-section">
-      <h2>Estimateur de délai</h2>
-      <p class="section-subtitle">Estimez le temps restant jusqu'à la naturalisation</p>
-      <div class="estimator">
-        <div class="estimator-form">
-          <div class="estimator-field">
-            <label>Votre statut actuel</label>
-            <div id="estimator-status-container"></div>
+      <a href="https://www.facebook.com/groups/1206709331640208" target="_blank" rel="noopener"
+         class="inline-block bg-[#1877F2] hover:bg-[#166FE5] text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-lg">
+        Rejoindre le groupe Facebook
+      </a>
+
+      <div class="mt-12 text-left">
+        <p class="text-text-dim text-sm font-semibold uppercase tracking-wider mb-4 text-center">Le groupe est l'endroit idéal pour :</p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="bg-bg-card rounded-card border border-border p-4 text-center">
+            <span class="text-2xl block mb-2">&#x1F41B;</span>
+            <p class="text-text-main font-semibold text-sm">Signaler un bug</p>
+            <p class="text-text-dim text-xs mt-1">Un affichage incorrect, une erreur, un plantage</p>
           </div>
-          <div class="estimator-field">
-            <label>Préfecture (optionnel)</label>
-            <select id="estimator-prefecture">
-              <option value="">Toutes</option>
-            </select>
+          <div class="bg-bg-card rounded-card border border-border p-4 text-center">
+            <span class="text-2xl block mb-2">&#x1F4A1;</span>
+            <p class="text-text-main font-semibold text-sm">Proposer une idée</p>
+            <p class="text-text-dim text-xs mt-1">De nouvelles fonctionnalités ou améliorations</p>
           </div>
-        </div>
-        <div class="estimator-result" id="estimator-result">
-          <div class="estimate-card">
-            <div class="estimate-label">Rapide</div>
-            <div class="estimate-value" style="color:var(--green)" id="est-p25">&mdash;</div>
-            <div class="estimate-sub">25% font plus vite</div>
+          <div class="bg-bg-card rounded-card border border-border p-4 text-center">
+            <span class="text-2xl block mb-2">&#x1F527;</span>
+            <p class="text-text-main font-semibold text-sm">Demander une correction</p>
+            <p class="text-text-dim text-xs mt-1">Des données incorrectes, des textes à modifier</p>
           </div>
-          <div class="estimate-card">
-            <div class="estimate-label">Typique</div>
-            <div class="estimate-value" style="color:var(--primary-light)" id="est-p50">&mdash;</div>
-            <div class="estimate-sub">la plupart des dossiers</div>
-          </div>
-          <div class="estimate-card">
-            <div class="estimate-label">Lent</div>
-            <div class="estimate-value" style="color:var(--orange)" id="est-p75">&mdash;</div>
-            <div class="estimate-sub">75% font plus vite</div>
+          <div class="bg-bg-card rounded-card border border-border p-4 text-center">
+            <span class="text-2xl block mb-2">&#x1F4AC;</span>
+            <p class="text-text-main font-semibold text-sm">Échanger</p>
+            <p class="text-text-dim text-xs mt-1">Discuter avec la communauté</p>
           </div>
         </div>
-        <div class="confidence-indicator" id="est-confidence" style="margin-top:0.75rem"></div>
       </div>
-    </div>
 
-    <!-- Duration bar chart -->
-    <div class="section">
-      <h2>Durée depuis le dépôt par étape</h2>
-      <div class="chart-container chart-container--tall" style="min-height:320px">
-        <canvas id="duration-bar-chart"></canvas>
-        <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de données</p>
-      </div>
     </div>
-
-    <!-- Percentile table -->
-    <div class="section">
-      <h2>Tableau des percentiles par étape</h2>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr><th>Étape</th><th>Très rapide</th><th>Rapide</th><th>Typique</th><th>Lent</th><th>Très lent</th><th>Échantillon</th></tr>
-          </thead>
-          <tbody id="percentile-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Cumulative curve -->
-    <div class="section">
-      <h2>Courbe cumulative des durées</h2>
-      <p class="section-subtitle">Jours cumulés du dépôt à chaque étape (optimiste, typique, pessimiste)</p>
-      <div class="chart-container chart-container--tall" style="min-height:320px">
-        <canvas id="cumulative-chart"></canvas>
-        <p class="no-data" id="cumulative-no-data" style="display:none">Pas de données</p>
-      </div>
-    </div>
-
-    <!-- Duration table -->
-    <div class="section">
-      <h2>Durées détaillées par étape</h2>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr><th>Étape</th><th>Moyenne</th><th>Typique</th><th>Rapide</th><th>Lent</th><th>Min</th><th>Max</th><th>Échantillon</th><th>~Mois</th></tr>
-          </thead>
-          <tbody id="duration-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
   <!-- Footer -->
@@ -211,14 +136,6 @@
   </footer>
 
   <script src="shared/constants.js"></script>
-  <script src="shared/utils.js"></script>
-  <script src="shared/stats-math.js"></script>
-  <script src="config.local.js" onerror="/* not in local dev */"></script>
-  <script src="shared/data.js"></script>
-  <script src="shared/charts.js"></script>
-  <script src="shared/filters.js"></script>
-  <script src="shared/searchable-select.js"></script>
   <script src="shared/nav.js"></script>
-  <script src="pages/delais.js"></script>
 </body>
 </html>

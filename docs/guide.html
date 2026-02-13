@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <title>ANEF Stats — Guide</title>
+  <link rel="stylesheet" href="shared/common.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f172a',
+            'bg-card': '#1e293b',
+            'bg-hover': '#334155',
+            border: '#334155',
+            'text-main': '#e2e8f0',
+            'text-muted': '#94a3b8',
+            'text-dim': '#64748b',
+            primary: '#3b82f6',
+            'primary-light': '#60a5fa',
+            success: '#10b981',
+            warning: '#f59e0b',
+            violet: '#8b5cf6',
+            danger: '#ef4444',
+          },
+          maxWidth: { container: '1200px' },
+          borderRadius: { card: '12px' },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
+    <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
+      <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
+      <p class="text-text-muted text-base">Statistiques communautaires</p>
+      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
+    </div>
+  </header>
+
+  <!-- Desktop Nav -->
+  <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
+    <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
+      <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="flex justify-around items-stretch h-12">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+      </a>
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+      </a>
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+      </a>
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+      </a>
+      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CA;</span>Tendances
+      </a>
+      <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+      </a>
+      <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-container mx-auto px-4 md:px-6 py-6 md:py-10 pb-20 md:pb-10">
+
+    <!-- Section 1: What is it -->
+    <div class="section">
+      <h2>Qu'est-ce que ANEF Status Tracker ?</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-4">
+          ANEF Status Tracker est une <strong class="text-text-main">extension Chrome gratuite</strong> qui surveille l'avancement de votre dossier de naturalisation sur le portail ANEF.
+        </p>
+        <p class="text-text-muted leading-relaxed">
+          En plus de vous informer en temps réel sur votre statut, elle contribue anonymement aux <strong class="text-text-main">statistiques communautaires</strong> que vous consultez sur ce site. Plus on est nombreux, plus les chiffres sont fiables !
+        </p>
+      </div>
+    </div>
+
+    <!-- Section 2: Installation -->
+    <div class="section">
+      <h2>Comment installer l'extension ?</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <ol class="space-y-4 text-text-muted">
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">1</span>
+            <div>
+              <p class="text-text-main font-semibold">Téléchargez l'extension</p>
+              <p class="text-sm mt-1">Rendez-vous sur la page GitHub du projet et téléchargez la dernière version (fichier ZIP).</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">2</span>
+            <div>
+              <p class="text-text-main font-semibold">Ouvrez les extensions Chrome</p>
+              <p class="text-sm mt-1">Dans Chrome, tapez <code class="bg-bg px-2 py-0.5 rounded text-primary-light text-xs">chrome://extensions</code> dans la barre d'adresse.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">3</span>
+            <div>
+              <p class="text-text-main font-semibold">Activez le mode développeur</p>
+              <p class="text-sm mt-1">En haut à droite de la page, activez le bouton « Mode développeur ».</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">4</span>
+            <div>
+              <p class="text-text-main font-semibold">Chargez l'extension</p>
+              <p class="text-sm mt-1">Cliquez sur « Charger l'extension non empaquetée » et sélectionnez le dossier décompressé.</p>
+            </div>
+          </li>
+        </ol>
+        <div class="mt-6 text-center">
+          <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="inline-block bg-primary hover:bg-primary-light text-white px-6 py-2.5 rounded-lg font-semibold transition-colors">
+            Télécharger sur GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: How to use -->
+    <div class="section">
+      <h2>Comment utiliser l'extension ?</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <ol class="space-y-4 text-text-muted">
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">1</span>
+            <div>
+              <p class="text-text-main font-semibold">Ouvrez le popup de l'extension</p>
+              <p class="text-sm mt-1">Cliquez sur l'icône ANEF Status Tracker dans la barre d'outils Chrome.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">2</span>
+            <div>
+              <p class="text-text-main font-semibold">Cliquez sur « Actualiser »</p>
+              <p class="text-sm mt-1">L'extension ouvre le portail ANEF en arrière-plan, récupère votre statut et vous l'affiche en français clair. L'opération peut prendre jusqu'à 45 secondes.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">3</span>
+            <div>
+              <p class="text-text-main font-semibold">Les statistiques sont envoyées automatiquement</p>
+              <p class="text-sm mt-1">À chaque actualisation, un résumé anonyme de votre étape est envoyé aux statistiques communautaires. C'est automatique, rien de plus à faire !</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Section 3b: Save credentials -->
+    <div class="section">
+      <h2>Enregistrer ses identifiants (optionnel)</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-4">
+          Pour ne pas avoir à vous reconnecter à chaque fois, vous pouvez enregistrer vos identifiants ANEF dans les paramètres de l'extension. L'actualisation se fera alors <strong class="text-text-main">entièrement en arrière-plan</strong>, sans intervention de votre part.
+        </p>
+        <ol class="space-y-3 text-text-muted mb-5">
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">1</span>
+            <div>
+              <p class="text-sm">Ouvrez le popup et allez dans les <strong class="text-text-main">Paramètres</strong></p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">2</span>
+            <div>
+              <p class="text-sm">Entrez votre identifiant et mot de passe ANEF</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">3</span>
+            <div>
+              <p class="text-sm">Cliquez sur « Actualiser » : la connexion et la récupération se font automatiquement !</p>
+            </div>
+          </li>
+        </ol>
+        <div class="p-4 bg-success/10 border border-success/30 rounded-lg">
+          <p class="text-sm text-text-muted">
+            <strong class="text-success">Sécurité :</strong> Vos identifiants sont chiffrés localement avec AES-256-GCM (chiffrement de niveau bancaire). Ils restent uniquement dans votre navigateur et ne sont jamais envoyés à un serveur externe.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3c: Tips -->
+    <div class="section">
+      <h2>Conseils pour de meilleures statistiques</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <div class="space-y-3">
+          <div class="flex gap-3 items-start">
+            <span class="text-lg flex-shrink-0">&#x1F504;</span>
+            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Actualisez régulièrement</strong> — Plus vous cliquez sur « Actualiser », plus l'historique de votre dossier s'enrichit et plus les statistiques sont précises pour tout le monde.</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <span class="text-lg flex-shrink-0">&#x1F4CA;</span>
+            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Chaque statut compte</strong> — À chaque changement de statut détecté, une nouvelle entrée est créée dans les statistiques. C'est comme ça qu'on suit la progression des dossiers.</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <span class="text-lg flex-shrink-0">&#x1F91D;</span>
+            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Plus on est nombreux, mieux c'est</strong> — N'hésitez pas à partager l'extension avec d'autres personnes en cours de naturalisation !</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Privacy -->
+    <div class="section">
+      <h2>Protection de vos données</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="p-4 bg-bg rounded-lg border border-border">
+            <p class="font-semibold text-text-main mb-1">Numéro de dossier chiffré</p>
+            <p class="text-sm text-text-muted">Votre numéro est transformé par un algorithme cryptographique (SHA-256). Personne ne peut le retrouver.</p>
+          </div>
+          <div class="p-4 bg-bg rounded-lg border border-border">
+            <p class="font-semibold text-text-main mb-1">Aucune donnée personnelle</p>
+            <p class="text-sm text-text-muted">Ni votre nom, ni votre email, ni votre adresse ne sont stockés. Jamais.</p>
+          </div>
+          <div class="p-4 bg-bg rounded-lg border border-border">
+            <p class="font-semibold text-text-main mb-1">Dates tronquées</p>
+            <p class="text-sm text-text-muted">Seul le jour est conservé, jamais l'heure exacte, pour qu'aucun recoupement ne soit possible.</p>
+          </div>
+          <div class="p-4 bg-bg rounded-lg border border-border">
+            <p class="font-semibold text-text-main mb-1">Désactivable à tout moment</p>
+            <p class="text-sm text-text-muted">Un simple clic dans les paramètres de l'extension et le partage s'arrête. Aucune pression.</p>
+          </div>
+        </div>
+        <p class="text-center text-sm text-text-dim mt-5">
+          Code 100% open source — <a href="https://github.com/Letranger-dev/anef-extension" target="_blank" rel="noopener" class="text-primary-light hover:underline">vérifiez par vous-même sur GitHub</a>
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome</p>
+  </footer>
+
+  <script src="shared/constants.js"></script>
+  <script src="shared/nav.js"></script>
+</body>
+</html>

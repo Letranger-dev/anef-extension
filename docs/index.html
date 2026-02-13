@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <title>ANEF Stats — Accueil</title>
   <meta name="description" content="Statistiques anonymes sur les délais de naturalisation française - données communautaires ANEF">
   <link rel="stylesheet" href="shared/common.css">
@@ -46,38 +48,42 @@
     </div>
   </header>
 
-  <!-- Desktop Nav (top sticky, hidden on mobile) -->
+  <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
       <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
-      <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
     </div>
   </nav>
 
-  <!-- Mobile Nav (bottom tab bar, hidden on desktop) -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-card/95 backdrop-blur-md border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
-    <div class="flex justify-around items-stretch h-14">
-      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F3E0;</span>Accueil
+  <!-- Mobile Nav -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="flex justify-around items-stretch h-12">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
       </a>
-      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
-      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
       </a>
-      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
-      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
+      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CA;</span>Tendances
       </a>
-      <a href="parcours.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F5FA;</span>Parcours
+      <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+      </a>
+      <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
       </a>
     </div>
   </nav>
@@ -139,15 +145,19 @@
             <option value="pref">Préfecture</option>
           </select>
           <select id="sdanf-statut-filter" class="page-size-select" title="Statut">
-            <option value="">Tous les statuts</option>
+            <option value="">Statut : tous</option>
           </select>
           <select id="sdanf-pref-filter" class="page-size-select" title="Préfecture">
-            <option value="">Toutes préfectures</option>
+            <option value="">Préf. : toutes</option>
           </select>
+          <label class="toggle-filter" id="sdanf-changed-label" title="Afficher uniquement les dossiers dont le statut a changé">
+            <input type="checkbox" id="sdanf-changed-filter">
+            <span class="toggle-filter-text">Modifiés</span>
+          </label>
           <select id="sdanf-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 par page</option>
-            <option value="10">10 par page</option>
-            <option value="20">20 par page</option>
+            <option value="5" selected>5 / page</option>
+            <option value="10">10 / page</option>
+            <option value="20">20 / page</option>
           </select>
         </div>
         <div class="pagination">
@@ -174,17 +184,24 @@
             <option value="step-asc">Étape &uarr;</option>
           </select>
           <select id="entretien-filter" class="page-size-select" title="Entretien">
-            <option value="">Tous</option>
-            <option value="passed">Entretien passé</option>
+            <option value="">Entretien : tous</option>
+            <option value="passed">Passé</option>
             <option value="pending">En attente</option>
           </select>
-          <select id="entretien-pref-filter" class="page-size-select" title="Préfecture">
-            <option value="">Toutes</option>
+          <select id="entretien-statut-filter" class="page-size-select" title="Statut">
+            <option value="">Statut : tous</option>
           </select>
+          <select id="entretien-pref-filter" class="page-size-select" title="Préfecture">
+            <option value="">Préf. : toutes</option>
+          </select>
+          <label class="toggle-filter" id="entretien-changed-label" title="Afficher uniquement les dossiers dont le statut a changé">
+            <input type="checkbox" id="entretien-changed-filter">
+            <span class="toggle-filter-text">Modifiés</span>
+          </label>
           <select id="entretien-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 par page</option>
-            <option value="10">10 par page</option>
-            <option value="20">20 par page</option>
+            <option value="5" selected>5 / page</option>
+            <option value="10">10 / page</option>
+            <option value="20">20 / page</option>
           </select>
         </div>
         <div class="pagination">

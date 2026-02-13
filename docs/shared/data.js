@@ -14,17 +14,29 @@
   var CACHE_KEY = 'anef_snapshots';
   var CACHE_TTL = 300000; // 5 min
 
-  /** Fetch all snapshots from Supabase REST API */
+  /** Fetch all snapshots from Supabase REST API (with pagination) */
   async function fetchAllSnapshots() {
-    var url = _SB_URL + '/rest/v1/dossier_snapshots?select=*&order=created_at.desc&limit=10000';
-    var res = await fetch(url, {
-      headers: {
-        'apikey': _SB_KEY,
-        'Authorization': 'Bearer ' + _SB_KEY
-      }
-    });
-    if (!res.ok) throw new Error('Erreur API: ' + res.status);
-    return res.json();
+    var PAGE_SIZE = 1000;
+    var all = [];
+    var offset = 0;
+
+    while (true) {
+      var url = _SB_URL + '/rest/v1/dossier_snapshots?select=*&order=created_at.desc&limit=' + PAGE_SIZE + '&offset=' + offset;
+      var res = await fetch(url, {
+        headers: {
+          'apikey': _SB_KEY,
+          'Authorization': 'Bearer ' + _SB_KEY,
+          'Prefer': 'count=exact'
+        }
+      });
+      if (!res.ok) throw new Error('Erreur API: ' + res.status);
+      var rows = await res.json();
+      all = all.concat(rows);
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    return all;
   }
 
   /** Load data with sessionStorage cache (5 min TTL) */
@@ -52,12 +64,11 @@
       if (!map.has(s.dossier_hash)) map.set(s.dossier_hash, []);
       map.get(s.dossier_hash).push(s);
     }
-    var STATUTS = ANEF.constants.STATUTS;
     map.forEach(function(snaps) {
       snaps.sort(function(a, b) {
-        var rangA = STATUTS[a.statut] ? STATUTS[a.statut].rang : (a.etape * 100);
-        var rangB = STATUTS[b.statut] ? STATUTS[b.statut].rang : (b.etape * 100);
-        return rangA - rangB;
+        var dateA = a.created_at || '';
+        var dateB = b.created_at || '';
+        return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
       });
     });
     return map;
@@ -85,6 +96,7 @@
       var numeroDecret = latest.numero_decret;
       var lieuEntretien = latest.lieu_entretien;
       var domicileCP = latest.domicile_code_postal;
+      var lastChecked = latest.created_at || null;
 
       for (var j = 0; j < snaps.length; j++) {
         if (!dateEntretien && snaps[j].date_entretien) dateEntretien = snaps[j].date_entretien;
@@ -93,6 +105,9 @@
         if (!numeroDecret && snaps[j].numero_decret) numeroDecret = snaps[j].numero_decret;
         if (!lieuEntretien && snaps[j].lieu_entretien) lieuEntretien = snaps[j].lieu_entretien;
         if (!domicileCP && snaps[j].domicile_code_postal) domicileCP = snaps[j].domicile_code_postal;
+        if (snaps[j].created_at && (!lastChecked || snaps[j].created_at > lastChecked)) {
+          lastChecked = snaps[j].created_at;
+        }
       }
 
       // Fallback : dériver la préfecture du code postal domicile
@@ -100,10 +115,20 @@
         prefecture = ANEF.constants.getDepartementFromCP(domicileCP);
       }
 
-      var statutInfo = ANEF.constants.STATUTS[latest.statut];
+      var statutKey = latest.statut ? latest.statut.toLowerCase() : '';
+      var statutInfo = ANEF.constants.STATUTS[statutKey];
       var rang = statutInfo ? statutInfo.rang : (latest.etape * 100);
       var sousEtape = ANEF.constants.formatSubStep(rang);
       var explication = statutInfo ? statutInfo.explication : (latest.phase || PHASE_NAMES[latest.etape] || 'Inconnu');
+
+      // Previous statut (if multiple snapshots = status changed)
+      var previousStatut = null;
+      var previousDateStatut = null;
+      if (snaps.length > 1) {
+        var prev = snaps[snaps.length - 2];
+        previousStatut = prev.statut || null;
+        previousDateStatut = prev.date_statut || null;
+      }
 
       summaries.push({
         hash: hash.substring(0, 6),
@@ -124,7 +149,10 @@
         snapshotCount: snaps.length,
         hasComplement: hasComplement,
         numeroDecret: numeroDecret,
-        lieuEntretien: lieuEntretien
+        lieuEntretien: lieuEntretien,
+        lastChecked: lastChecked,
+        previousStatut: previousStatut,
+        previousDateStatut: previousDateStatut
       });
     });
 
@@ -175,6 +203,60 @@
         statuts: data.statuts
       };
     }).sort(function(a, b) { return a.etape - b.etape; });
+  }
+
+  /** Duration by status — like computeDurationByStep but splits step 9 into 4 sub-statuts */
+  var STEP9_STATUTS = ['controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
+
+  function computeDurationByStatus(snapshots) {
+    var STATUTS = ANEF.constants.STATUTS;
+    var PHASE_NAMES = ANEF.constants.PHASE_NAMES;
+    var buckets = {};
+
+    for (var i = 0; i < snapshots.length; i++) {
+      var s = snapshots[i];
+      if (!s.date_depot || !s.date_statut) continue;
+      var days = ANEF.utils.daysDiff(s.date_depot, s.date_statut);
+      if (days === null || days < 0) continue;
+
+      var key, rang, phase;
+      var statutLower = s.statut ? s.statut.toLowerCase() : '';
+      if (Number(s.etape) === 9 && statutLower && STEP9_STATUTS.indexOf(statutLower) !== -1) {
+        // Split step 9 by statut
+        key = 'statut:' + statutLower;
+        var info = STATUTS[statutLower];
+        rang = info ? info.rang : (s.etape * 100);
+        phase = info ? info.phase : PHASE_NAMES[s.etape];
+      } else {
+        // Group by etape
+        key = 'etape:' + s.etape;
+        rang = s.etape * 100;
+        phase = s.phase || PHASE_NAMES[s.etape];
+      }
+
+      if (!buckets[key]) buckets[key] = { etape: Number(s.etape), phase: phase, statut: null, rang: rang, days: [] };
+      buckets[key].days.push(days);
+      // Store statut for step 9 sub-entries
+      if (Number(s.etape) === 9 && statutLower && STEP9_STATUTS.indexOf(statutLower) !== -1) {
+        buckets[key].statut = statutLower;
+      }
+    }
+
+    return Object.keys(buckets).map(function(key) {
+      var b = buckets[key];
+      var sum = 0;
+      for (var j = 0; j < b.days.length; j++) sum += b.days[j];
+      return {
+        etape: b.etape,
+        phase: b.phase,
+        statut: b.statut,
+        rang: b.rang,
+        avg_days: ANEF.utils.round1(sum / b.days.length),
+        median_days: ANEF.utils.round1(ANEF.utils.medianCalc(b.days)),
+        count: b.days.length,
+        days: b.days
+      };
+    }).sort(function(a, b) { return a.rang - b.rang; });
   }
 
   /** Prefecture stats from summaries */
@@ -274,18 +356,23 @@
   /** Apply filters to summaries */
   function applyFilters(summaries, filters) {
     return summaries.filter(function(s) {
-      // Statut filter (exact status code — takes priority over step)
+      // Statut filter (exact status code — case-insensitive)
       if (filters.statut && filters.statut !== 'all') {
-        if (s.statut !== filters.statut) return false;
+        var sStatut = s.statut ? s.statut.toLowerCase() : '';
+        if (sStatut !== filters.statut.toLowerCase()) return false;
       }
       // Step filter (legacy, for URL compat)
       else if (filters.step && filters.step !== 'all') {
         var range = ANEF.constants.STEP_RANGES[filters.step];
         if (range && range.indexOf(s.currentStep) === -1) return false;
       }
-      // Prefecture filter
+      // Prefecture filter (string or array)
       if (filters.prefecture && filters.prefecture !== 'all') {
-        if (s.prefecture !== filters.prefecture) return false;
+        if (Array.isArray(filters.prefecture)) {
+          if (filters.prefecture.indexOf(s.prefecture) === -1) return false;
+        } else {
+          if (s.prefecture !== filters.prefecture) return false;
+        }
       }
       // Outcome filter
       if (filters.outcome && filters.outcome !== 'all') {
@@ -330,6 +417,8 @@
     computeDossierSummaries: computeDossierSummaries,
     computePhaseDistribution: computePhaseDistribution,
     computeDurationByStep: computeDurationByStep,
+    computeDurationByStatus: computeDurationByStatus,
+    STEP9_STATUTS: STEP9_STATUTS,
     computePrefectureStats: computePrefectureStats,
     computeTransitions: computeTransitions,
     applyFilters: applyFilters,
