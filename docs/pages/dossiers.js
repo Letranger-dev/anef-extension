@@ -15,7 +15,6 @@
     summaries: [],
     snapshots: [],
     grouped: null,
-    filters: {},
     page: 1,
     pageSize: 5,
     sort: 'status-recent',
@@ -24,18 +23,25 @@
     tablePage: 1,
     tablePageSize: 5,
     tableFilters: {
-      statut: '',
+      statut: 'all',
+      prefecture: 'all',
       depotMin: '',
       depotMax: '',
       statutDateMin: '',
       statutDateMax: ''
     },
     dossierFilters: {
-      statut: '',
+      statut: 'all',
+      prefecture: 'all',
+      history: 'all',
       depotMin: '',
       depotMax: '',
       statutDateMin: '',
       statutDateMax: ''
+    },
+    histogramFilters: {
+      statut: 'all',
+      prefecture: 'all'
     }
   };
 
@@ -55,15 +61,14 @@
       state.grouped = D.groupByDossier(snapshots);
       state.summaries = D.computeDossierSummaries(state.grouped);
 
-      // Read URL filters
-      state.filters = F.readFiltersFromURL();
-      if (state.filters.sort) state.sort = state.filters.sort;
+      var urlFilters = F.readFiltersFromURL();
+      if (urlFilters.sort) state.sort = urlFilters.sort;
 
       loading.style.display = 'none';
       main.style.display = 'block';
 
       var prefectures = D.getUniquePrefectures(state.summaries);
-      initFilters(prefectures);
+      initSectionFilters(prefectures);
       initDossierControls();
       initDossierFilters();
       initViewToggle();
@@ -71,7 +76,6 @@
       initTableSort();
       initTablePagination();
       initTableFilters();
-      initExportCSV();
       renderAll();
 
     } catch (error) {
@@ -79,52 +83,36 @@
     }
   });
 
-  function initFilters(prefectures) {
-    F.createStatusFilter('filter-status-container', state.filters.statut, function(v) {
-      state.filters.statut = v; state.page = 1; syncAndRender();
+  function initSectionFilters(prefectures) {
+    // Parcours des dossiers: statut + prefecture
+    F.createStatusFilter('dossier-filter-statut-container', 'all', function(v) {
+      state.dossierFilters.statut = v; state.page = 1; renderAll();
     });
-    F.createPrefectureDropdown('filter-prefecture-container', prefectures, state.filters.prefecture, function(v) {
-      state.filters.prefecture = v; state.page = 1; syncAndRender();
-    });
-    F.createOutcomeFilter('filter-outcome-container', state.filters.outcome, function(v) {
-      state.filters.outcome = v; state.page = 1; syncAndRender();
-    });
-    F.createComplementFilter('filter-complement-container', state.filters.complement, function(v) {
-      state.filters.complement = v; state.page = 1; syncAndRender();
+    F.createPrefectureDropdown('dossier-filter-prefecture-container', prefectures, 'all', function(v) {
+      state.dossierFilters.prefecture = v; state.page = 1; renderAll();
     });
 
-    var searchInput = document.getElementById('filter-search');
-    if (searchInput) {
-      searchInput.value = state.filters.search || '';
-      searchInput.addEventListener('input', function() {
-        state.filters.search = searchInput.value; state.page = 1; syncAndRender();
-      });
-    }
-  }
+    // Tableau détaillé: statut + prefecture
+    F.createStatusFilter('table-filter-statut-container', 'all', function(v) {
+      state.tableFilters.statut = v; state.tablePage = 1; renderAll();
+    });
+    F.createPrefectureDropdown('table-filter-prefecture-container', prefectures, 'all', function(v) {
+      state.tableFilters.prefecture = v; state.tablePage = 1; renderAll();
+    });
 
-  function syncAndRender() {
-    F.writeFiltersToURL(state.filters);
-    renderAll();
-  }
-
-  function getFiltered() {
-    return D.applyFilters(state.summaries, state.filters);
+    // Histogram: statut + prefecture
+    F.createStatusFilter('histogram-filter-statut-container', 'all', function(v) {
+      state.histogramFilters.statut = v; renderAll();
+    });
+    F.createPrefectureDropdown('histogram-filter-prefecture-container', prefectures, 'all', function(v) {
+      state.histogramFilters.prefecture = v; renderAll();
+    });
   }
 
   function renderAll() {
-    var filtered = getFiltered();
-
-    // Filter count
-    var countEl = document.getElementById('filter-count');
-    if (state.summaries.length === filtered.length) {
-      countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '');
-    } else {
-      countEl.textContent = filtered.length + ' / ' + state.summaries.length + ' dossiers';
-    }
-
-    renderDossiers(filtered);
-    renderDetailTable(filtered);
-    renderHistogram(filtered);
+    renderDossiers(state.summaries);
+    renderDetailTable(state.summaries);
+    renderHistogram(state.summaries);
   }
 
   // ─── View Toggle ────────────────────────────────────────
@@ -177,25 +165,16 @@
     return data;
   }
 
-  function computePercentile(s, allSummaries) {
-    if (s.daysSinceDeposit == null) return null;
-    var daysArr = allSummaries.filter(function(x) { return x.daysSinceDeposit != null; }).map(function(x) { return x.daysSinceDeposit; });
-    if (daysArr.length < 2) return null;
-    var sorted = daysArr.slice().sort(function(a, b) { return a - b; });
-    var rank = 0;
-    for (var i = 0; i < sorted.length; i++) {
-      if (sorted[i] <= s.daysSinceDeposit) rank = i;
-    }
-    return Math.round((1 - rank / (sorted.length - 1)) * 100);
-  }
-
-  function applyDossierFilters(filtered) {
+  function applyDossierFilters(data) {
     var tf = state.dossierFilters;
-    return filtered.filter(function(s) {
-      if (tf.statut) {
-        var q = tf.statut.toLowerCase();
-        if ((s.statut || '').toLowerCase().indexOf(q) === -1) return false;
+    return data.filter(function(s) {
+      if (tf.statut && tf.statut !== 'all') {
+        if ((s.statut || '').toLowerCase() !== tf.statut) return false;
       }
+      if (tf.prefecture && tf.prefecture !== 'all') {
+        if (s.prefecture !== tf.prefecture) return false;
+      }
+      if (tf.history === 'multi' && s.snapshotCount < 2) return false;
       if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
       if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
       if (tf.statutDateMin && (s.dateStatut || '') < tf.statutDateMin) return false;
@@ -205,17 +184,18 @@
   }
 
   function initDossierFilters() {
-    var statutInput = document.getElementById('dossier-filter-statut');
+    var historySel = document.getElementById('dossier-filter-history');
+    historySel.addEventListener('change', function() {
+      state.dossierFilters.history = historySel.value;
+      state.page = 1;
+      renderAll();
+    });
+
     var depotMin = document.getElementById('dossier-filter-depot-min');
     var depotMax = document.getElementById('dossier-filter-depot-max');
     var statutMin = document.getElementById('dossier-filter-statut-min');
     var statutMax = document.getElementById('dossier-filter-statut-max');
 
-    statutInput.addEventListener('input', function() {
-      state.dossierFilters.statut = statutInput.value;
-      state.page = 1;
-      renderAll();
-    });
     depotMin.addEventListener('change', function() {
       state.dossierFilters.depotMin = depotMin.value;
       state.page = 1;
@@ -238,8 +218,8 @@
     });
   }
 
-  function renderDossiers(filtered) {
-    var dossierData = applyDossierFilters(filtered);
+  function renderDossiers(allSummaries) {
+    var dossierData = applyDossierFilters(allSummaries);
     var toolbar = document.getElementById('dossier-toolbar');
     var grid = document.getElementById('dossier-grid');
     var list = document.getElementById('dossier-list');
@@ -261,7 +241,10 @@
     var pageData = sorted.slice(start, start + state.pageSize);
 
     toolbar.style.display = 'flex';
-    document.getElementById('dossier-count').textContent = sorted.length + ' dossier' + (sorted.length > 1 ? 's' : '');
+    var countText = sorted.length === allSummaries.length
+      ? sorted.length + ' dossier' + (sorted.length > 1 ? 's' : '')
+      : sorted.length + ' / ' + allSummaries.length + ' dossiers';
+    document.getElementById('dossier-count').textContent = countText;
     document.getElementById('page-info').textContent = state.page + '/' + totalPages;
     document.getElementById('btn-prev').disabled = state.page <= 1;
     document.getElementById('btn-next').disabled = state.page >= totalPages;
@@ -290,15 +273,8 @@
     for (var i = 0; i < pageData.length; i++) {
       var s = pageData[i];
       var color = C.getStepColor(s.currentStep);
-      var pct = computePercentile(s, allSummaries);
       var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
       var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
-
-      var pctBadge = '';
-      if (pct !== null) {
-        var pctClass = pct >= 70 ? 'fast' : pct >= 40 ? 'normal' : 'slow';
-        pctBadge = '<span class="badge-percentile ' + pctClass + '">Top ' + pct + '%</span>';
-      }
 
       var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
 
@@ -307,7 +283,6 @@
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
-            pctBadge +
           '</div>' +
           '<div class="dossier-row-status">' +
             '<code>' + U.escapeHtml(s.statut) + '</code>' +
@@ -348,6 +323,55 @@
     });
   }
 
+  function buildStatusTimeline(snaps) {
+    if (!snaps || !snaps.length) return '';
+    var html = '<div style="margin-top:0.75rem;padding-top:0.6rem">' +
+      '<div class="detail-history-header">Historique des statuts</div>';
+    for (var j = 0; j < snaps.length; j++) {
+      var snap = snaps[j];
+      var statutKey = (snap.statut || '').toLowerCase();
+      var info = C.STATUTS[statutKey];
+      var stepColor = C.STEP_COLORS[snap.etape] || '#64748b';
+      var expl = info ? info.explication : (snap.phase || '');
+      var sousEtape = info ? C.formatSubStep(info.rang) : String(snap.etape);
+
+      var durationHtml = '';
+      if (j < snaps.length - 1) {
+        var nextSnap = snaps[j + 1];
+        if (snap.date_statut && nextSnap.date_statut) {
+          var days = U.daysDiff(snap.date_statut, nextSnap.date_statut);
+          var dColor = days >= 60 ? 'var(--red);background:rgba(239,68,68,0.12)' :
+                       days >= 30 ? 'var(--orange);background:rgba(245,158,11,0.12)' :
+                                    'var(--green);background:rgba(16,185,129,0.12)';
+          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
+        }
+      } else {
+        if (snap.date_statut) {
+          var today = new Date(); today.setHours(0, 0, 0, 0);
+          var days = U.daysDiff(snap.date_statut, today);
+          durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+        }
+      }
+
+      var dateStr = snap.date_statut ? U.formatDateFr(snap.date_statut) : '';
+
+      html += '<div class="timeline-step">' +
+        '<div class="timeline-dot-col">' +
+          '<div class="timeline-dot" style="background:' + stepColor + '"></div>' +
+          (j < snaps.length - 1 ? '<div class="timeline-line"></div>' : '') +
+        '</div>' +
+        '<div class="timeline-content">' +
+          '<div class="ts-status">' + U.escapeHtml(sousEtape) + ' \u2014 ' + U.escapeHtml(statutKey) + '</div>' +
+          (expl ? '<div class="ts-expl">' + U.escapeHtml(expl) + '</div>' : '') +
+          (dateStr ? '<div class="ts-date">' + dateStr + '</div>' : '') +
+          durationHtml +
+        '</div>' +
+      '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function renderRowDetail(s, allSummaries) {
     var color = C.getStepColor(s.currentStep);
 
@@ -381,6 +405,10 @@
 
     var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
 
+    // Status history timeline
+    var snaps = state.grouped.get(s.fullHash) || [];
+    var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '';
+
     return '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
         '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span></div>' +
@@ -391,7 +419,8 @@
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
-      '<div class="dossier-mini-timeline">' + miniTimeline + '</div>';
+      '<div class="dossier-mini-timeline">' + miniTimeline + '</div>' +
+      timelineHtml;
   }
 
   // ─── Card View ─────────────────────────────────────────
@@ -418,14 +447,6 @@
       miniTimeline += '<span class="step-dot' + (st === s.currentStep ? ' current' : '') + '" style="background:' + C.STEP_COLORS[st] + '" title="' + st + '. ' + C.PHASE_NAMES[st] + '">' + st + '</span>';
     }
 
-    // Percentile badge
-    var pct = computePercentile(s, allSummaries);
-    var pctBadge = '';
-    if (pct !== null) {
-      var pctClass = pct >= 70 ? 'fast' : pct >= 40 ? 'normal' : 'slow';
-      pctBadge = '<span class="badge-percentile ' + pctClass + '">Top ' + pct + '%</span>';
-    }
-
     var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
 
     var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
@@ -441,7 +462,7 @@
 
     return '<div class="dossier-card" style="--card-accent:' + color + '">' +
       '<div class="dossier-header">' +
-        '<span class="dossier-hash">#' + U.escapeHtml(s.hash) + ' ' + pctBadge + '</span>' +
+        '<span class="dossier-hash">#' + U.escapeHtml(s.hash) + '</span>' +
         '<span class="dossier-step-badge" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
       '</div>' +
       '<div class="dossier-progress">' +
@@ -471,8 +492,8 @@
       if (state.page > 1) { state.page--; renderAll(); }
     });
     document.getElementById('btn-next').addEventListener('click', function() {
-      var filtered = getFiltered();
-      var totalPages = Math.ceil(filtered.length / state.pageSize);
+      var dossierData = applyDossierFilters(state.summaries);
+      var totalPages = Math.ceil(dossierData.length / state.pageSize);
       if (state.page < totalPages) { state.page++; renderAll(); }
     });
   }
@@ -499,12 +520,14 @@
     return data;
   }
 
-  function applyTableFilters(filtered) {
+  function applyTableFilters(data) {
     var tf = state.tableFilters;
-    return filtered.filter(function(s) {
-      if (tf.statut) {
-        var q = tf.statut.toLowerCase();
-        if ((s.statut || '').toLowerCase().indexOf(q) === -1) return false;
+    return data.filter(function(s) {
+      if (tf.statut && tf.statut !== 'all') {
+        if ((s.statut || '').toLowerCase() !== tf.statut) return false;
+      }
+      if (tf.prefecture && tf.prefecture !== 'all') {
+        if (s.prefecture !== tf.prefecture) return false;
       }
       if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
       if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
@@ -515,17 +538,11 @@
   }
 
   function initTableFilters() {
-    var statutInput = document.getElementById('table-filter-statut');
     var depotMin = document.getElementById('table-filter-depot-min');
     var depotMax = document.getElementById('table-filter-depot-max');
     var statutMin = document.getElementById('table-filter-statut-min');
     var statutMax = document.getElementById('table-filter-statut-max');
 
-    statutInput.addEventListener('input', function() {
-      state.tableFilters.statut = statutInput.value;
-      state.tablePage = 1;
-      renderAll();
-    });
     depotMin.addEventListener('change', function() {
       state.tableFilters.depotMin = depotMin.value;
       state.tablePage = 1;
@@ -548,10 +565,10 @@
     });
   }
 
-  function renderDetailTable(filtered) {
+  function renderDetailTable(allSummaries) {
     var tbody = document.getElementById('detail-tbody');
     var toolbar = document.getElementById('table-toolbar');
-    var tableData = applyTableFilters(filtered);
+    var tableData = applyTableFilters(allSummaries);
     var data = getTableSorted(tableData);
 
     if (!data.length) {
@@ -566,7 +583,10 @@
     var pageData = data.slice(start, start + state.tablePageSize);
 
     toolbar.style.display = 'flex';
-    document.getElementById('table-count').textContent = data.length + ' dossier' + (data.length > 1 ? 's' : '');
+    var tCountText = data.length === allSummaries.length
+      ? data.length + ' dossier' + (data.length > 1 ? 's' : '')
+      : data.length + ' / ' + allSummaries.length + ' dossiers';
+    document.getElementById('table-count').textContent = tCountText;
     document.getElementById('table-page-info').textContent = state.tablePage + '/' + totalPages;
     document.getElementById('table-btn-prev').disabled = state.tablePage <= 1;
     document.getElementById('table-btn-next').disabled = state.tablePage >= totalPages;
@@ -630,18 +650,32 @@
       if (state.tablePage > 1) { state.tablePage--; renderAll(); }
     });
     document.getElementById('table-btn-next').addEventListener('click', function() {
-      var filtered = getFiltered();
-      var totalPages = Math.ceil(filtered.length / state.tablePageSize);
+      var tableData = applyTableFilters(state.summaries);
+      var totalPages = Math.ceil(tableData.length / state.tablePageSize);
       if (state.tablePage < totalPages) { state.tablePage++; renderAll(); }
     });
   }
 
   // ─── Histogram ───────────────────────────────────────────
 
-  function renderHistogram(filtered) {
+  function applyHistogramFilters(data) {
+    var tf = state.histogramFilters;
+    return data.filter(function(s) {
+      if (tf.statut && tf.statut !== 'all') {
+        if ((s.statut || '').toLowerCase() !== tf.statut) return false;
+      }
+      if (tf.prefecture && tf.prefecture !== 'all') {
+        if (s.prefecture !== tf.prefecture) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderHistogram(allSummaries) {
     var canvas = document.getElementById('histogram-chart');
     var noData = document.getElementById('histogram-no-data');
 
+    var filtered = applyHistogramFilters(allSummaries);
     var days = filtered.filter(function(s) { return s.daysSinceDeposit != null; }).map(function(s) { return s.daysSinceDeposit; });
 
     if (!days.length) {
@@ -688,41 +722,6 @@
     config.options.plugins.annotation = undefined; // not using plugin, use afterDraw instead
 
     CH.create('histogram', 'histogram-chart', config);
-  }
-
-  // ─── CSV Export ──────────────────────────────────────────
-
-  function initExportCSV() {
-    document.getElementById('btn-export-csv').addEventListener('click', function() {
-      var filtered = getFiltered();
-      var headers = ['Hash', 'Étape', 'Statut', 'Jours au statut', 'Date dépôt', 'Date statut', 'Entretien', 'Lieu', 'Décret', 'Préfecture', 'Complément'];
-      var rows = [headers.join(',')];
-
-      for (var i = 0; i < filtered.length; i++) {
-        var s = filtered[i];
-        rows.push([
-          s.hash,
-          s.currentStep,
-          '"' + (s.statut || '').replace(/"/g, '""') + '"',
-          s.daysAtCurrentStatus != null ? s.daysAtCurrentStatus : '',
-          s.dateDepot || '',
-          s.dateStatut || '',
-          s.dateEntretien || '',
-          '"' + (s.lieuEntretien || '').replace(/"/g, '""') + '"',
-          s.numeroDecret || '',
-          '"' + (s.prefecture || '').replace(/"/g, '""') + '"',
-          s.hasComplement ? 'Oui' : 'Non'
-        ].join(','));
-      }
-
-      var blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'anef-dossiers.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
   }
 
 })();

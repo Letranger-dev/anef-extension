@@ -38,7 +38,7 @@
     });
   }
 
-  /** Create prefecture dropdown */
+  /** Create prefecture dropdown (single select) */
   function createPrefectureDropdown(containerId, prefectures, currentValue, onChange) {
     var container = document.getElementById(containerId);
     if (!container) return;
@@ -55,6 +55,99 @@
     container.querySelector('select').addEventListener('change', function(e) {
       onChange(e.target.value);
     });
+  }
+
+  /** Create prefecture multi-select dropdown */
+  function createPrefectureMultiSelect(containerId, prefectures, currentValues, onChange) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    var esc = ANEF.utils.escapeHtml;
+    // currentValues: 'all' or array of selected prefectures
+    var selected = (!currentValues || currentValues === 'all') ? [] : (Array.isArray(currentValues) ? currentValues : [currentValues]);
+    var allSelected = selected.length === 0;
+
+    function triggerText() {
+      if (allSelected || selected.length === 0) return 'Toutes';
+      if (selected.length === 1) return selected[0];
+      return selected.length + ' s\u00e9lectionn\u00e9es';
+    }
+
+    var html = '<div class="pref-multiselect">' +
+      '<button type="button" class="pref-ms-trigger"><span class="pref-ms-text">' + esc(triggerText()) + '</span><span class="status-select-arrow">&#x25BC;</span></button>' +
+      '<div class="pref-ms-dropdown" style="display:none">' +
+        '<input type="text" class="pref-ms-search" style="width:100%" placeholder="Rechercher...">' +
+        '<div class="pref-ms-options">' +
+          '<label class="pref-ms-option pref-ms-all"><input type="checkbox"' + (allSelected ? ' checked' : '') + '> <span>Toutes les pr\u00e9fectures</span></label>';
+
+    for (var i = 0; i < prefectures.length; i++) {
+      var checked = !allSelected && selected.indexOf(prefectures[i]) !== -1 ? ' checked' : '';
+      html += '<label class="pref-ms-option" data-pref="' + esc(prefectures[i]) + '"><input type="checkbox"' + checked + '> <span>' + esc(prefectures[i]) + '</span></label>';
+    }
+    html += '</div></div></div>';
+    container.innerHTML = html;
+
+    var selectEl = container.querySelector('.pref-multiselect');
+    var trigger = container.querySelector('.pref-ms-trigger');
+    var dropdown = container.querySelector('.pref-ms-dropdown');
+    var searchInput = container.querySelector('.pref-ms-search');
+    var optionsDiv = container.querySelector('.pref-ms-options');
+    var textSpan = container.querySelector('.pref-ms-text');
+    var allCheckbox = container.querySelector('.pref-ms-all input');
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = dropdown.style.display !== 'none';
+      if (isOpen) { dropdown.style.display = 'none'; }
+      else { dropdown.style.display = 'flex'; searchInput.value = ''; filterOpts(''); searchInput.focus(); }
+    });
+
+    searchInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    searchInput.addEventListener('input', function() { filterOpts(searchInput.value); });
+
+    function filterOpts(q) {
+      q = q.toLowerCase().trim();
+      var labels = optionsDiv.querySelectorAll('.pref-ms-option:not(.pref-ms-all)');
+      for (var i = 0; i < labels.length; i++) {
+        var text = labels[i].textContent.toLowerCase();
+        labels[i].style.display = (!q || text.indexOf(q) !== -1) ? '' : 'none';
+      }
+    }
+
+    allCheckbox.addEventListener('change', function() {
+      if (allCheckbox.checked) {
+        selected = [];
+        allSelected = true;
+        var cbs = optionsDiv.querySelectorAll('.pref-ms-option:not(.pref-ms-all) input');
+        for (var i = 0; i < cbs.length; i++) cbs[i].checked = false;
+      }
+      update();
+    });
+
+    optionsDiv.addEventListener('change', function(e) {
+      var label = e.target.closest('.pref-ms-option');
+      if (!label || label.classList.contains('pref-ms-all')) return;
+      var pref = label.dataset.pref;
+      if (e.target.checked) {
+        allSelected = false;
+        allCheckbox.checked = false;
+        if (selected.indexOf(pref) === -1) selected.push(pref);
+      } else {
+        var idx = selected.indexOf(pref);
+        if (idx !== -1) selected.splice(idx, 1);
+        if (selected.length === 0) { allSelected = true; allCheckbox.checked = true; }
+      }
+      update();
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!selectEl.contains(e.target)) dropdown.style.display = 'none';
+    });
+
+    function update() {
+      textSpan.textContent = triggerText();
+      onChange(allSelected ? 'all' : selected.slice());
+    }
   }
 
   /** Create outcome filter (Tous/En cours/Favorable/Defavorable) */
@@ -157,7 +250,7 @@
     return {
       step: params.get('step') || 'all',
       statut: params.get('statut') || 'all',
-      prefecture: params.get('prefecture') || 'all',
+      prefecture: params.get('prefecture') ? (params.get('prefecture').indexOf(',') !== -1 ? params.get('prefecture').split(',') : params.get('prefecture')) : 'all',
       outcome: params.get('outcome') || 'all',
       complement: params.get('complement') || 'all',
       granularity: params.get('granularity') || 'quarter',
@@ -175,7 +268,7 @@
       var k = keys[i];
       var v = filters[k];
       if (v && v !== 'all' && v !== '' && v !== 'quarter' && v !== 1) {
-        params.set(k, v);
+        params.set(k, Array.isArray(v) ? v.join(',') : v);
       }
     }
     var search = params.toString();
@@ -199,6 +292,7 @@
     createStepPills: createStepPills,
     createStatusFilter: createStatusFilter,
     createPrefectureDropdown: createPrefectureDropdown,
+    createPrefectureMultiSelect: createPrefectureMultiSelect,
     createOutcomeFilter: createOutcomeFilter,
     createComplementFilter: createComplementFilter,
     createGranularityToggle: createGranularityToggle,

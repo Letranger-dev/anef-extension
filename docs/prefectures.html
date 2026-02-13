@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <title>ANEF Stats — Préfectures</title>
   <link rel="stylesheet" href="shared/common.css">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -50,33 +52,37 @@
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
       <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
       <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
       <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
       <a href="tendances.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Tendances</a>
-      <a href="parcours.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Parcours</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
     </div>
   </nav>
 
   <!-- Mobile Nav -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-bg-card/95 backdrop-blur-md border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
-    <div class="flex justify-around items-stretch h-14">
-      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F3E0;</span>Accueil
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="flex justify-around items-stretch h-12">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
       </a>
-      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
       </a>
-      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x23F1;</span>Délais
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
       </a>
-      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CD;</span>Préfectures
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
       </a>
-      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F4CA;</span>Tendances
+      <a href="tendances.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CA;</span>Tendances
       </a>
-      <a href="parcours.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.7rem] font-medium">
-        <span class="text-xl leading-none mb-0.5">&#x1F5FA;</span>Parcours
+      <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+      </a>
+      <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
       </a>
     </div>
   </nav>
@@ -100,12 +106,12 @@
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">Statut ANEF</span>
-        <div id="filter-status-container"></div>
+        <span class="filter-label">Préfecture</span>
+        <div id="filter-prefecture-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Échantillon min.</span>
-        <div id="filter-min-sample" style="display:flex;align-items:center;gap:0.5rem"></div>
+        <span class="filter-label">Statut ANEF</span>
+        <div id="filter-status-container"></div>
       </div>
       <span class="filter-count" id="filter-count"></span>
     </div>
@@ -113,6 +119,33 @@
     <!-- Ranking table -->
     <div class="section">
       <h2>Classement des préfectures</h2>
+      <div class="dossier-toolbar" id="ranking-toolbar" style="display:none">
+        <span class="dossier-count" id="ranking-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="ranking-sort" class="page-size-select" title="Trier par">
+            <option value="avg_days-desc">Durée moy. &darr;</option>
+            <option value="avg_days-asc">Durée moy. &uarr;</option>
+            <option value="total-desc">Dossiers &darr;</option>
+            <option value="total-asc">Dossiers &uarr;</option>
+            <option value="median_days-desc">Durée typique &darr;</option>
+            <option value="median_days-asc">Durée typique &uarr;</option>
+            <option value="prefecture-asc">Nom A-Z</option>
+            <option value="prefecture-desc">Nom Z-A</option>
+            <option value="favorable_pct-desc">Taux favorable &darr;</option>
+          </select>
+          <select id="ranking-page-size" class="page-size-select" title="Par page">
+            <option value="10" selected>10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="50">50 par page</option>
+            <option value="0">Tout</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="ranking-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="ranking-page-info" class="page-info">1/1</span>
+          <button id="ranking-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
       <div class="table-container">
         <table>
           <thead>
@@ -120,7 +153,7 @@
               <th class="sortable" data-col="prefecture">Préfecture</th>
               <th class="sortable" data-col="total">Dossiers</th>
               <th class="sortable" data-col="avg_days">Durée moy.</th>
-              <th class="sortable" data-col="median_days">Durée méd.</th>
+              <th class="sortable" data-col="median_days" title="Valeur médiane : 50% des dossiers font moins">Durée typique</th>
               <th class="sortable" data-col="avg_step">Étape moy.</th>
               <th class="sortable" data-col="favorable_pct">Taux favorable</th>
               <th class="sortable" data-col="complement_pct">Compléments</th>
@@ -134,7 +167,7 @@
     <!-- Horizontal bar chart -->
     <div class="section">
       <h2>Comparaison des durées moyennes</h2>
-      <div class="chart-container" id="bar-chart-container" style="min-height:400px">
+      <div class="chart-container chart-container--tall" id="bar-chart-container" style="min-height:400px">
         <canvas id="prefecture-bar-chart"></canvas>
         <p class="no-data" id="bar-no-data" style="display:none">Pas de données</p>
       </div>
@@ -146,16 +179,6 @@
       <p class="section-subtitle">Durée moyenne par cellule (jours)</p>
       <div class="chart-container">
         <div class="heatmap-grid" id="heatmap-container"></div>
-      </div>
-    </div>
-
-    <!-- Radar comparison -->
-    <div class="section">
-      <h2>Comparaison radar</h2>
-      <div class="chart-container" style="min-height:400px">
-        <div class="radar-controls" id="radar-controls"></div>
-        <canvas id="radar-chart"></canvas>
-        <p class="no-data" id="radar-no-data" style="display:none">Sélectionnez au moins 2 préfectures</p>
       </div>
     </div>
 

@@ -52,6 +52,9 @@
     F.createPrefectureDropdown('filter-prefecture-container', prefectures, state.filters.prefecture, function(v) {
       state.filters.prefecture = v; syncAndRender();
     });
+    F.createStatusFilter('filter-status-container', state.filters.statut, function(v) {
+      state.filters.statut = v; syncAndRender();
+    });
     F.createOutcomeFilter('filter-outcome-container', state.filters.outcome, function(v) {
       state.filters.outcome = v; syncAndRender();
     });
@@ -78,7 +81,7 @@
     var countEl = document.getElementById('filter-count');
     countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '');
 
-    var durations = D.computeDurationByStep(filteredSnapshots);
+    var durations = D.computeDurationByStatus(filteredSnapshots);
 
     renderDurationBarChart(durations);
     renderPercentileTable(durations);
@@ -118,7 +121,6 @@
     var pref = document.getElementById('estimator-prefecture').value || null;
     var currentInfo = C.STATUTS[statut];
     var currentRang = currentInfo ? currentInfo.rang : 0;
-    var currentEtape = currentInfo ? currentInfo.etape : 0;
 
     // Collect all snapshots, optionally filtered by prefecture
     var snaps = state.snapshots;
@@ -130,28 +132,29 @@
       snaps = snaps.filter(function(s) { return prefHashes[s.dossier_hash]; });
     }
 
-    // Group days since deposit by etape (most robust grouping)
-    var byEtape = {};
+    // Group days since deposit by rang (via STATUTS dictionary)
+    var byRang = {};
     for (var i = 0; i < snaps.length; i++) {
       var sn = snaps[i];
       if (!sn.date_depot || !sn.date_statut || !sn.etape) continue;
       var d = U.daysDiff(sn.date_depot, sn.date_statut);
       if (d === null) continue;
-      if (!byEtape[sn.etape]) byEtape[sn.etape] = [];
-      byEtape[sn.etape].push(d);
+      var snStatut = sn.statut ? sn.statut.toLowerCase() : '';
+      var snInfo = snStatut ? C.STATUTS[snStatut] : null;
+      var snRang = snInfo ? snInfo.rang : (sn.etape * 100);
+      if (!byRang[snRang]) byRang[snRang] = [];
+      byRang[snRang].push(d);
     }
 
-    // Current: all data from the same etape as the selected statut
-    var currentDays = currentEtape && byEtape[currentEtape] ? byEtape[currentEtape] : [];
+    // Current: data from snapshots at the same rang as the selected statut
+    var currentDays = byRang[currentRang] || [];
 
-    // Target: combine ALL data from ALL etapes beyond current
+    // Target: combine ALL data from ALL rangs beyond current
     var targetDays = [];
-    var targetEtapes = [];
-    var etapes = Object.keys(byEtape).map(Number).sort(function(a, b) { return a - b; });
-    for (var e = 0; e < etapes.length; e++) {
-      if (etapes[e] > currentEtape) {
-        targetDays = targetDays.concat(byEtape[etapes[e]]);
-        targetEtapes.push(etapes[e]);
+    var rangs = Object.keys(byRang).map(Number).sort(function(a, b) { return a - b; });
+    for (var e = 0; e < rangs.length; e++) {
+      if (rangs[e] > currentRang) {
+        targetDays = targetDays.concat(byRang[rangs[e]]);
       }
     }
 
@@ -165,7 +168,7 @@
       return;
     }
 
-    // Rapide: cible rapide - vous êtes déjà avancé = peu de temps restant
+    // Rapide: cible rapide - vous etes deja avance = peu de temps restant
     // Lent: cible lente - vous venez d'arriver = beaucoup de temps restant
     var remainP25 = Math.max(0, Math.round(M.percentile(targetDays, 25) - M.percentile(currentDays, 75)));
     var remainP50 = Math.max(0, Math.round(M.percentile(targetDays, 50) - M.percentile(currentDays, 50)));
@@ -181,27 +184,31 @@
     var label = confidence === 'high' ? 'Fiabilit\u00e9 \u00e9lev\u00e9e' : confidence === 'medium' ? 'Fiabilit\u00e9 moyenne' : 'Fiabilit\u00e9 faible';
     confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label +
       ' \u2014 bas\u00e9 sur ' + currentDays.length + ' dossier' + (currentDays.length > 1 ? 's' : '') +
-      ' \u00e0 votre \u00e9tape et ' + targetDays.length + ' dossier' + (targetDays.length > 1 ? 's' : '') + ' plus avanc\u00e9' + (targetDays.length > 1 ? 's' : '');
+      ' \u00e0 votre statut et ' + targetDays.length + ' dossier' + (targetDays.length > 1 ? 's' : '') + ' plus avanc\u00e9' + (targetDays.length > 1 ? 's' : '');
   }
 
-  /** Build label with most common status codes in parentheses */
+  // Short names for step 9 sub-statuts
+  var STEP9_SHORT = {
+    'controle_a_affecter': 'SDANF aff.',
+    'controle_a_effectuer': 'SDANF ctrl',
+    'controle_en_attente_pec': 'SCEC trans.',
+    'controle_pec_a_faire': 'SCEC v\u00e9rif.'
+  };
+
+  /** Build label — for step 9 sub-statuts show detailed name */
   function labelWithStatus(d) {
-    var label = d.etape + '. ' + d.phase;
-    if (d.statuts) {
-      var codes = Object.keys(d.statuts).sort(function(a, b) { return d.statuts[b] - d.statuts[a]; });
-      if (codes.length === 1) {
-        label += ' (' + codes[0] + ')';
-      } else if (codes.length === 2) {
-        label += ' (' + codes[0] + ', ' + codes[1] + ')';
-      } else if (codes.length > 2) {
-        label += ' (' + codes[0] + ', ' + codes[1] + '...)';
-      }
+    if (d.statut && STEP9_SHORT[d.statut]) {
+      var sub = C.formatSubStep(d.rang);
+      return sub + '. ' + d.phase + ' (' + d.statut + ')';
     }
-    return label;
+    return d.etape + '. ' + d.phase;
   }
 
-  /** Short label for chart axes (no status codes) */
+  /** Short label for chart axes */
   function shortLabel(d) {
+    if (d.statut && STEP9_SHORT[d.statut]) {
+      return C.formatSubStep(d.rang) + '. ' + STEP9_SHORT[d.statut];
+    }
     return d.etape + '. ' + d.phase;
   }
 
@@ -224,7 +231,11 @@
     var isMobile = window.innerWidth < 768;
     var chartLabels = durations.map(shortLabel);
     var fullLabels = durations.map(labelWithStatus);
-    var colors = durations.map(function(d) { return C.STEP_COLORS[d.etape] || C.STEP_COLORS[0]; });
+    var step9Colors = { 'controle_a_affecter': '#f59e0b', 'controle_a_effectuer': '#d97706', 'controle_en_attente_pec': '#b45309', 'controle_pec_a_faire': '#92400e' };
+    var colors = durations.map(function(d) {
+      if (d.statut && step9Colors[d.statut]) return step9Colors[d.statut];
+      return C.STEP_COLORS[d.etape] || C.STEP_COLORS[0];
+    });
 
     var avgValues = durations.map(function(d) { return d.avg_days; });
     var medValues = durations.map(function(d) { return d.median_days; });

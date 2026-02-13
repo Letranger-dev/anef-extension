@@ -76,47 +76,115 @@
 
   function renderTimeline(summaries) {
     var wrapper = document.getElementById('timeline-wrapper');
+    var STATUTS = C.STATUTS;
+
+    // Group by step, then by statut within each step
     var byStep = {};
-    var maxCount = 0;
     for (var i = 0; i < summaries.length; i++) {
       var s = summaries[i];
-      if (!byStep[s.currentStep]) byStep[s.currentStep] = [];
-      byStep[s.currentStep].push(s);
-    }
-    for (var k in byStep) {
-      if (byStep[k].length > maxCount) maxCount = byStep[k].length;
+      var step = s.currentStep;
+      if (!byStep[step]) byStep[step] = {};
+      var statutKey = s.statut ? s.statut.toLowerCase() : '_unknown';
+      if (!byStep[step][statutKey]) byStep[step][statutKey] = [];
+      byStep[step][statutKey].push(s);
     }
 
-    function makeBubble(count, color, tooltip) {
-      var ratio = maxCount > 1 ? (count - 1) / (maxCount - 1) : 0;
-      var size = Math.round(24 + ratio * 28);
-      return '<div class="station-bubble" style="background:' + color + ';width:' + size + 'px;height:' + size + 'px" title="' + U.escapeHtml(tooltip) + '">' + count + '</div>';
+    // Short readable labels for timeline bubbles (keys = STATUTS dictionary keys)
+    var SHORT_LABELS = {
+      // Étape 1
+      'draft': 'Brouillon',
+      // Étape 2
+      'dossier_depose': 'Déposé',
+      // Étape 3
+      'verification_formelle_a_traiter': 'Reçu, tri',
+      'verification_formelle_en_cours': 'Tri en cours',
+      'verification_formelle_mise_en_demeure': 'Mise en demeure',
+      'css_mise_en_demeure_a_affecter': 'CSS en cours',
+      'css_mise_en_demeure_a_rediger': 'CSS rédaction',
+      // Étape 4
+      'instruction_a_affecter': 'Recevable',
+      // Étape 5
+      'instruction_recepisse_completude_a_envoyer': 'Dossier complet',
+      'instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter': 'Complément reçu',
+      // Étape 6
+      'instruction_date_ea_a_fixer': 'Enquêtes',
+      'ea_demande_report_ea': 'Report entretien',
+      // Étape 7
+      'ea_en_attente_ea': 'Convocation',
+      'ea_crea_a_valider': 'Compte-rendu',
+      // Étape 8
+      'prop_decision_pref_a_effectuer': 'Avis préfectoral',
+      'prop_decision_pref_en_attente_retour_hierarchique': 'Valid. hiérarch.',
+      'prop_decision_pref_prop_a_editer': 'Rédaction déc.',
+      'prop_decision_pref_en_attente_retour_signataire': 'Signature préfet',
+      // Étape 9
+      'controle_a_affecter': 'SDANF attente',
+      'controle_a_effectuer': 'SDANF contrôle',
+      'controle_en_attente_pec': 'SCEC transmis',
+      'controle_pec_a_faire': 'SCEC vérif.',
+      // Étape 10
+      'controle_transmise_pour_decret': 'Avis favorable',
+      'controle_en_attente_retour_hierarchique': 'Valid. hiérarch.',
+      'controle_decision_a_editer': 'Décision édition',
+      'controle_en_attente_signature': 'Attente signature',
+      'transmis_a_ac': 'Transmis AC',
+      'a_verifier_avant_insertion_decret': 'Vérifications',
+      'prete_pour_insertion_decret': 'Prêt insertion',
+      'decret_en_preparation': 'Prép. décret',
+      'decret_a_qualifier': 'Qualif. décret',
+      'decret_en_validation': 'Valid. décret',
+      // Étape 11
+      'inseree_dans_decret': 'Décret signé',
+      'decret_envoye_prefecture': 'Envoyé préf.',
+      'notification_envoyee': 'Notification',
+      // Étape 12
+      'decret_naturalisation_publie': 'Publié JO',
+      'decret_naturalisation_publie_jo': 'Publié JO',
+      'decret_publie': 'Publié',
+      'demande_traitee': 'Traitée',
+      'decision_negative_en_delais_recours': 'Défavorable',
+      'decision_notifiee': 'Déc. notifiée',
+      'demande_en_cours_rapo': 'Recours RAPO',
+      'controle_demande_notifiee': 'Ctrl notifié',
+      'irrecevabilite_manifeste': 'Irrecevable',
+      'irrecevabilite_manifeste_en_delais_recours': 'Irrec. recours',
+      'css_en_delais_recours': 'CSS recours',
+      'css_notifie': 'CSS notifié'
+    };
+    function shortLabel(statutCode) {
+      if (SHORT_LABELS[statutCode]) return SHORT_LABELS[statutCode];
+      var info = STATUTS[statutCode];
+      if (!info) return statutCode || '?';
+      var exp = info.explication;
+      if (exp.length > 16) exp = exp.substring(0, 14) + '\u2026';
+      return exp;
     }
 
     var html = '<div class="global-timeline">';
     for (var step = 1; step <= 12; step++) {
-      var dossiers = byStep[step] || [];
-      var count = dossiers.length;
+      var stepData = byStep[step] || {};
+      var statutKeys = Object.keys(stepData).sort(function(a, b) {
+        var ra = STATUTS[a] ? STATUTS[a].rang : 0;
+        var rb = STATUTS[b] ? STATUTS[b].rang : 0;
+        return ra - rb;
+      });
+      var totalCount = 0;
+      for (var sk in stepData) totalCount += stepData[sk].length;
       var color = C.STEP_COLORS[step];
-      var isActive = count > 0;
+      var isActive = totalCount > 0;
 
       var bubbleHtml = '';
-      if (count > 0) {
-        if (step === 9) {
-          // Split SDANF vs SCEC
-          var sdanf = 0, scec = 0;
-          for (var j = 0; j < dossiers.length; j++) {
-            if (dossiers[j].rang >= 903) scec++;
-            else sdanf++;
-          }
-          bubbleHtml = '<div class="station-sub-bubbles">';
-          if (sdanf > 0) bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + sdanf + ' dossier' + (sdanf > 1 ? 's' : '') + ' au controle SDANF"><span class="station-sub-label">SDANF</span>' + sdanf + '</span>';
-          if (scec > 0) bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + scec + ' dossier' + (scec > 1 ? 's' : '') + ' au controle SCEC"><span class="station-sub-label">SCEC</span>' + scec + '</span>';
-          bubbleHtml += '</div>';
-        } else {
-          var tooltip = count + ' dossier' + (count > 1 ? 's' : '') + ' \u2014 ' + C.PHASE_NAMES[step];
-          bubbleHtml = makeBubble(count, color, tooltip);
+      if (totalCount > 0) {
+        bubbleHtml = '<div class="station-sub-bubbles">';
+        for (var si = 0; si < statutKeys.length; si++) {
+          var sk2 = statutKeys[si];
+          var count = stepData[sk2].length;
+          var label = shortLabel(sk2);
+          var fullExp = STATUTS[sk2] ? STATUTS[sk2].explication : sk2;
+          var tooltip = count + ' dossier' + (count > 1 ? 's' : '') + ' \u2014 ' + fullExp;
+          bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + U.escapeHtml(tooltip) + '"><span class="station-sub-label">' + U.escapeHtml(label) + '</span>' + count + '</span>';
         }
+        bubbleHtml += '</div>';
       }
 
       html += '<div class="timeline-station ' + (isActive ? 'active' : '') + '">' +
@@ -132,7 +200,7 @@
 
   // ─── File d'attente SDANF ────────────────────────────────
 
-  var sdanfState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '' };
+  var sdanfState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false };
 
   function renderSdanfWait(summaries) {
     // Filter dossiers at etape 9 (all SDANF & SCEC statuses)
@@ -180,10 +248,14 @@
   function getSdanfFiltered() {
     var data = sdanfState.all;
     if (sdanfState.statut) {
-      data = data.filter(function(s) { return s.statut === sdanfState.statut; });
+      var filterStatut = sdanfState.statut.toLowerCase();
+      data = data.filter(function(s) { return (s.statut || '').toLowerCase() === filterStatut; });
     }
     if (sdanfState.pref) {
       data = data.filter(function(s) { return s.prefecture === sdanfState.pref; });
+    }
+    if (sdanfState.changed) {
+      data = data.filter(function(s) { return !!s.previousStatut; });
     }
     switch (sdanfState.sort) {
       case 'days-desc':
@@ -212,10 +284,10 @@
       return;
     }
 
-    // KPIs — count by exact sub-status
+    // KPIs — count by exact sub-status (lowercase keys)
     var subCounts = {};
     for (var k = 0; k < data.length; k++) {
-      var st = data[k].statut || 'inconnu';
+      var st = (data[k].statut || 'inconnu').toLowerCase();
       subCounts[st] = (subCounts[st] || 0) + 1;
     }
     var days = data.map(function(s) { return s.daysAtCurrentStatus || 0; });
@@ -224,11 +296,11 @@
 
     var SUB_LABELS = {
       'controle_a_affecter': { short: 'Attente affectation', cls: 'orange' },
-      'controle_a_effectuer': { short: 'Contrôle en cours', cls: '' },
+      'controle_a_effectuer': { short: 'Contr\u00f4le en cours', cls: '' },
       'controle_en_attente_pec': { short: 'Transmis SCEC', cls: 'violet' },
-      'controle_pec_a_faire': { short: 'Vérif. état civil', cls: 'violet' }
+      'controle_pec_a_faire': { short: 'V\u00e9rif. \u00e9tat civil', cls: 'violet' }
     };
-    var kpiHtml = '<div class="kpi-card"><div class="kpi-label">Total étape 9</div><div class="kpi-value">' + total + '</div></div>';
+    var kpiHtml = '<div class="kpi-card"><div class="kpi-label">Total \u00e9tape 9</div><div class="kpi-value">' + total + '</div></div>';
     var subKeys = Object.keys(subCounts).sort(function(a, b) {
       var ra = C.STATUTS[a] ? C.STATUTS[a].rang : 0;
       var rb = C.STATUTS[b] ? C.STATUTS[b].rang : 0;
@@ -264,9 +336,33 @@
     var html = '';
     for (var i = 0; i < pageData.length; i++) {
       var s = pageData[i];
+      var statutLower = s.statut ? s.statut.toLowerCase() : '';
       var d = s.daysAtCurrentStatus || 0;
       var urgency = d >= 60 ? 'var(--red)' : d >= 30 ? 'var(--orange)' : 'var(--green)';
-      var badge = BADGE_MAP[s.statut] || { text: s.sousEtape + ' ' + s.explication, cls: 'badge-entretien-non' };
+      var badge = BADGE_MAP[statutLower] || { text: s.sousEtape + ' ' + s.explication, cls: 'badge-entretien-non' };
+
+      // Last checked by extension
+      var checkedHtml = '';
+      if (s.lastChecked) {
+        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + '</span>';
+      }
+
+      // Status change indicator
+      var changeHtml = '';
+      if (s.previousStatut) {
+        var prevKey = s.previousStatut.toLowerCase();
+        var prevInfo = C.STATUTS[prevKey];
+        var prevExpl = prevInfo ? prevInfo.explication : '';
+        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
+          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien :' +
+          '<code style="font-size:0.65rem;color:var(--text-muted)">' + U.escapeHtml(prevKey) + '</code>' +
+          (prevExpl ? ' (' + U.escapeHtml(prevExpl) + ')' : '') +
+          prevDateStr +
+          '</span>';
+      } else {
+        changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
+      }
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
         '<div class="dossier-row-main">' +
@@ -281,7 +377,11 @@
             '<span style="font-weight:700;color:' + urgency + '">' + U.formatDuration(d) + '</span>' +
             (s.dateStatut ? '<span>depuis le ' + U.formatDateFr(s.dateStatut) + '</span>' : '') +
           '</div>' +
-          (s.prefecture ? '<div style="margin-top:0.2rem"><span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span></div>' : '') +
+          '<div class="dossier-row-meta">' + changeHtml + '</div>' +
+          '<div class="dossier-row-meta">' +
+            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            checkedHtml +
+          '</div>' +
         '</div>' +
         '<div style="width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);flex-shrink:0">' +
           '<div style="width:' + Math.min(100, Math.round(d / Math.max(maxD, 1) * 100)) + '%;height:100%;border-radius:3px;background:' + urgency + '"></div>' +
@@ -301,6 +401,12 @@
     document.getElementById('sdanf-pref-filter').addEventListener('change', function(e) {
       sdanfState.pref = e.target.value; sdanfState.page = 1; renderSdanfPage();
     });
+    var changedCb = document.getElementById('sdanf-changed-filter');
+    changedCb.addEventListener('change', function() {
+      sdanfState.changed = changedCb.checked;
+      document.getElementById('sdanf-changed-label').classList.toggle('active', changedCb.checked);
+      sdanfState.page = 1; renderSdanfPage();
+    });
     var sel = document.getElementById('sdanf-page-size');
     sel.addEventListener('change', function() {
       sdanfState.pageSize = parseInt(sel.value, 10); sdanfState.page = 1; renderSdanfPage();
@@ -316,7 +422,7 @@
 
   // ─── Phase entretien & decision prefecture ──────────────
 
-  var entretienState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '' };
+  var entretienState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false };
 
   /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later) */
   function isEntretienPassed(s) {
@@ -343,6 +449,35 @@
       prefSelect.appendChild(opt);
     });
 
+    // Populate statut filter
+    var ENTRETIEN_LABELS = {
+      'instruction_date_ea_a_fixer': 'Enquêtes en cours',
+      'ea_demande_report_ea': 'Report entretien',
+      'ea_en_attente_ea': 'Convocation entretien',
+      'ea_crea_a_valider': 'Compte-rendu',
+      'prop_decision_pref_a_effectuer': 'Avis préfectoral',
+      'prop_decision_pref_en_attente_retour_hierarchique': 'Valid. hiérarchique',
+      'prop_decision_pref_prop_a_editer': 'Rédaction décision',
+      'prop_decision_pref_en_attente_retour_signataire': 'Signature préfet'
+    };
+    var entretienStatuts = {};
+    for (var ei = 0; ei < entretienState.all.length; ei++) {
+      var est = entretienState.all[ei].statut;
+      if (est) entretienStatuts[est] = true;
+    }
+    var entretienStatutSelect = document.getElementById('entretien-statut-filter');
+    var entretienStatutKeys = Object.keys(entretienStatuts).sort(function(a, b) {
+      var ra = C.STATUTS[a.toLowerCase()] ? C.STATUTS[a.toLowerCase()].rang : 0;
+      var rb = C.STATUTS[b.toLowerCase()] ? C.STATUTS[b.toLowerCase()].rang : 0;
+      return ra - rb;
+    });
+    for (var ej = 0; ej < entretienStatutKeys.length; ej++) {
+      var eopt = document.createElement('option');
+      eopt.value = entretienStatutKeys[ej];
+      eopt.textContent = ENTRETIEN_LABELS[entretienStatutKeys[ej].toLowerCase()] || entretienStatutKeys[ej];
+      entretienStatutSelect.appendChild(eopt);
+    }
+
     initEntretienControls();
     renderEntretienPage();
   }
@@ -354,8 +489,15 @@
     } else if (entretienState.filter === 'pending') {
       data = data.filter(function(s) { return !isEntretienPassed(s); });
     }
+    if (entretienState.statut) {
+      var filterStatutE = entretienState.statut.toLowerCase();
+      data = data.filter(function(s) { return (s.statut || '').toLowerCase() === filterStatutE; });
+    }
     if (entretienState.pref) {
       data = data.filter(function(s) { return s.prefecture === entretienState.pref; });
+    }
+    if (entretienState.changed) {
+      data = data.filter(function(s) { return !!s.previousStatut; });
     }
     switch (entretienState.sort) {
       case 'days-desc':
@@ -419,8 +561,31 @@
       var color = C.STEP_COLORS[s.currentStep];
       var passed_flag = isEntretienPassed(s);
       var badgeClass = passed_flag ? 'badge-entretien-oui' : 'badge-entretien-non';
-      var badgeText = passed_flag ? 'Entretien passé' : 'En attente';
-      var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '—';
+      var badgeText = passed_flag ? 'Entretien pass\u00e9' : 'En attente';
+      var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+
+      // Last checked by extension
+      var checkedHtml = '';
+      if (s.lastChecked) {
+        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + '</span>';
+      }
+
+      // Status change indicator
+      var changeHtml = '';
+      if (s.previousStatut) {
+        var prevKey = s.previousStatut.toLowerCase();
+        var prevInfo = C.STATUTS[prevKey];
+        var prevExpl = prevInfo ? prevInfo.explication : '';
+        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
+          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien :' +
+          '<code style="font-size:0.65rem;color:var(--text-muted)">' + U.escapeHtml(prevKey) + '</code>' +
+          (prevExpl ? ' (' + U.escapeHtml(prevExpl) + ')' : '') +
+          prevDateStr +
+          '</span>';
+      } else {
+        changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
+      }
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
         '<div class="dossier-row-main">' +
@@ -433,9 +598,13 @@
             '<span class="phase-hint">' + U.escapeHtml(s.currentPhase) + '</span>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
-            '<span>' + daysLabel + ' depuis le dépôt</span>' +
-            (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            '<span>' + daysLabel + ' depuis le d\u00e9p\u00f4t</span>' +
             (s.dateEntretien ? '<span>Entretien: ' + U.formatDateFr(s.dateEntretien) + '</span>' : '') +
+          '</div>' +
+          '<div class="dossier-row-meta">' + changeHtml + '</div>' +
+          '<div class="dossier-row-meta">' +
+            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            checkedHtml +
           '</div>' +
         '</div>' +
       '</div>';
@@ -450,8 +619,17 @@
     document.getElementById('entretien-filter').addEventListener('change', function(e) {
       entretienState.filter = e.target.value; entretienState.page = 1; renderEntretienPage();
     });
+    document.getElementById('entretien-statut-filter').addEventListener('change', function(e) {
+      entretienState.statut = e.target.value; entretienState.page = 1; renderEntretienPage();
+    });
     document.getElementById('entretien-pref-filter').addEventListener('change', function(e) {
       entretienState.pref = e.target.value; entretienState.page = 1; renderEntretienPage();
+    });
+    var changedCbE = document.getElementById('entretien-changed-filter');
+    changedCbE.addEventListener('change', function() {
+      entretienState.changed = changedCbE.checked;
+      document.getElementById('entretien-changed-label').classList.toggle('active', changedCbE.checked);
+      entretienState.page = 1; renderEntretienPage();
     });
     var sel = document.getElementById('entretien-page-size');
     sel.addEventListener('change', function() {
