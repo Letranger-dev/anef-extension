@@ -56,6 +56,56 @@
     return data;
   }
 
+  /** Normalize prefecture name: accents, hyphens, casse */
+  var PREF_FIXES = {
+    'Meurthe Et Moselle': 'Meurthe-et-Moselle',
+    'Seine Saint Denis': 'Seine-Saint-Denis',
+    'Bas Rhin': 'Bas-Rhin',
+    'Haut Rhin': 'Haut-Rhin',
+    "Cote D'Or": "Côte-d'Or",
+    'Deux Sevres': 'Deux-Sèvres',
+    'Pas De Calais': 'Pas-de-Calais',
+    'Ille Et Vilaine': 'Ille-et-Vilaine',
+    'Indre Et Loire': 'Indre-et-Loire',
+    'Loir Et Cher': 'Loir-et-Cher',
+    'Lot Et Garonne': 'Lot-et-Garonne',
+    'Maine Et Loire': 'Maine-et-Loire',
+    'Saone Et Loire': 'Saône-et-Loire',
+    'Seine Et Marne': 'Seine-et-Marne',
+    'Tarn Et Garonne': 'Tarn-et-Garonne',
+    'Val De Marne': 'Val-de-Marne',
+    "Val D'Oise": "Val-d'Oise",
+    'Cotes D Armor': "Côtes-d'Armor",
+    "Cotes D'Armor": "Côtes-d'Armor",
+    'Bouches Du Rhone': 'Bouches-du-Rhône',
+    'Territoire De Belfort': 'Territoire de Belfort',
+    'Alpes De Haute Provence': 'Alpes-de-Haute-Provence',
+    'Hautes Alpes': 'Hautes-Alpes',
+    'Alpes Maritimes': 'Alpes-Maritimes',
+    'Pyrenees Atlantiques': 'Pyrénées-Atlantiques',
+    'Hautes Pyrenees': 'Hautes-Pyrénées',
+    'Pyrenees Orientales': 'Pyrénées-Orientales',
+    'Haute Garonne': 'Haute-Garonne',
+    'Haute Loire': 'Haute-Loire',
+    'Haute Marne': 'Haute-Marne',
+    'Haute Saone': 'Haute-Saône',
+    'Haute Savoie': 'Haute-Savoie',
+    'Haute Vienne': 'Haute-Vienne',
+    'Hauts De Seine': 'Hauts-de-Seine',
+    'Puy De Dome': 'Puy-de-Dôme',
+    'Seine Maritime': 'Seine-Maritime',
+    'Charente Maritime': 'Charente-Maritime'
+  };
+
+  function normalizePrefecture(name) {
+    if (!name) return name;
+    // Remove "Prefecture de/du/de la/des " prefix
+    var cleaned = name.replace(/^Pr[eé]fecture\s+(de\s+la\s+|du\s+|des\s+|de\s+|d')/i, '');
+    // Exact match lookup
+    if (PREF_FIXES[cleaned]) return PREF_FIXES[cleaned];
+    return cleaned;
+  }
+
   /** Group snapshots by dossier_hash => Map<hash, snapshot[]> */
   function groupByDossier(snapshots) {
     var map = new Map();
@@ -114,6 +164,7 @@
       if (!prefecture && domicileCP) {
         prefecture = ANEF.constants.getDepartementFromCP(domicileCP);
       }
+      prefecture = normalizePrefecture(prefecture);
 
       var statutKey = latest.statut ? latest.statut.toLowerCase() : '';
       var statutInfo = ANEF.constants.STATUTS[statutKey];
@@ -423,6 +474,7 @@
     computeTransitions: computeTransitions,
     applyFilters: applyFilters,
     getSnapshotsForHashes: getSnapshotsForHashes,
-    getUniquePrefectures: getUniquePrefectures
+    getUniquePrefectures: getUniquePrefectures,
+    normalizePrefecture: normalizePrefecture
   };
 })();

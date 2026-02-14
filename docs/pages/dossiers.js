@@ -284,9 +284,8 @@
             '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
           '</div>' +
-          '<div class="dossier-row-status">' +
-            '<code>' + U.escapeHtml(s.statut) + '</code>' +
-            '<span class="phase-hint">' + U.escapeHtml(s.explication) + '</span>' +
+          '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
+            '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
             triBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
@@ -411,7 +410,7 @@
 
     return '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span></div>' +
+        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
@@ -467,7 +466,7 @@
       '</div>' +
       '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label"><code>' + U.escapeHtml(s.statut) + '</code> <span class="phase-hint">(' + U.escapeHtml(s.explication) + ')</span>' + triBadge + '</div>' +
+        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
@@ -597,8 +596,8 @@
       html += '<tr>' +
         '<td><code>#' + U.escapeHtml(s.hash) + '</code></td>' +
         '<td class="num">' + s.sousEtape + '/12</td>' +
-        '<td><code>' + U.escapeHtml(s.statut) + '</code></td>' +
-        '<td class="num">' + (s.daysAtCurrentStatus != null ? s.daysAtCurrentStatus + ' j' : '\u2014') + '</td>' +
+        '<td title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.explication) + '</td>' +
+        '<td class="num">' + (s.daysAtCurrentStatus != null ? (s.daysAtCurrentStatus === 0 ? '< 1 j' : s.daysAtCurrentStatus + ' j') : '\u2014') + '</td>' +
         '<td>' + U.formatDateFr(s.dateDepot) + '</td>' +
         '<td>' + U.formatDateFr(s.dateStatut) + '</td>' +
         '<td>' + U.formatDateFr(s.dateEntretien) + '</td>' +

@@ -317,7 +317,7 @@
 
     for (var i = 0; i < relevantSnaps.length; i++) {
       var s = relevantSnaps[i];
-      var pref = s.prefecture;
+      var pref = D.normalizePrefecture(s.prefecture);
       if (!pref || !s.date_depot || !s.date_statut) continue;
       var days = U.daysDiff(s.date_depot, s.date_statut);
       if (days === null || days < 0) continue;
@@ -344,19 +344,41 @@
     }
 
     var prefs = prefStats.map(function(p) { return p.prefecture; });
+
+    // Filter out columns with no data at all
+    var activeCols = HEATMAP_COLS.filter(function(col) {
+      for (var p = 0; p < prefs.length; p++) {
+        if (matrix[prefs[p] + '|' + col.key]) return true;
+      }
+      return false;
+    });
+
+    // Filter out rows with no data in any active column
+    var activePrefs = prefs.filter(function(pref) {
+      for (var c = 0; c < activeCols.length; c++) {
+        if (matrix[pref + '|' + activeCols[c].key]) return true;
+      }
+      return false;
+    });
+
+    if (!activeCols.length || !activePrefs.length) {
+      container.innerHTML = '<p class="no-data">Pas assez de donn\u00e9es pour la heatmap</p>';
+      return;
+    }
+
     var html = '<table class="heatmap-table"><thead><tr><th></th>';
-    for (var c = 0; c < HEATMAP_COLS.length; c++) {
-      var col = HEATMAP_COLS[c];
+    for (var c = 0; c < activeCols.length; c++) {
+      var col = activeCols[c];
       var thTitle = col.title ? ' title="' + col.title + '"' : '';
       html += '<th' + thTitle + '>' + col.label + '</th>';
     }
     html += '</tr></thead><tbody>';
 
-    for (var p = 0; p < prefs.length; p++) {
-      html += '<tr><td class="hm-label">' + U.escapeHtml(prefs[p]) + '</td>';
-      for (var c2 = 0; c2 < HEATMAP_COLS.length; c2++) {
-        var colKey = HEATMAP_COLS[c2].key;
-        var cellKey = prefs[p] + '|' + colKey;
+    for (var p = 0; p < activePrefs.length; p++) {
+      html += '<tr><td class="hm-label">' + U.escapeHtml(activePrefs[p]) + '</td>';
+      for (var c2 = 0; c2 < activeCols.length; c2++) {
+        var colKey = activeCols[c2].key;
+        var cellKey = activePrefs[p] + '|' + colKey;
         var cellData = matrix[cellKey];
         if (cellData && cellData.length) {
           var cellAvg = Math.round(cellData.reduce(function(a, b) { return a + b; }, 0) / cellData.length);
@@ -364,8 +386,8 @@
           var r = Math.round(intensity * 239 + (1 - intensity) * 16);
           var g = Math.round((1 - intensity) * 185 + intensity * 68);
           var b2 = Math.round((1 - intensity) * 129 + intensity * 68);
-          var tipLabel = HEATMAP_COLS[c2].title || ('\u00e9tape ' + colKey);
-          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + prefs[p] + ' ' + tipLabel + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
+          var tipLabel = activeCols[c2].title || ('\u00e9tape ' + colKey);
+          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + activePrefs[p] + ' ' + tipLabel + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
         } else {
           html += '<td class="hm-cell" style="background:rgba(255,255,255,0.03);color:var(--text-dim)">\u2014</td>';
         }

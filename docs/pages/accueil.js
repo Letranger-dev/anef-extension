@@ -9,6 +9,13 @@
   var D = ANEF.data;
   var CH = ANEF.charts;
 
+  function ageColor(days) {
+    if (days == null) return 'var(--text-dim)';
+    if (days < 180) return 'var(--green)';
+    if (days < 365) return 'var(--orange)';
+    return 'var(--red)';
+  }
+
   document.addEventListener('DOMContentLoaded', async function() {
     CH.registerDarkTheme();
 
@@ -354,10 +361,11 @@
         var prevInfo = C.STATUTS[prevKey];
         var prevExpl = prevInfo ? prevInfo.explication : '';
         var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        var prevSub = prevInfo ? C.formatSubStep(prevInfo.rang) : '';
         changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
-          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien :' +
-          '<code style="font-size:0.65rem;color:var(--text-muted)">' + U.escapeHtml(prevKey) + '</code>' +
-          (prevExpl ? ' (' + U.escapeHtml(prevExpl) + ')' : '') +
+          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien : ' +
+          (prevSub ? U.escapeHtml(prevSub) + ' \u2014 ' : '') +
+          (prevExpl ? U.escapeHtml(prevExpl) : U.escapeHtml(prevKey)) +
           prevDateStr +
           '</span>';
       } else {
@@ -370,8 +378,8 @@
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
             '<span class="' + badge.cls + '">' + U.escapeHtml(badge.text) + '</span>' +
           '</div>' +
-          '<div class="dossier-row-status">' +
-            '<code class="statut-code">' + U.escapeHtml(s.statut) + '</code>' +
+          '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
+            '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span style="font-weight:700;color:' + urgency + '">' + U.formatDuration(d) + '</span>' +
@@ -379,12 +387,12 @@
           '</div>' +
           '<div class="dossier-row-meta">' + changeHtml + '</div>' +
           '<div class="dossier-row-meta">' +
-            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '<span style="font-size:0.8rem;color:var(--text-dim)">Préfecture inconnue</span>') +
             checkedHtml +
           '</div>' +
         '</div>' +
-        '<div style="width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);flex-shrink:0">' +
-          '<div style="width:' + Math.min(100, Math.round(d / Math.max(maxD, 1) * 100)) + '%;height:100%;border-radius:3px;background:' + urgency + '"></div>' +
+        '<div style="width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);flex-shrink:0" title="Anciennet\u00e9 : ' + U.formatDuration(s.daysSinceDeposit) + '">' +
+          '<div style="width:' + Math.min(100, Math.round(d / Math.max(maxD, 1) * 100)) + '%;height:100%;border-radius:3px;background:' + ageColor(s.daysSinceDeposit) + '"></div>' +
         '</div>' +
       '</div>';
     }
@@ -577,10 +585,11 @@
         var prevInfo = C.STATUTS[prevKey];
         var prevExpl = prevInfo ? prevInfo.explication : '';
         var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        var prevSub = prevInfo ? C.formatSubStep(prevInfo.rang) : '';
         changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
-          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien :' +
-          '<code style="font-size:0.65rem;color:var(--text-muted)">' + U.escapeHtml(prevKey) + '</code>' +
-          (prevExpl ? ' (' + U.escapeHtml(prevExpl) + ')' : '') +
+          '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien : ' +
+          (prevSub ? U.escapeHtml(prevSub) + ' \u2014 ' : '') +
+          (prevExpl ? U.escapeHtml(prevExpl) : U.escapeHtml(prevKey)) +
           prevDateStr +
           '</span>';
       } else {
@@ -593,9 +602,8 @@
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
             '<span class="' + badgeClass + '">' + badgeText + '</span>' +
           '</div>' +
-          '<div class="dossier-row-status">' +
-            '<code class="statut-code">' + U.escapeHtml(s.statut) + '</code>' +
-            '<span class="phase-hint">' + U.escapeHtml(s.currentPhase) + '</span>' +
+          '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
+            '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span>' + daysLabel + ' depuis le d\u00e9p\u00f4t</span>' +
@@ -603,7 +611,7 @@
           '</div>' +
           '<div class="dossier-row-meta">' + changeHtml + '</div>' +
           '<div class="dossier-row-meta">' +
-            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '') +
+            (s.prefecture ? '<span style="font-size:0.8rem;color:var(--primary-light);font-weight:600">' + U.escapeHtml(s.prefecture) + '</span>' : '<span style="font-size:0.8rem;color:var(--text-dim)">Préfecture inconnue</span>') +
             checkedHtml +
           '</div>' +
         '</div>' +
@@ -814,7 +822,28 @@
   function renderActivityFeed(snapshots, grouped) {
     activityState.transitions = buildTransitions(snapshots, grouped);
     initActivityControls();
+    updateTypeFilterCounts();
     renderActivityPage();
+  }
+
+  function updateTypeFilterCounts() {
+    var counts = { first_seen: 0, step_change: 0, status_change: 0 };
+    for (var i = 0; i < activityState.transitions.length; i++) {
+      var t = activityState.transitions[i].type;
+      if (counts[t] !== undefined) counts[t]++;
+    }
+    var typeSel = document.getElementById('activity-type-filter');
+    if (!typeSel) return;
+    var labels = {
+      'all': 'Tous types (' + activityState.transitions.length + ')',
+      'first_seen': 'Nouveaux (' + counts.first_seen + ')',
+      'step_change': '\u00c9tapes (' + counts.step_change + ')',
+      'status_change': 'Progressions (' + counts.status_change + ')'
+    };
+    for (var j = 0; j < typeSel.options.length; j++) {
+      var val = typeSel.options[j].value;
+      if (labels[val]) typeSel.options[j].textContent = labels[val];
+    }
   }
 
 })();
