@@ -213,10 +213,16 @@
     <!-- Recent Activity -->
     <div class="section" id="activity-section">
       <h2>Activité récente</h2>
-      <p class="section-subtitle">Transitions d'étape observées</p>
+      <p class="section-subtitle">Historique des changements observés</p>
       <div class="dossier-toolbar" id="activity-toolbar" style="display:none">
         <span class="dossier-count" id="activity-count">&mdash;</span>
         <div class="toolbar-controls">
+          <select id="activity-type-filter" class="page-size-select" title="Type">
+            <option value="all" selected>Tous types</option>
+            <option value="first_seen">Nouveaux</option>
+            <option value="step_change">Étapes</option>
+            <option value="status_change">Progressions</option>
+          </select>
           <select id="activity-page-size" class="page-size-select" title="Par page">
             <option value="5" selected>5 par page</option>
             <option value="10">10 par page</option>

@@ -182,7 +182,7 @@
           var label = shortLabel(sk2);
           var fullExp = STATUTS[sk2] ? STATUTS[sk2].explication : sk2;
           var tooltip = count + ' dossier' + (count > 1 ? 's' : '') + ' \u2014 ' + fullExp;
-          bubbleHtml += '<span class="station-sub-bubble" style="background:' + color + '" title="' + U.escapeHtml(tooltip) + '"><span class="station-sub-label">' + U.escapeHtml(label) + '</span>' + count + '</span>';
+          bubbleHtml += '<span class="station-sub-bubble" tabindex="0" style="background:' + color + '" title="' + U.escapeHtml(tooltip) + '"><span class="station-sub-label">' + U.escapeHtml(label) + '</span><span class="station-sub-count">' + count + '</span></span>';
         }
         bubbleHtml += '</div>';
       }
@@ -646,44 +646,50 @@
 
   // ─── Activity Feed with pagination ──────────────────────
 
-  var activityState = { transitions: [], page: 1, pageSize: 5 };
+  var activityState = { transitions: [], page: 1, pageSize: 5, typeFilter: 'all' };
 
   function buildTransitions(snapshots, grouped) {
     var transitions = [];
 
     grouped.forEach(function(snaps, hash) {
       for (var i = 1; i < snaps.length; i++) {
-        if (snaps[i].etape !== snaps[i - 1].etape) {
-          var duration = null;
-          if (snaps[i - 1].date_statut && snaps[i].date_statut) {
-            duration = U.daysDiff(snaps[i - 1].date_statut, snaps[i].date_statut);
-          }
-          var fromStatutInfo = C.STATUTS[snaps[i - 1].statut];
-          var toStatutInfo = C.STATUTS[snaps[i].statut];
-          transitions.push({
-            hash: hash.substring(0, 6),
-            fromStep: snaps[i - 1].etape,
-            toStep: snaps[i].etape,
-            fromSousEtape: fromStatutInfo ? C.formatSubStep(fromStatutInfo.rang) : String(snaps[i - 1].etape),
-            toSousEtape: toStatutInfo ? C.formatSubStep(toStatutInfo.rang) : String(snaps[i].etape),
-            fromExplication: fromStatutInfo ? fromStatutInfo.explication : '',
-            toExplication: toStatutInfo ? toStatutInfo.explication : '',
-            created_at: snaps[i].created_at,
-            statut: snaps[i].statut,
-            daysForTransition: duration
-          });
+        var prev = snaps[i - 1], cur = snaps[i];
+        var sameStep = cur.etape === prev.etape;
+        var sameStatut = cur.statut === prev.statut;
+        if (sameStep && sameStatut) continue;
+
+        var duration = null;
+        if (prev.date_statut && cur.date_statut) {
+          duration = U.daysDiff(prev.date_statut, cur.date_statut);
         }
+        var fromInfo = C.STATUTS[prev.statut.toLowerCase()];
+        var toInfo = C.STATUTS[cur.statut.toLowerCase()];
+        var type = sameStep ? 'status_change' : 'step_change';
+        transitions.push({
+          type: type,
+          hash: hash.substring(0, 6),
+          fromStep: prev.etape,
+          toStep: cur.etape,
+          fromSousEtape: fromInfo ? C.formatSubStep(fromInfo.rang) : String(prev.etape),
+          toSousEtape: toInfo ? C.formatSubStep(toInfo.rang) : String(cur.etape),
+          fromExplication: fromInfo ? fromInfo.explication : '',
+          toExplication: toInfo ? toInfo.explication : '',
+          created_at: cur.created_at,
+          statut: cur.statut,
+          daysForTransition: duration
+        });
       }
       if (snaps.length > 0) {
-        var firstStatutInfo = C.STATUTS[snaps[0].statut];
+        var firstInfo = C.STATUTS[snaps[0].statut.toLowerCase()];
         transitions.push({
+          type: 'first_seen',
           hash: hash.substring(0, 6),
           fromStep: null,
           toStep: snaps[0].etape,
           fromSousEtape: null,
-          toSousEtape: firstStatutInfo ? C.formatSubStep(firstStatutInfo.rang) : String(snaps[0].etape),
+          toSousEtape: firstInfo ? C.formatSubStep(firstInfo.rang) : String(snaps[0].etape),
           fromExplication: null,
-          toExplication: firstStatutInfo ? firstStatutInfo.explication : '',
+          toExplication: firstInfo ? firstInfo.explication : '',
           created_at: snaps[0].created_at,
           statut: snaps[0].statut,
           daysForTransition: null
@@ -697,12 +703,24 @@
     return transitions;
   }
 
+  function getFilteredActivity() {
+    var f = activityState.typeFilter;
+    if (f === 'all') return activityState.transitions;
+    return activityState.transitions.filter(function(t) { return t.type === f; });
+  }
+
+  var ACTIVITY_BADGE = {
+    first_seen:    { label: 'Nouveau',     css: 'badge-type-new' },
+    step_change:   { label: 'Étape',       css: 'badge-type-step' },
+    status_change: { label: 'Progression', css: 'badge-type-progress' }
+  };
+
   function renderActivityPage() {
     var feed = document.getElementById('activity-feed');
     var toolbar = document.getElementById('activity-toolbar');
-    var all = activityState.transitions;
+    var all = getFilteredActivity();
 
-    if (!all.length) {
+    if (!activityState.transitions.length) {
       toolbar.style.display = 'none';
       feed.innerHTML = '<li class="no-data">Aucune activité récente</li>';
       return;
@@ -714,7 +732,7 @@
     var pageData = all.slice(start, start + activityState.pageSize);
 
     toolbar.style.display = 'flex';
-    document.getElementById('activity-count').textContent = all.length + ' transition' + (all.length > 1 ? 's' : '');
+    document.getElementById('activity-count').textContent = all.length + ' événement' + (all.length > 1 ? 's' : '');
     document.getElementById('activity-page-info').textContent = activityState.page + '/' + totalPages;
     document.getElementById('activity-btn-prev').disabled = activityState.page <= 1;
     document.getElementById('activity-btn-next').disabled = activityState.page >= totalPages;
@@ -723,13 +741,28 @@
     for (var i = 0; i < pageData.length; i++) {
       var t = pageData[i];
       var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
+      var badge = ACTIVITY_BADGE[t.type];
+      var badgeHtml = '<span class="badge-type ' + badge.css + '">' + badge.label + '</span>';
 
       var text;
-      if (t.fromStep === null) {
+      if (t.type === 'first_seen') {
         var toLabel = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
-        text = 'début à l\'étape ' + t.toSousEtape + ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>';
+        text = 'Nouveau dossier \u2014 étape ' + t.toSousEtape + ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>';
+      } else if (t.type === 'status_change') {
+        var fromLbl = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
+        var toLbl = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
+        var dur = '';
+        if (t.daysForTransition !== null) {
+          dur = ' <span class="activity-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
+        }
+        text = 'Étape ' + t.fromStep + ' \u2014 ' +
+          '<span style="color:' + color + '">' + t.fromSousEtape + '</span>' +
+          ' \u2192 ' +
+          '<span style="color:' + color + '">' + t.toSousEtape + '</span>' +
+          dur +
+          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLbl) + ' \u2192 ' + U.escapeHtml(toLbl) + ')</span>';
       } else {
-        var fromLabel = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
+        var fromLabel2 = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
         var toLabel2 = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
         var durationBadge = '';
         if (t.daysForTransition !== null) {
@@ -739,13 +772,13 @@
           ' \u2192 ' +
           '<span style="color:' + color + '">' + t.toSousEtape + '</span>' +
           durationBadge +
-          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLabel) + ' \u2192 ' + U.escapeHtml(toLabel2) + ')</span>';
+          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLabel2) + ' \u2192 ' + U.escapeHtml(toLabel2) + ')</span>';
       }
 
       html += '<li class="activity-item">' +
         '<span class="activity-dot" style="background:' + color + '"></span>' +
         '<span class="activity-hash">#' + U.escapeHtml(t.hash) + '</span>' +
-        '<span class="activity-text">' + text + '</span>' +
+        '<span class="activity-text">' + badgeHtml + text + '</span>' +
         '<span class="activity-time">' + U.formatDateTimeFr(t.created_at) + '</span>' +
         '</li>';
     }
@@ -761,11 +794,19 @@
         renderActivityPage();
       });
     }
+    var typeSel = document.getElementById('activity-type-filter');
+    if (typeSel) {
+      typeSel.addEventListener('change', function() {
+        activityState.typeFilter = typeSel.value;
+        activityState.page = 1;
+        renderActivityPage();
+      });
+    }
     document.getElementById('activity-btn-prev').addEventListener('click', function() {
       if (activityState.page > 1) { activityState.page--; renderActivityPage(); }
     });
     document.getElementById('activity-btn-next').addEventListener('click', function() {
-      var totalPages = Math.ceil(activityState.transitions.length / activityState.pageSize);
+      var totalPages = Math.ceil(getFilteredActivity().length / activityState.pageSize);
       if (activityState.page < totalPages) { activityState.page++; renderActivityPage(); }
     });
   }
