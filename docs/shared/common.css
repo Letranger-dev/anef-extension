@@ -507,7 +507,9 @@ html { scroll-behavior: smooth; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   filter: brightness(1.15);
 }
+.station-sub-bubble:focus { outline: none; }
 .station-sub-label { opacity:0.85; font-weight:500; }
+.station-sub-count { font-weight:700; }
 
 /* ─── Charts ───────────────────────────────────────────────── */
 
@@ -646,6 +648,27 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   margin: 0 0.2rem;
 }
 .activity-time { margin-left: auto; font-size: 0.78rem; color: var(--text-dim); white-space: nowrap; order: 2; }
+.badge-type {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+.badge-type-new {
+  color: #10b981;
+  background: rgba(16,185,129,0.15);
+}
+.badge-type-step {
+  color: #3b82f6;
+  background: rgba(59,130,246,0.15);
+}
+.badge-type-progress {
+  color: #8b5cf6;
+  background: rgba(139,92,246,0.15);
+}
 
 /* ─── CAE Passages ─────────────────────────────────────────── */
 
@@ -1116,6 +1139,22 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .timeline-content .ts-expl { font-size: 0.68rem; }
   .timeline-content .ts-date { font-size: 0.66rem; }
   .timeline-content .ts-duration { font-size: 0.62rem; padding: 0.06rem 0.3rem; }
+
+  /* Global timeline: compact bubbles on mobile — keep labels, prevent overlap */
+  .station-sub-bubble { padding: 0.1rem 0.3rem; font-size: 0.55rem; gap: 0.15rem; max-width: 74px; }
+  .station-sub-label { max-width: 5em; overflow: hidden; text-overflow: ellipsis; }
+  .station-sub-count { font-size: 0.6rem; flex-shrink: 0; }
+  .station-sub-bubbles { gap: 2px; }
+  .timeline-station { min-width: 74px; padding: 0 4px; }
+  .global-timeline { min-width: 950px; gap: 4px; }
+  /* Tap-to-expand: show full label on focus (mobile touch) */
+  .station-sub-bubble:focus {
+    max-width: none; z-index: 10;
+    transform: scale(1.15);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+    filter: brightness(1.15);
+  }
+  .station-sub-bubble:focus .station-sub-label { max-width: none; }
 
   /* KPI grid: tighter on small screens */
   .kpi-grid { gap: 0.5rem; }
