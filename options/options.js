@@ -48,6 +48,18 @@ const elements = {
   importFile: document.getElementById('import-file'),
   btnClearAll: document.getElementById('btn-clear-all'),
 
+  // Auto-check
+  settingAutoCheck: document.getElementById('setting-auto-check'),
+  autoCheckToggleWrapper: document.getElementById('auto-check-toggle-wrapper'),
+  autoCheckStatus: document.getElementById('auto-check-status'),
+  autoCheckDot: document.getElementById('auto-check-dot'),
+  autoCheckStatusText: document.getElementById('auto-check-status-text'),
+  autoCheckNoCreds: document.getElementById('auto-check-no-creds'),
+  autoCheckSuspended: document.getElementById('auto-check-suspended'),
+  btnResumeAutoCheck: document.getElementById('btn-resume-auto-check'),
+  checkLogSection: document.getElementById('check-log-section'),
+  checkLogList: document.getElementById('check-log-list'),
+
   // Debug
   logsContainer: document.getElementById('logs-container'),
   btnRefreshLogs: document.getElementById('btn-refresh-logs'),
@@ -68,6 +80,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadHistory();
   await loadSettings();
   await loadCredentialStatus();
+  await loadAutoCheckStatus();
+  await loadCheckLog();
 
   attachEventListeners();
 
@@ -114,6 +128,9 @@ function attachEventListeners() {
   elements.btnTogglePassword?.addEventListener('click', togglePasswordVisibility);
   elements.btnSaveCredentials?.addEventListener('click', handleSaveCredentials);
   elements.btnClearCredentials?.addEventListener('click', handleClearCredentials);
+
+  // Auto-check
+  elements.btnResumeAutoCheck?.addEventListener('click', handleResumeAutoCheck);
 
   // Export/Import
   elements.btnExport?.addEventListener('click', handleExport);
@@ -202,22 +219,49 @@ async function loadSettings() {
   elements.settingNotifications.checked = settings.notificationsEnabled;
   elements.settingAnonymousStats.checked = settings.anonymousStatsEnabled;
   elements.settingHistoryLimit.value = settings.historyLimit.toString();
+  if (elements.settingAutoCheck) {
+    elements.settingAutoCheck.checked = settings.autoCheckEnabled;
+  }
 }
 
 async function handleSaveSettings() {
+  const autoCheckEnabled = elements.settingAutoCheck?.checked || false;
+
   await storage.saveSettings({
     notificationsEnabled: elements.settingNotifications.checked,
     anonymousStatsEnabled: elements.settingAnonymousStats.checked,
+    autoCheckEnabled,
     historyLimit: parseInt(elements.settingHistoryLimit.value, 10)
   });
+
+  // Notifier le service worker pour reconfigurer l'alarme
+  try {
+    await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+  } catch (e) {
+    console.warn('[Options] Erreur envoi SETTINGS_CHANGED:', e);
+  }
+
+  await loadAutoCheckStatus();
   showToast('Paramètres sauvegardés', 'success');
 }
 
 async function handleResetSettings() {
   if (!confirm('Réinitialiser les paramètres par défaut ?')) return;
 
-  await storage.saveSettings(storage.DEFAULT_SETTINGS);
+  // Préserver le jitter unique de cette installation
+  const currentSettings = await storage.getSettings();
+  await storage.saveSettings({
+    ...storage.DEFAULT_SETTINGS,
+    autoCheckJitterMin: currentSettings.autoCheckJitterMin || 0
+  });
   await loadSettings();
+
+  // Notifier le service worker pour reconfigurer l'alarme
+  try {
+    await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+  } catch (e) { /* ignore */ }
+  await loadAutoCheckStatus();
+
   showToast('Paramètres réinitialisés', 'success');
 }
 
@@ -288,6 +332,13 @@ async function handleSaveCredentials() {
     await storage.saveCredentials(username, password);
     elements.settingPassword.dataset.hasPassword = 'true';
     await loadCredentialStatus();
+
+    // Notifier le service worker (l'alarme peut maintenant démarrer si auto-check activé)
+    try {
+      await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+    } catch (e) { /* ignore */ }
+    await loadAutoCheckStatus();
+
     showToast('Identifiants enregistrés', 'success');
   } catch (error) {
     showToast('Erreur lors de la sauvegarde', 'error');
@@ -305,9 +356,132 @@ async function handleClearCredentials() {
       elements.settingPassword.dataset.hasPassword = 'false';
     }
     await loadCredentialStatus();
+
+    // Désactiver l'auto-check si actif (plus d'identifiants)
+    const settings = await storage.getSettings();
+    if (settings.autoCheckEnabled) {
+      await storage.saveSettings({ autoCheckEnabled: false });
+      if (elements.settingAutoCheck) elements.settingAutoCheck.checked = false;
+      try {
+        await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+      } catch (e) { /* ignore */ }
+      await loadAutoCheckStatus();
+    }
+
     showToast('Identifiants supprimés', 'success');
   } catch (error) {
     showToast('Erreur lors de la suppression', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Vérification automatique
+// ─────────────────────────────────────────────────────────────
+
+async function loadAutoCheckStatus() {
+  try {
+    const info = await chrome.runtime.sendMessage({ type: 'GET_AUTO_CHECK_INFO' });
+    if (!info) return;
+
+    const { enabled, hasCredentials, disabledByFailure, nextAlarm, consecutiveFailures } = info;
+
+    // Toggle grisé si pas d'identifiants
+    if (elements.settingAutoCheck) {
+      elements.settingAutoCheck.disabled = !hasCredentials;
+    }
+
+    // Avertissement pas d'identifiants
+    elements.autoCheckNoCreds?.classList.toggle('hidden', hasCredentials);
+
+    // Avertissement suspension
+    elements.autoCheckSuspended?.classList.toggle('hidden', !disabledByFailure);
+
+    // Zone de statut
+    if (elements.autoCheckStatus && elements.autoCheckStatusText && elements.autoCheckDot) {
+      if (!enabled || !hasCredentials) {
+        elements.autoCheckStatus.classList.add('hidden');
+      } else {
+        elements.autoCheckStatus.classList.remove('hidden');
+
+        if (disabledByFailure) {
+          elements.autoCheckDot.className = 'auto-check-dot error';
+          elements.autoCheckStatusText.textContent = 'Suspendu (échecs répétés)';
+        } else if (nextAlarm) {
+          elements.autoCheckDot.className = 'auto-check-dot active';
+          const nextDate = new Date(nextAlarm);
+          const now = new Date();
+          const diffMin = Math.round((nextDate - now) / 60000);
+
+          if (diffMin <= 0) {
+            elements.autoCheckStatusText.textContent = 'Prochaine vérification imminente';
+          } else if (diffMin < 60) {
+            elements.autoCheckStatusText.textContent = `Prochaine vérification dans ~${diffMin} min`;
+          } else {
+            const hours = Math.floor(diffMin / 60);
+            const mins = diffMin % 60;
+            elements.autoCheckStatusText.textContent = `Prochaine vérification dans ~${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
+          }
+        } else {
+          elements.autoCheckDot.className = 'auto-check-dot';
+          elements.autoCheckStatusText.textContent = 'En attente de programmation';
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Options] Erreur chargement auto-check:', e);
+  }
+}
+
+async function handleResumeAutoCheck() {
+  try {
+    await storage.saveAutoCheckMeta({
+      consecutiveFailures: 0,
+      disabledByFailure: false
+    });
+    await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+    await loadAutoCheckStatus();
+    showToast('Vérification automatique réactivée', 'success');
+  } catch (e) {
+    showToast('Erreur lors de la réactivation', 'error');
+  }
+}
+
+async function loadCheckLog() {
+  try {
+    const log = await storage.getCheckLog();
+
+    if (!log || log.length === 0) {
+      elements.checkLogSection?.classList.add('hidden');
+      return;
+    }
+
+    // Filtrer les entrées d'aujourd'hui
+    const today = new Date().toISOString().slice(0, 10);
+    const todayEntries = log.filter(e => e.timestamp && e.timestamp.startsWith(today));
+
+    if (todayEntries.length === 0) {
+      elements.checkLogSection?.classList.add('hidden');
+      return;
+    }
+
+    elements.checkLogSection?.classList.remove('hidden');
+
+    const typeLabels = { auto: 'Auto', manual: 'Manuel', retry: 'Retry' };
+    const typeClasses = { auto: 'badge-auto', manual: 'badge-manual', retry: 'badge-retry' };
+
+    elements.checkLogList.innerHTML = todayEntries
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .map(entry => {
+        const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const badge = `<span class="check-log-badge ${typeClasses[entry.type] || ''}">${typeLabels[entry.type] || entry.type}</span>`;
+        const icon = entry.success ? '<span class="check-log-icon success">✓</span>' : '<span class="check-log-icon error">✗</span>';
+        const duration = entry.duration ? `<span class="check-log-duration">${Math.round(entry.duration / 1000)}s</span>` : '';
+
+        return `<div class="check-log-entry">${time} ${badge} ${icon} ${duration}</div>`;
+      }).join('');
+
+  } catch (e) {
+    console.warn('[Options] Erreur chargement check log:', e);
   }
 }
 
@@ -344,6 +518,13 @@ async function handleImport(event) {
     await storage.importData(data);
     await loadHistory();
     await loadSettings();
+
+    // Reconfigurer l'alarme avec les paramètres importés
+    try {
+      await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+    } catch (e) { /* ignore */ }
+    await loadAutoCheckStatus();
+
     showToast('Import réussi', 'success');
   } catch (error) {
     showToast('Erreur lors de l\'import', 'error');
@@ -358,6 +539,14 @@ async function handleClearAll() {
   await storage.clearExceptCredentials();
   await loadHistory();
   await loadSettings();
+
+  // Reconfigurer l'alarme (les paramètres ont été réinitialisés)
+  try {
+    await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+  } catch (e) { /* ignore */ }
+  await loadAutoCheckStatus();
+  await loadCheckLog();
+
   showToast('Données supprimées (identifiants conservés)', 'success');
 }
 

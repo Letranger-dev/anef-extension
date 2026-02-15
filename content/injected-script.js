@@ -244,10 +244,11 @@ QJNdXtE3G7SjkDOn36yZSaXp
         || details?.date_depot;
       const dateEntretien = details?.entretien_assimilation?.date_rdv;
 
-      // Préfecture : priorité entretien, fallback code postal du domicile
+      // Préfecture : priorité entretien > code postal domicile
       const prefEntretien = details?.entretien_assimilation?.unite_gestion?.nom_plateforme
         || details?.entretien_assimilation?.unite_gestion?.libelle || null;
-      const codePostal = details?.domicile?.adresse?.code_postal || null;
+      const domicile = details?.demande?.domicile?.adresse;
+      const codePostal = domicile?.code_postal || null;
       const prefDomicile = getDepartementFromCP(codePostal);
       const prefecture = prefEntretien || prefDomicile;
 
@@ -258,7 +259,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
         entretien_lieu: prefEntretien,
         prefecture: prefecture,
         domicile_code_postal: codePostal,
-        domicile_ville: details?.domicile?.adresse?.ville || null,
+        domicile_ville: domicile?.ville || null,
         type_demande: 'naturalisation',
         complement_instruction: details?.demande_complement,
         numero_national: details?.numero_national,

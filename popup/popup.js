@@ -192,6 +192,11 @@ function attachEventListeners() {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
   });
+
+  document.getElementById('auto-check-settings-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.runtime.openOptionsPage();
+  });
 }
 
 /** Copie le code statut dans le presse-papier */
@@ -300,6 +305,9 @@ async function loadData() {
   } catch (error) {
     console.error('[Popup] Erreur chargement:', error);
     showView('noData');
+  } finally {
+    // Toujours afficher l'info auto-check (visible sur toutes les vues)
+    loadAutoCheckNext();
   }
 }
 
@@ -482,6 +490,53 @@ function displayLastCheck(lastCheck) {
     elements.lastCheckDate.textContent = formatDateShort(lastCheck);
   } else {
     elements.lastCheckDate.textContent = 'Jamais';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auto-check info
+// ─────────────────────────────────────────────────────────────
+
+async function loadAutoCheckNext() {
+  const container = document.getElementById('auto-check-next');
+  const text = document.getElementById('auto-check-next-text');
+  if (!container || !text) return;
+
+  try {
+    const info = await chrome.runtime.sendMessage({ type: 'GET_AUTO_CHECK_INFO' });
+
+    if (!info || !info.enabled) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden', 'error', 'warning');
+
+    if (info.disabledByFailure) {
+      container.classList.add('error');
+      text.textContent = 'Vérification auto suspendue (échecs répétés)';
+    } else if (!info.hasCredentials) {
+      container.classList.add('warning');
+      text.textContent = 'Vérification auto activée · identifiants requis';
+    } else if (info.nextAlarm) {
+      const diffMin = Math.round((info.nextAlarm - Date.now()) / 60000);
+      let delai;
+      if (diffMin <= 0) {
+        delai = 'imminente';
+      } else if (diffMin < 60) {
+        delai = `dans ~${diffMin} min`;
+      } else {
+        const hours = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        delai = `dans ~${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
+      }
+      text.textContent = `Vérification auto activée · prochaine ${delai}`;
+    } else {
+      text.textContent = 'Vérification auto activée';
+    }
+  } catch (e) {
+    console.warn('[Popup] Erreur chargement auto-check info:', e);
+    container.classList.add('hidden');
   }
 }
 
