@@ -88,6 +88,7 @@ jobs:
 
       # ── Publication Chrome Web Store ──
       - name: Publish to Chrome Web Store
+        continue-on-error: true
         if: ${{ env.HAS_CWS == 'true' }}
         uses: mnao305/chrome-extension-upload@v5.0.0
         with:
