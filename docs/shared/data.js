@@ -160,7 +160,10 @@
         }
       }
 
-      // Fallback : dériver la préfecture du code postal domicile
+      // Fallback : lieu_entretien > code postal domicile
+      if (!prefecture && lieuEntretien) {
+        prefecture = lieuEntretien;
+      }
       if (!prefecture && domicileCP) {
         prefecture = ANEF.constants.getDepartementFromCP(domicileCP);
       }

@@ -700,6 +700,103 @@ body {
   padding: 8px 0;
 }
 
+.auto-check-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 16px;
+  margin: 0 16px 8px;
+  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.auto-check-banner.hidden {
+  display: none;
+}
+
+.auto-check-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.auto-check-banner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.auto-check-banner-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: #065f46;
+  line-height: 1.3;
+}
+
+.auto-check-banner-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #065f46;
+  opacity: 0.5;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.auto-check-banner-link:hover {
+  opacity: 1;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+/* État erreur / suspendu */
+.auto-check-banner.error {
+  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.auto-check-banner.error .auto-check-banner-dot {
+  background: var(--error);
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.auto-check-banner.error .auto-check-banner-text {
+  color: #991b1b;
+}
+
+.auto-check-banner.error .auto-check-banner-link {
+  color: #991b1b;
+}
+
+/* État en attente (pas d'identifiants) */
+.auto-check-banner.warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.auto-check-banner.warning .auto-check-banner-dot {
+  background: var(--warning);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.auto-check-banner.warning .auto-check-banner-text {
+  color: #92400e;
+}
+
+.auto-check-banner.warning .auto-check-banner-link {
+  color: #92400e;
+}
+
 /* Stats Banner */
 .stats-banner {
   display: flex;

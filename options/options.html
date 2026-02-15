@@ -56,6 +56,12 @@
     <main class="content">
       <!-- Historique Tab -->
       <section id="tab-history" class="tab-content active">
+        <!-- Journal des vérifications du jour -->
+        <div id="check-log-section" class="check-log-section hidden">
+          <h3 class="check-log-title">Vérifications du jour</h3>
+          <div id="check-log-list" class="check-log-list"></div>
+        </div>
+
         <div class="section-header">
           <h2>Historique des statuts</h2>
           <button id="btn-clear-history" class="btn btn-danger btn-sm">
@@ -156,6 +162,46 @@
             </div>
             <input type="checkbox" id="setting-notifications" class="toggle">
           </label>
+        </div>
+
+        <div class="settings-group">
+          <h3>Vérification automatique</h3>
+
+          <label class="setting-item" id="auto-check-toggle-wrapper">
+            <div class="setting-info">
+              <span class="setting-label">Vérifier automatiquement</span>
+              <span class="setting-description">Vérifie votre statut ~3 fois par jour en arrière-plan</span>
+            </div>
+            <input type="checkbox" id="setting-auto-check" class="toggle">
+          </label>
+
+          <div id="auto-check-status" class="auto-check-status hidden">
+            <div class="auto-check-indicator" id="auto-check-indicator">
+              <span class="auto-check-dot" id="auto-check-dot"></span>
+              <span id="auto-check-status-text">—</span>
+            </div>
+          </div>
+
+          <div id="auto-check-no-creds" class="credential-warning hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Des identifiants enregistrés sont nécessaires pour la vérification automatique.</span>
+          </div>
+
+          <div id="auto-check-suspended" class="auto-check-suspended hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              <span>Suspendu après 3 échecs consécutifs.</span>
+              <button id="btn-resume-auto-check" class="btn btn-sm btn-secondary" style="margin-top:8px">Réactiver</button>
+            </div>
+          </div>
         </div>
 
         <div class="settings-group">

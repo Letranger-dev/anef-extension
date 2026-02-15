@@ -34,8 +34,8 @@ async function saveLog(entry) {
     const logs = result[LOG_STORAGE_KEY] || [];
     logs.push(entry);
     await chrome.storage.local.set({ [LOG_STORAGE_KEY]: logs.slice(-MAX_LOGS) });
-  } catch (e) {
-    console.error('[SW] Erreur sauvegarde log:', e);
+  } catch {
+    // Silencieux — le SW peut être terminé/rechargé pendant l'écriture
   }
 }
 
@@ -169,9 +169,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     // Actualisation en arrière-plan
-    case 'BACKGROUND_REFRESH':
-      logger.info('🔄 Actualisation demandée');
-      backgroundRefresh().then(sendResponse);
+    case 'BACKGROUND_REFRESH': {
+      logger.info('🔄 Actualisation manuelle demandée');
+      const manualStart = Date.now();
+      backgroundRefresh().then(async (result) => {
+        const manualDuration = Math.round((Date.now() - manualStart) / 1000);
+        // Logger l'entrée manuelle
+        await storage.addCheckLogEntry({
+          type: 'manual',
+          success: !!result.success,
+          error: result.error || null,
+          duration: manualDuration
+        });
+        // Mettre à jour lastAttempt pour le cooldown
+        // Si succès, reset le compteur d'échecs (le système fonctionne)
+        const metaUpdate = { lastAttempt: new Date().toISOString() };
+        if (result.success) metaUpdate.consecutiveFailures = 0;
+        await storage.saveAutoCheckMeta(metaUpdate);
+        sendResponse(result);
+      });
+      return true;
+    }
+
+    // Paramètres modifiés → reconfigurer l'alarme auto-check
+    case 'SETTINGS_CHANGED':
+      logger.info('⚙️ Paramètres modifiés, reconfiguration auto-check');
+      scheduleAutoCheck().then(() => sendResponse({ ok: true }));
+      return true;
+
+    // Infos auto-check pour l'UI
+    case 'GET_AUTO_CHECK_INFO':
+      getAutoCheckInfo().then(sendResponse);
       return true;
 
     default:
@@ -659,6 +687,227 @@ async function backgroundRefresh() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Vérification automatique en arrière-plan (alarms)
+// ─────────────────────────────────────────────────────────────
+
+const ALARM_NAME = 'anef-auto-check';
+const ALARM_RETRY_NAME = 'anef-auto-check-retry';
+const COOLDOWN_MINUTES = 90; // 1h30
+const MAX_CONSECUTIVE_FAILURES = 3;
+
+/**
+ * Configure ou annule l'alarme de vérification automatique
+ * selon les paramètres et la présence d'identifiants.
+ */
+async function scheduleAutoCheck() {
+  const settings = await storage.getSettings();
+  const hasCreds = await storage.hasCredentials();
+  const meta = await storage.getAutoCheckMeta();
+
+  // Annuler les alarmes existantes dans tous les cas
+  await chrome.alarms.clear(ALARM_NAME);
+  await chrome.alarms.clear(ALARM_RETRY_NAME);
+
+  if (!settings.autoCheckEnabled || !hasCreds || meta.disabledByFailure) {
+    logger.info('⏹️ Auto-check désactivé', {
+      enabled: settings.autoCheckEnabled,
+      creds: hasCreds,
+      suspended: meta.disabledByFailure
+    });
+    return;
+  }
+
+  // Intervalle + jitter pour décaler les utilisateurs
+  const intervalMinutes = settings.autoCheckInterval || 480;
+  const jitter = settings.autoCheckJitterMin || 0;
+
+  // Calculer le délai intelligent avant la première alarme
+  let delayMinutes;
+  let delayReason;
+
+  if (meta.lastAttempt) {
+    const elapsedMin = (Date.now() - new Date(meta.lastAttempt).getTime()) / 60000;
+
+    if (elapsedMin >= intervalMinutes) {
+      // En retard (PC éteint, navigateur fermé...) → check rapide avec petit jitter
+      delayMinutes = Math.floor(Math.random() * 3) + 1; // 1-3 min
+      delayReason = `en retard de ${Math.round(elapsedMin - intervalMinutes)} min`;
+    } else {
+      // Pas encore l'heure → attendre le temps restant
+      delayMinutes = Math.max(1, Math.round(intervalMinutes - elapsedMin));
+      delayReason = `temps restant du cycle`;
+    }
+  } else {
+    // Jamais vérifié → délai normal avec jitter
+    delayMinutes = jitter + 1;
+    delayReason = 'première vérification';
+  }
+
+  await chrome.alarms.create(ALARM_NAME, {
+    delayInMinutes: delayMinutes,
+    periodInMinutes: intervalMinutes
+  });
+
+  logger.info('⏰ Auto-check programmé', {
+    interval: intervalMinutes + ' min',
+    firstIn: delayMinutes + ' min',
+    raison: delayReason
+  });
+}
+
+/**
+ * Listener pour les alarmes chrome.alarms
+ */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== ALARM_NAME && alarm.name !== ALARM_RETRY_NAME) return;
+
+  const isRetry = alarm.name === ALARM_RETRY_NAME;
+  logger.info(`⏰ Alarme déclenchée: ${alarm.name}${isRetry ? ' (retry)' : ''}`);
+
+  try {
+    // Vérifier les prérequis
+    const settings = await storage.getSettings();
+    if (!settings.autoCheckEnabled) {
+      logger.info('⏹️ Auto-check désactivé, skip');
+      return;
+    }
+
+    const hasCreds = await storage.hasCredentials();
+    if (!hasCreds) {
+      logger.warn('⚠️ Pas d\'identifiants, skip auto-check');
+      return;
+    }
+
+    // Cooldown : skip si dernière tentative < 4h (ne s'applique PAS aux retries)
+    const meta = await storage.getAutoCheckMeta();
+    if (!isRetry && meta.lastAttempt) {
+      const elapsed = Date.now() - new Date(meta.lastAttempt).getTime();
+      const cooldownMs = COOLDOWN_MINUTES * 60 * 1000;
+      if (elapsed < cooldownMs) {
+        const remaining = Math.round((cooldownMs - elapsed) / 60000);
+        logger.info(`⏳ Cooldown actif, skip (encore ${remaining} min)`);
+        return;
+      }
+    }
+
+    // Vérifier qu'un refresh n'est pas déjà en cours
+    if (isRefreshing) {
+      logger.warn('⚠️ Refresh déjà en cours, skip auto-check');
+      return;
+    }
+
+    // Marquer la tentative AVANT le refresh
+    await storage.saveAutoCheckMeta({ lastAttempt: new Date().toISOString() });
+
+    // Lancer le refresh et chronométrer
+    const startTime = Date.now();
+    const result = await backgroundRefresh();
+    const durationSec = Math.round((Date.now() - startTime) / 1000);
+
+    // Logger le résultat
+    await storage.addCheckLogEntry({
+      type: isRetry ? 'retry' : 'auto',
+      success: !!result.success,
+      error: result.error || null,
+      duration: durationSec
+    });
+
+    if (result.success) {
+      // Succès → reset compteur d'échecs
+      await storage.saveAutoCheckMeta({ consecutiveFailures: 0 });
+      logger.info(`✅ Auto-check réussi (${durationSec}s)`);
+    } else {
+      // Échec
+      await handleAutoCheckFailure(result.error || 'Échec inconnu', isRetry);
+    }
+
+  } catch (error) {
+    logger.error('❌ Erreur auto-check:', error.message);
+    await storage.addCheckLogEntry({
+      type: isRetry ? 'retry' : 'auto',
+      success: false,
+      error: error.message,
+      duration: null
+    });
+    await handleAutoCheckFailure(error.message, isRetry);
+  }
+});
+
+/**
+ * Gère un échec de vérification automatique.
+ * - Si alarme principale (pas retry) → incrémente le compteur + planifie 1 retry à +30 min
+ * - Si retry → pas d'incrément, pas de re-retry (seuls les cycles comptent)
+ * - Après 3 échecs consécutifs (3 cycles) → suspend et notifie
+ */
+async function handleAutoCheckFailure(reason, isRetry) {
+  const meta = await storage.getAutoCheckMeta();
+
+  // Seules les alarmes principales comptent pour la suspension (3 cycles différents)
+  const failures = isRetry ? (meta.consecutiveFailures || 0) : (meta.consecutiveFailures || 0) + 1;
+
+  logger.warn(`⚠️ Auto-check échoué (${failures}/${MAX_CONSECUTIVE_FAILURES})`, { reason, isRetry });
+
+  if (!isRetry) {
+    await storage.saveAutoCheckMeta({ consecutiveFailures: failures });
+  }
+
+  // Planifier un retry uniquement si c'est l'alarme principale (pas un retry)
+  if (!isRetry) {
+    await chrome.alarms.create(ALARM_RETRY_NAME, { delayInMinutes: 30 });
+    logger.info('🔄 Retry programmé dans 30 min');
+  }
+
+  // Suspendre après 3 échecs consécutifs (3 cycles)
+  if (failures >= MAX_CONSECUTIVE_FAILURES) {
+    await storage.saveAutoCheckMeta({ disabledByFailure: true });
+    await chrome.alarms.clear(ALARM_NAME);
+    await chrome.alarms.clear(ALARM_RETRY_NAME);
+
+    logger.error('🛑 Auto-check suspendu après 3 échecs consécutifs');
+
+    // Notifier l'utilisateur
+    const settings = await storage.getSettings();
+    if (settings.notificationsEnabled) {
+      try {
+        await chrome.notifications.create('auto-check-suspended', {
+          type: 'basic',
+          iconUrl: 'assets/icon-128.png',
+          title: '⚠️ Vérification auto suspendue',
+          message: 'La vérification automatique a été suspendue après 3 échecs consécutifs. Vérifiez vos identifiants dans les paramètres.',
+          priority: 1
+        });
+      } catch (e) {
+        logger.error('Erreur notification suspension:', e.message);
+      }
+    }
+  }
+}
+
+/**
+ * Retourne l'état complet de la vérification automatique pour l'UI.
+ */
+async function getAutoCheckInfo() {
+  const settings = await storage.getSettings();
+  const meta = await storage.getAutoCheckMeta();
+  const hasCreds = await storage.hasCredentials();
+  const alarms = await chrome.alarms.getAll();
+
+  const mainAlarm = alarms.find(a => a.name === ALARM_NAME);
+  const retryAlarm = alarms.find(a => a.name === ALARM_RETRY_NAME);
+
+  return {
+    enabled: settings.autoCheckEnabled,
+    hasCredentials: hasCreds,
+    interval: settings.autoCheckInterval,
+    lastAttempt: meta.lastAttempt,
+    consecutiveFailures: meta.consecutiveFailures,
+    disabledByFailure: meta.disabledByFailure,
+    nextAlarm: mainAlarm ? mainAlarm.scheduledTime : null,
+    retryAlarm: retryAlarm ? retryAlarm.scheduledTime : null
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Événements du cycle de vie
 // ─────────────────────────────────────────────────────────────
 
@@ -666,7 +915,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   logger.info('🚀 Extension installée:', details.reason);
 
   if (details.reason === 'install') {
-    await storage.saveSettings(storage.DEFAULT_SETTINGS);
+    // Générer un jitter aléatoire unique pour cette installation (0-60 min)
+    const jitter = Math.floor(Math.random() * 60);
+    await storage.saveSettings({ ...storage.DEFAULT_SETTINGS, autoCheckJitterMin: jitter });
+    logger.info('🎲 Jitter auto-check généré:', jitter + ' min');
+
     // Tenter de restaurer l'historique depuis sync (migration ou nouveau dossier)
     const restored = await storage.restoreFromSync();
     if (restored) {
@@ -677,6 +930,24 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 
   if (details.reason === 'update') {
+    // Migration : activer l'auto-check pour les installations existantes
+    const currentSettings = await storage.getSettings();
+    if (!currentSettings.autoCheckEnabled) {
+      await storage.saveSettings({ autoCheckEnabled: true });
+      logger.info('✅ Auto-check activé (migration)');
+    }
+    // Générer un jitter si absent
+    if (!currentSettings.autoCheckJitterMin) {
+      const jitter = Math.floor(Math.random() * 60);
+      await storage.saveSettings({ autoCheckJitterMin: jitter });
+      logger.info('🎲 Jitter auto-check généré (migration):', jitter + ' min');
+    }
+    // Migration : forcer l'intervalle à 180 min (anciens : 60 ou 480)
+    if (currentSettings.autoCheckInterval !== 180) {
+      await storage.saveSettings({ autoCheckInterval: 180 });
+      logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 180 min');
+    }
+
     // Vérifier l'intégrité des identifiants après mise à jour
     const credCheck = await storage.verifyCredentialsIntegrity();
     if (credCheck.status === 'ok') {
@@ -690,6 +961,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     const lastStatus = await storage.getLastStatus();
     if (lastStatus?.statut) await updateBadge(lastStatus.statut);
   }
+
+  // Programmer l'auto-check après install ou update
+  await scheduleAutoCheck();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -700,8 +974,18 @@ chrome.runtime.onStartup.addListener(async () => {
     await updateBadge(lastStatus.statut);
   }
 
+  // Migration ponctuelle : corriger l'ancien intervalle 60 → 480
+  const currentSettings = await storage.getSettings();
+  if (currentSettings.autoCheckInterval !== 180) {
+    await storage.saveSettings({ autoCheckInterval: 180 });
+    logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 180 min');
+  }
+
   // Synchroniser le backup au démarrage
   storage.scheduleBackupToSync();
+
+  // Reprogrammer l'auto-check au démarrage du navigateur
+  await scheduleAutoCheck();
 });
 
 // ─────────────────────────────────────────────────────────────

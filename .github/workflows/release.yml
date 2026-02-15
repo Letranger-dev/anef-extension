@@ -25,10 +25,8 @@ jobs:
 
       - name: Create extension ZIP
         run: |
-          # Créer le dossier de build
           mkdir -p build
 
-          # Copier les fichiers nécessaires (exclure les fichiers de dev)
           cp -r manifest.json build/
           cp -r background build/
           cp -r content build/
@@ -38,10 +36,16 @@ jobs:
           cp -r assets build/
           cp -r _locales build/
 
-          # Supprimer les fichiers inutiles
           rm -f build/assets/generate-icons.html 2>/dev/null || true
 
-          # Créer le ZIP
+          # Retirer la clé "key" du manifest (réservée au dev local, le Store assigne son propre ID)
+          python3 -c "
+          import json
+          with open('build/manifest.json') as f: m = json.load(f)
+          m.pop('key', None)
+          with open('build/manifest.json', 'w') as f: json.dump(m, f, indent=2, ensure_ascii=False)
+          "
+
           cd build
           zip -r ../anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip .
           cd ..
@@ -53,13 +57,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
           body: |
-            ## Première installation
+            ## Installation depuis le Chrome Web Store (recommandé)
+
+            [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Installer-blue?logo=googlechrome)](https://chrome.google.com/webstore/detail/${{ secrets.CWS_EXTENSION_ID }})
+
+            L'extension se met à jour automatiquement via le Chrome Web Store.
+
+            ## Installation manuelle
 
             1. Téléchargez le fichier ZIP ci-dessous
             2. Décompressez dans un **dossier permanent** (ex: `C:\Extensions\anef-tracker\`)
@@ -67,18 +77,21 @@ jobs:
             4. Activez le **Mode développeur** (en haut à droite)
             5. Cliquez sur **"Charger l'extension non empaquetée"**
             6. Sélectionnez le dossier décompressé
-
-            ## Mise à jour
-
-            1. Téléchargez le nouveau ZIP
-            2. Décompressez **dans le même dossier** que l'installation existante (écraser les fichiers)
-            3. Allez sur `chrome://extensions`
-            4. Cliquez sur le bouton **"Actualiser"** (🔄) de l'extension
-
-            > ⚠️ **Ne supprimez pas l'extension avant de recharger** — vous perdriez votre historique local. L'extension sauvegarde aussi vos données dans le cloud Chrome (sync), mais il est préférable de simplement actualiser.
           files: |
             anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Publication Chrome Web Store ──
+      - name: Publish to Chrome Web Store
+        if: ${{ secrets.CWS_EXTENSION_ID != '' }}
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
+          extension-id: ${{ secrets.CWS_EXTENSION_ID }}
+          client-id: ${{ secrets.CWS_CLIENT_ID }}
+          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
+          publish: true
