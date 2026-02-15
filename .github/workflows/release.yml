@@ -12,6 +12,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_CWS: ${{ secrets.CWS_EXTENSION_ID != '' && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
@@ -86,7 +88,7 @@ jobs:
 
       # ── Publication Chrome Web Store ──
       - name: Publish to Chrome Web Store
-        if: ${{ secrets.CWS_EXTENSION_ID != '' }}
+        if: ${{ env.HAS_CWS == 'true' }}
         uses: mnao305/chrome-extension-upload@v5.0.0
         with:
           file-path: anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
