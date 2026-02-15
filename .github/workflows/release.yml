@@ -65,11 +65,9 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
           body: |
-            ## Installation depuis le Chrome Web Store (recommandé)
+            ## Chrome Web Store (bientôt disponible)
 
-            [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Installer-blue?logo=googlechrome)](https://chrome.google.com/webstore/detail/${{ secrets.CWS_EXTENSION_ID }})
-
-            L'extension se met à jour automatiquement via le Chrome Web Store.
+            L'extension est en cours de validation sur le Chrome Web Store. Une fois approuvée, vous pourrez l'installer en un clic et les mises à jour seront automatiques.
 
             ## Installation manuelle
 
