@@ -39,9 +39,13 @@
 
       renderKPIs(summaries, snapshots);
       renderTimeline(summaries);
+
+      var transitions = buildTransitions(snapshots, grouped);
+      renderMouvements(transitions);
+
       renderSdanfWait(summaries);
       renderEntretienPipeline(summaries);
-      renderActivityFeed(snapshots, grouped);
+      renderActivityFeed(transitions);
 
     } catch (error) {
       loading.innerHTML = '<div class="error-msg"><p>Impossible de charger les statistiques.</p>' +
@@ -652,6 +656,112 @@
     });
   }
 
+  // ─── Mouvements du jour ────────────────────────────────
+
+  var mouvementsState = { period: 0, transitions: [] };
+  var SDANF_STATUTS = { 'controle_a_affecter': true, 'controle_a_effectuer': true };
+  var SCEC_STATUTS = { 'controle_en_attente_pec': true, 'controle_pec_a_faire': true };
+
+  function computeDailyMovements(transitions, periodDays) {
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var cutoff;
+    if (periodDays === 0) {
+      cutoff = startOfToday;
+    } else {
+      cutoff = new Date(startOfToday.getTime() - periodDays * 86400000);
+    }
+
+    var caaToCAE = 0, sdanfToSCEC = 0, arrivedStep9 = 0;
+
+    for (var i = 0; i < transitions.length; i++) {
+      var t = transitions[i];
+      if (new Date(t.created_at) < cutoff) continue;
+
+      // Affectation SDANF : CAA → CAE
+      if (t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer') {
+        caaToCAE++;
+      }
+      // Passage SDANF → SCEC (contrôle terminé)
+      if (SDANF_STATUTS[t.fromStatut] && SCEC_STATUTS[t.toStatut]) {
+        sdanfToSCEC++;
+      }
+      // Arrivée étape 9 : vrai changement d'étape (pas first_seen)
+      if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9) {
+        arrivedStep9++;
+      }
+    }
+
+    return { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9 };
+  }
+
+  function renderMouvements(transitions) {
+    mouvementsState.transitions = transitions;
+
+    // Period pills
+    var periodEl = document.getElementById('mouvements-period');
+    var periods = [
+      { value: 0, label: "Aujourd\u2019hui" },
+      { value: 7, label: '7 jours' },
+      { value: 30, label: '30 jours' }
+    ];
+    var pillsHtml = '<div class="filter-pills">';
+    for (var i = 0; i < periods.length; i++) {
+      var p = periods[i];
+      var active = p.value === mouvementsState.period ? ' active' : '';
+      pillsHtml += '<button class="pill mouvement-pill' + active + '" data-period="' + p.value + '">' + p.label + '</button>';
+    }
+    pillsHtml += '</div>';
+    periodEl.innerHTML = pillsHtml;
+
+    // Bind pill clicks
+    var pills = periodEl.querySelectorAll('.mouvement-pill');
+    for (var j = 0; j < pills.length; j++) {
+      pills[j].addEventListener('click', function(e) {
+        mouvementsState.period = parseInt(e.currentTarget.getAttribute('data-period'), 10);
+        var allPills = periodEl.querySelectorAll('.mouvement-pill');
+        for (var k = 0; k < allPills.length; k++) allPills[k].classList.remove('active');
+        e.currentTarget.classList.add('active');
+        renderMouvementsCards();
+      });
+    }
+
+    renderMouvementsCards();
+  }
+
+  function renderMouvementsCards() {
+    var grid = document.getElementById('mouvements-grid');
+    var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period);
+
+    var cards = [
+      { count: m.caaToCAE, color: 'primary', from: 'CAA', to: 'CAE', desc: 'Pris en charge par SDANF', zero: 'Aucune prise en charge' },
+      { count: m.sdanfToSCEC, color: 'green', from: 'CAE', to: 'SCEC', desc: 'Contr\u00f4le termin\u00e9', zero: 'Aucun transfert SCEC' },
+      { count: m.arrivedStep9, color: 'violet', from: null, to: 'SDANF', desc: 'Pass\u00e9s \u00e0 SDANF', zero: 'Aucun passage' }
+    ];
+
+    var html = '';
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var isEmpty = c.count === 0;
+      var cls = 'mouvement-card mouvement-' + c.color + (isEmpty ? ' mouvement-empty' : '');
+      var flowHtml;
+      if (c.from) {
+        flowHtml = '<span class="mouvement-badge mouvement-from">' + U.escapeHtml(c.from) + '</span>' +
+          '<span class="mouvement-arrow">\u2192</span>' +
+          '<span class="mouvement-badge mouvement-to">' + U.escapeHtml(c.to) + '</span>';
+      } else {
+        flowHtml = '<span class="mouvement-arrow">\u2192</span>' +
+          '<span class="mouvement-badge mouvement-to">' + U.escapeHtml(c.to) + '</span>';
+      }
+      html += '<div class="' + cls + '">' +
+        '<div class="mouvement-count">' + c.count + '</div>' +
+        '<div class="mouvement-flow">' + flowHtml + '</div>' +
+        '<div class="mouvement-desc">' + (isEmpty ? '<em>' + U.escapeHtml(c.zero) + '</em>' : U.escapeHtml(c.desc)) + '</div>' +
+      '</div>';
+    }
+    grid.innerHTML = html;
+  }
+
   // ─── Activity Feed with pagination ──────────────────────
 
   var activityState = { transitions: [], page: 1, pageSize: 5, typeFilter: 'all' };
@@ -678,6 +788,8 @@
           hash: hash.substring(0, 6),
           fromStep: prev.etape,
           toStep: cur.etape,
+          fromStatut: prev.statut ? prev.statut.toLowerCase() : '',
+          toStatut: cur.statut ? cur.statut.toLowerCase() : '',
           fromSousEtape: fromInfo ? C.formatSubStep(fromInfo.rang) : String(prev.etape),
           toSousEtape: toInfo ? C.formatSubStep(toInfo.rang) : String(cur.etape),
           fromExplication: fromInfo ? fromInfo.explication : '',
@@ -694,6 +806,8 @@
           hash: hash.substring(0, 6),
           fromStep: null,
           toStep: snaps[0].etape,
+          fromStatut: '',
+          toStatut: snaps[0].statut ? snaps[0].statut.toLowerCase() : '',
           fromSousEtape: null,
           toSousEtape: firstInfo ? C.formatSubStep(firstInfo.rang) : String(snaps[0].etape),
           fromExplication: null,
@@ -819,8 +933,8 @@
     });
   }
 
-  function renderActivityFeed(snapshots, grouped) {
-    activityState.transitions = buildTransitions(snapshots, grouped);
+  function renderActivityFeed(transitions) {
+    activityState.transitions = transitions;
     initActivityControls();
     updateTypeFilterCounts();
     renderActivityPage();
