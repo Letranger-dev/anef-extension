@@ -121,7 +121,16 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
   // ─────────────────────────────────────────────────────────────
   // Chargement de forge.js (bibliothèque de cryptographie)
+  // Chargé depuis le package de l'extension (requis par Manifest V3,
+  // le code hébergé à distance est interdit par le Chrome Web Store).
+  // L'URL locale est passée par content-script.js via data-forge-url.
   // ─────────────────────────────────────────────────────────────
+
+  // Récupérer l'URL locale de forge.js passée par le content-script
+  const FORGE_URL = (function() {
+    const el = document.querySelector('script[data-forge-url]');
+    return el ? el.dataset.forgeUrl : null;
+  })();
 
   function loadForge() {
     return new Promise((resolve, reject) => {
@@ -130,10 +139,15 @@ QJNdXtE3G7SjkDOn36yZSaXp
         return;
       }
 
+      if (!FORGE_URL) {
+        reject(new Error('URL forge.js non disponible'));
+        return;
+      }
+
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/node-forge@1.3.2/dist/forge.min.js';
+      script.src = FORGE_URL;
       script.onload = () => {
-        log('✅ forge.js chargé');
+        log('✅ forge.js chargé (local)');
         resolve();
       };
       script.onerror = () => reject(new Error('Échec chargement forge.js'));
@@ -193,7 +207,15 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
       const response = await fetch(API.DOSSIER_STEPPER);
       log('📡 API répondu en ' + (Date.now() - startTime) + 'ms');
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      if (!response.ok) {
+        // HTTP 502/503 = maintenance probable
+        if (response.status === 502 || response.status === 503) {
+          log('🔧 API en maintenance (HTTP ' + response.status + ')');
+          sendToExtension('MAINTENANCE', { inMaintenance: true });
+          return null;
+        }
+        throw new Error(`Erreur ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -278,88 +300,154 @@ QJNdXtE3G7SjkDOn36yZSaXp
   // ─────────────────────────────────────────────────────────────
 
   async function waitForNationalityTab() {
-    const MAX_WAIT = 15000;  // 15 secondes max
-    const INTERVAL = 150;    // Vérification très fréquente (150ms)
-    let waited = 0;
-
+    const MAX_WAIT = 15000;
     log('⏳ Recherche onglet Nationalité...');
 
-    while (waited < MAX_WAIT) {
-      // Chercher l'onglet avec plusieurs variantes
-      const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a');
-      const nationalityTab = Array.from(tabs).find(
-        el => el.textContent?.includes("Nationalité Française") ||
-              el.textContent?.includes("Nationalité") ||
-              el.getAttribute('aria-label')?.includes("Nationalité")
-      );
-
-      if (nationalityTab) {
-        log('✅ Onglet Nationalité trouvé après ' + waited + 'ms');
-        return nationalityTab;
-      }
-
-      // Vérifier si on est sur une page d'erreur ou de login
-      if (document.querySelector('.error-page') ||
-          window.location.href.includes('connexion')) {
-        log('❌ Page d\'erreur ou de connexion détectée');
-        return null;
-      }
-
-      await new Promise(r => setTimeout(r, INTERVAL));
-      waited += INTERVAL;
-
-      // Log de progression toutes les 5 secondes
-      if (waited % 5000 === 0) {
-        log('⏳ Toujours en attente... (' + waited / 1000 + 's)');
-      }
+    // Vérifier immédiatement
+    const found = findNationalityTab();
+    if (found) {
+      log('✅ Onglet Nationalité trouvé immédiatement');
+      return found;
     }
 
-    log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's');
-    return null;
+    // Utiliser MutationObserver (insensible au throttle des fenêtres minimisées)
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      let maintenanceChecked = false;
+
+      const observer = new MutationObserver(() => {
+        // Page d'erreur ou login
+        if (document.querySelector('.error-page') || window.location.href.includes('connexion')) {
+          observer.disconnect();
+          log('❌ Page d\'erreur ou de connexion détectée');
+          resolve(null);
+          return;
+        }
+
+        // Vérifier la maintenance périodiquement (après 3s d'attente)
+        if (!maintenanceChecked && Date.now() - startTime > 3000) {
+          maintenanceChecked = true;
+          if (checkMaintenance()) {
+            observer.disconnect();
+            resolve(null);
+            return;
+          }
+        }
+
+        const tab = findNationalityTab();
+        if (tab) {
+          observer.disconnect();
+          log('✅ Onglet Nationalité trouvé après ' + (Date.now() - startTime) + 'ms');
+          resolve(tab);
+        }
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true, subtree: true
+      });
+
+      // Timeout de sécurité
+      setTimeout(() => {
+        observer.disconnect();
+        const tab = findNationalityTab();
+        if (tab) {
+          resolve(tab);
+        } else {
+          log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's');
+          resolve(null);
+        }
+      }, MAX_WAIT);
+    });
   }
 
-  /** Attend que le contenu de l'onglet soit chargé */
-  async function waitForTabContent() {
-    const MAX_WAIT = 3000;   // 3 secondes max
-    const INTERVAL = 100;    // Vérification très fréquente
-    let waited = 0;
+  function findNationalityTab() {
+    const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a');
+    return Array.from(tabs).find(
+      el => el.textContent?.includes("Nationalité Française") ||
+            el.textContent?.includes("Nationalité") ||
+            el.getAttribute('aria-label')?.includes("Nationalité")
+    ) || null;
+  }
 
+  /** Attend que le contenu de l'onglet soit chargé (MutationObserver) */
+  async function waitForTabContent() {
+    const MAX_WAIT = 3000;
     log('⏳ Attente chargement contenu onglet...');
 
-    while (waited < MAX_WAIT) {
-      // Vérifier si l'onglet Nationalité est actif ET si du contenu spécifique est présent
-      const activeNationalityTab = document.querySelector(
-        'a[role="tab"].p-tabview-nav-link-active, ' +
-        '.p-tabview-nav-link.p-highlight, ' +
-        'li.p-highlight a[role="tab"]'
-      );
-
-      // Contenu spécifique à l'onglet nationalité
-      const hasNationalityContent = document.querySelector(
-        '.dossier-card, [class*="statut"], [class*="dossier"], ' +
-        '.p-tabview-panel:not(.p-hidden), .p-card-body'
-      );
-
-      if (activeNationalityTab && hasNationalityContent) {
-        log('✅ Contenu onglet Nationalité chargé après ' + waited + 'ms');
-        return;
-      }
-
-      await new Promise(r => setTimeout(r, INTERVAL));
-      waited += INTERVAL;
+    // Vérifier immédiatement
+    if (isTabContentLoaded()) {
+      log('✅ Contenu onglet Nationalité déjà chargé');
+      return;
     }
 
-    log('⚠️ Timeout attente contenu (' + MAX_WAIT + 'ms), on continue quand même');
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+
+      const observer = new MutationObserver(() => {
+        if (isTabContentLoaded()) {
+          observer.disconnect();
+          log('✅ Contenu onglet chargé après ' + (Date.now() - startTime) + 'ms');
+          resolve();
+        }
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true, subtree: true
+      });
+
+      setTimeout(() => {
+        observer.disconnect();
+        log('⚠️ Timeout attente contenu (' + MAX_WAIT + 'ms), on continue');
+        resolve();
+      }, MAX_WAIT);
+    });
+  }
+
+  function isTabContentLoaded() {
+    const activeTab = document.querySelector(
+      'a[role="tab"].p-tabview-nav-link-active, ' +
+      '.p-tabview-nav-link.p-highlight, ' +
+      'li.p-highlight a[role="tab"]'
+    );
+    const hasContent = document.querySelector(
+      '.dossier-card, [class*="statut"], [class*="dossier"], ' +
+      '.p-tabview-panel:not(.p-hidden), .p-card-body'
+    );
+    return !!(activeTab && hasContent);
   }
 
   // ─────────────────────────────────────────────────────────────
   // Détection de maintenance
   // ─────────────────────────────────────────────────────────────
 
+  /**
+   * Détecte si le site est en maintenance.
+   * Vérifie plusieurs patterns car la page de maintenance peut varier
+   * (texte h1, contenu body, classes CSS, titre de page, code HTTP).
+   */
   function checkMaintenance() {
-    const h1 = document.querySelector('h1');
-    if (h1?.textContent.trim() === 'Site en maintenance') {
-      log('🔧 Site en maintenance');
+    const bodyText = (document.body?.innerText || '').toLowerCase();
+    const titleText = (document.title || '').toLowerCase();
+
+    const isMaintenance =
+      // Texte dans les titres
+      bodyText.includes('site en maintenance') ||
+      bodyText.includes('service momentanément indisponible') ||
+      bodyText.includes('service indisponible') ||
+      bodyText.includes('temporairement indisponible') ||
+      bodyText.includes('service unavailable') ||
+      bodyText.includes('erreur 503') ||
+      // Titre de la page
+      titleText.includes('maintenance') ||
+      titleText.includes('indisponible') ||
+      titleText.includes('503') ||
+      // Classes CSS de maintenance
+      !!document.querySelector('.maintenance-page, .maintenance, [class*="maintenance"]') ||
+      // Page d'erreur HTTP (souvent un <h1> avec le code)
+      !!(document.querySelector('h1')?.textContent?.includes('503'));
+
+    if (isMaintenance) {
+      log('🔧 Site en maintenance détecté');
       sendToExtension('MAINTENANCE', { inMaintenance: true });
       return true;
     }
@@ -391,6 +479,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     log('🚀 Démarrage...');
 
     if (checkMaintenance()) {
+      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
       isRunning = false;
       return;
     }
@@ -404,7 +493,10 @@ QJNdXtE3G7SjkDOn36yZSaXp
     const tab = await waitForNationalityTab();
 
     if (!tab) {
+      // Revérifier la maintenance (la page a pu finir de charger entre-temps)
+      checkMaintenance();
       log('❌ Onglet Nationalité non trouvé après attente');
+      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'no_nationality_tab' });
       isRunning = false;
       return;
     }
@@ -421,6 +513,11 @@ QJNdXtE3G7SjkDOn36yZSaXp
     if (result) {
       log('✅ Données récupérées');
       hasRun = true;
+      sendToExtension('FETCH_COMPLETE', { success: true });
+    } else {
+      // Revérifier la maintenance en cas d'échec API
+      checkMaintenance();
+      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'api_error' });
     }
 
     isRunning = false;
@@ -440,38 +537,66 @@ QJNdXtE3G7SjkDOn36yZSaXp
     }
   });
 
-  // Démarrer dès que possible - on attend juste que le DOM soit stable
-  let startAttempts = 0;
-  const MAX_START_ATTEMPTS = 20; // 10 secondes max (20 * 500ms)
-
+  // Démarrer dès qu'Angular est chargé (MutationObserver = insensible au throttle)
   function startWhenReady() {
-    startAttempts++;
-
     // Ne démarrer que si on est sur mon-compte
     if (!window.location.href.includes('mon-compte')) {
-      if (startAttempts < MAX_START_ATTEMPTS) {
-        // Continuer à vérifier au cas où on navigue vers mon-compte
-        setTimeout(startWhenReady, 500);
-      }
+      log('📍 Pas sur mon-compte, attente navigation...');
+      // Vérifier quand même la maintenance (le site peut avoir redirigé)
+      setTimeout(() => {
+        if (checkMaintenance()) {
+          sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
+        }
+      }, 3000);
       return;
     }
 
-    // Vérifier si Angular a chargé (présence d'éléments spécifiques)
-    const hasAngularContent = document.querySelector('app-root, [ng-version], .p-tabview, router-outlet');
-
-    if (hasAngularContent) {
-      log('✅ Angular détecté, démarrage (après ' + (startAttempts * 500) + 'ms)');
+    // Vérifier immédiatement
+    if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
+      log('✅ Angular détecté immédiatement');
       main();
-    } else if (startAttempts < MAX_START_ATTEMPTS) {
-      // Réessayer dans 500ms
-      setTimeout(startWhenReady, 500);
-    } else {
-      log('⚠️ Timeout détection Angular, démarrage forcé');
-      main();
+      return;
     }
+
+    // Observer les mutations DOM pour détecter Angular instantanément
+    const startTime = Date.now();
+    const MAX_WAIT = 10000;
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
+        observer.disconnect();
+        log('✅ Angular détecté (après ' + (Date.now() - startTime) + 'ms)');
+        main();
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true, subtree: true
+    });
+
+    // Vérifier la maintenance à mi-parcours (si Angular ne charge pas)
+    setTimeout(() => {
+      if (!isRunning && !hasRun && checkMaintenance()) {
+        observer.disconnect();
+        sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
+      }
+    }, 5000);
+
+    // Timeout de sécurité : démarrer même sans Angular après 10s
+    setTimeout(() => {
+      observer.disconnect();
+      if (!isRunning && !hasRun) {
+        log('⚠️ Timeout détection Angular, démarrage forcé');
+        main();
+      }
+    }, MAX_WAIT);
   }
 
-  // Premier essai après 300ms (laisser le temps au DOM de se construire)
-  setTimeout(startWhenReady, 300);
+  // Démarrer dès que le DOM est prêt
+  if (document.body) {
+    startWhenReady();
+  } else {
+    document.addEventListener('DOMContentLoaded', startWhenReady);
+  }
 
 })();

@@ -616,6 +616,11 @@ async function refreshInBackground() {
       return;
     }
 
+    if (result?.maintenance) {
+      showView('maintenance');
+      return;
+    }
+
     if (result?.success) {
       updateLoadingStep(4);
       await new Promise(r => setTimeout(r, 500));
