@@ -733,30 +733,24 @@
     var grid = document.getElementById('mouvements-grid');
     var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period);
 
-    var cards = [
-      { count: m.caaToCAE, color: 'primary', from: 'CAA', to: 'CAE', desc: 'Pris en charge par SDANF', zero: 'Aucune prise en charge' },
-      { count: m.sdanfToSCEC, color: 'green', from: 'CAE', to: 'SCEC', desc: 'Contr\u00f4le termin\u00e9', zero: 'Aucun transfert SCEC' },
-      { count: m.arrivedStep9, color: 'violet', from: null, to: 'SDANF', desc: 'Pass\u00e9s \u00e0 SDANF', zero: 'Aucun passage' }
+    var notifs = [
+      { count: m.arrivedStep9, color: 'violet', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pass\u00e9' + (n > 1 ? 's' : '') + ' \u00e0 l\u2019\u00e9tape SDANF'; } },
+      { count: m.caaToCAE, color: 'primary', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pris en charge par la SDANF'; } },
+      { count: m.sdanfToSCEC, color: 'green', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' transf\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' au SCEC'; } }
     ];
 
+    var active = notifs.filter(function(n) { return n.count > 0; });
+
+    if (!active.length) {
+      grid.innerHTML = '<div class="mouvements-empty">Aucun mouvement d\u00e9tect\u00e9 sur cette p\u00e9riode</div>';
+      return;
+    }
+
     var html = '';
-    for (var i = 0; i < cards.length; i++) {
-      var c = cards[i];
-      var isEmpty = c.count === 0;
-      var cls = 'mouvement-card mouvement-' + c.color + (isEmpty ? ' mouvement-empty' : '');
-      var flowHtml;
-      if (c.from) {
-        flowHtml = '<span class="mouvement-badge mouvement-from">' + U.escapeHtml(c.from) + '</span>' +
-          '<span class="mouvement-arrow">\u2192</span>' +
-          '<span class="mouvement-badge mouvement-to">' + U.escapeHtml(c.to) + '</span>';
-      } else {
-        flowHtml = '<span class="mouvement-arrow">\u2192</span>' +
-          '<span class="mouvement-badge mouvement-to">' + U.escapeHtml(c.to) + '</span>';
-      }
-      html += '<div class="' + cls + '">' +
-        '<div class="mouvement-count">' + c.count + '</div>' +
-        '<div class="mouvement-flow">' + flowHtml + '</div>' +
-        '<div class="mouvement-desc">' + (isEmpty ? '<em>' + U.escapeHtml(c.zero) + '</em>' : U.escapeHtml(c.desc)) + '</div>' +
+    for (var i = 0; i < active.length; i++) {
+      var n = active[i];
+      html += '<div class="mouvement-notif mouvement-' + n.color + '">' +
+        '<span class="mouvement-notif-text"><strong class="mouvement-notif-count">' + n.count + '</strong> ' + n.text(n.count) + '</span>' +
       '</div>';
     }
     grid.innerHTML = html;
@@ -897,7 +891,7 @@
           ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLabel2) + ' \u2192 ' + U.escapeHtml(toLabel2) + ')</span>';
       }
 
-      html += '<li class="activity-item">' +
+      html += '<li class="activity-item activity-clickable" data-hash="' + U.escapeHtml(t.hash) + '">' +
         '<span class="activity-dot" style="background:' + color + '"></span>' +
         '<span class="activity-hash">#' + U.escapeHtml(t.hash) + '</span>' +
         '<span class="activity-text">' + badgeHtml + text + '</span>' +
@@ -905,6 +899,15 @@
         '</li>';
     }
     feed.innerHTML = html;
+
+    // Bind click handlers for dossier history popup
+    var items = feed.querySelectorAll('.activity-clickable');
+    for (var j = 0; j < items.length; j++) {
+      items[j].addEventListener('click', function(e) {
+        var hash = e.currentTarget.getAttribute('data-hash');
+        showDossierHistory(hash);
+      });
+    }
   }
 
   function initActivityControls() {
@@ -958,6 +961,86 @@
       var val = typeSel.options[j].value;
       if (labels[val]) typeSel.options[j].textContent = labels[val];
     }
+  }
+
+  // ─── Dossier History Popup ─────────────────────────────
+
+  function showDossierHistory(hash) {
+    var history = activityState.transitions
+      .filter(function(t) { return t.hash === hash; })
+      .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+
+    if (!history.length) return;
+
+    // Build timeline HTML
+    var timelineHtml = '';
+    for (var i = 0; i < history.length; i++) {
+      var t = history[i];
+      var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
+      var badge = ACTIVITY_BADGE[t.type];
+
+      var desc;
+      if (t.type === 'first_seen') {
+        desc = 'Premi\u00e8re observation \u2014 \u00e9tape ' + t.toSousEtape +
+          '<br><span class="history-detail">' + U.escapeHtml(t.toExplication || '') + '</span>';
+      } else if (t.type === 'status_change') {
+        desc = '\u00c9tape ' + t.fromStep + ' : ' + t.fromSousEtape + ' \u2192 ' + t.toSousEtape;
+        var fromExp = t.fromExplication || '';
+        var toExp = t.toExplication || '';
+        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp) + ' \u2192 ' + U.escapeHtml(toExp) + '</span>';
+      } else {
+        desc = t.fromSousEtape + ' \u2192 ' + t.toSousEtape;
+        var fromExp2 = t.fromExplication || C.PHASE_NAMES[t.fromStep] || '';
+        var toExp2 = t.toExplication || C.PHASE_NAMES[t.toStep] || '';
+        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp2) + ' \u2192 ' + U.escapeHtml(toExp2) + '</span>';
+      }
+
+      var durHtml = '';
+      if (t.daysForTransition !== null) {
+        durHtml = '<span class="history-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
+      }
+
+      timelineHtml += '<div class="history-item">' +
+        '<div class="history-dot" style="background:' + color + '"></div>' +
+        '<div class="history-connector"></div>' +
+        '<div class="history-content">' +
+          '<div class="history-header">' +
+            '<span class="badge-type ' + badge.css + '">' + badge.label + '</span>' +
+            durHtml +
+            '<span class="history-date">' + U.formatDateTimeFr(t.created_at) + '</span>' +
+          '</div>' +
+          '<div class="history-desc">' + desc + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // Create or reuse modal
+    var modal = document.getElementById('history-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'history-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<h3>Historique du dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list">' + timelineHtml + '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    // Open with animation
+    modal.classList.add('open');
   }
 
 })();
