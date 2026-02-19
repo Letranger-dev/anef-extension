@@ -59,6 +59,8 @@
   function injectScript() {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('content/injected-script.js');
+    // Passer l'URL locale de forge.js (le script injecté n'a pas accès à chrome.runtime)
+    script.dataset.forgeUrl = chrome.runtime.getURL('lib/forge.min.js');
     script.onload = function() {
       logger.info('✅ Script d\'interception injecté');
       this.remove();
@@ -77,7 +79,7 @@
   // Types de messages autorisés (whitelist sécurité)
   const ALLOWED_MESSAGE_TYPES = [
     'DOSSIER_DATA', 'DOSSIER_STEPPER', 'API_DATA', 'NOTIFICATIONS',
-    'USER_INFO', 'HISTORIQUE', 'MAINTENANCE', 'LOG'
+    'USER_INFO', 'HISTORIQUE', 'MAINTENANCE', 'FETCH_COMPLETE', 'LOG'
   ];
 
   window.addEventListener('ANEF_EXTENSION_DATA', function(event) {

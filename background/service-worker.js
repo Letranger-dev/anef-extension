@@ -139,6 +139,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleMaintenance();
       break;
 
+    // Résultat de la récupération par le script injecté
+    case 'FETCH_COMPLETE':
+      logger.info('📥 Fetch terminé:', message.data);
+      handleFetchComplete(message.data);
+      break;
+
     // Récupérer le statut pour le popup
     case 'GET_STATUS':
       getStatusForPopup().then(sendResponse);
@@ -289,6 +295,21 @@ async function handleMaintenance() {
   await storage.saveApiData(apiData);
 }
 
+/**
+ * Signal de fin de récupération envoyé par le script injecté.
+ * Permet au backgroundRefresh de sortir de sa boucle d'attente
+ * immédiatement au lieu d'attendre le timeout de 45s.
+ */
+let fetchCompleteSignal = null;
+
+function handleFetchComplete(data) {
+  fetchCompleteSignal = {
+    success: data?.success || false,
+    reason: data?.reason || null,
+    timestamp: Date.now()
+  };
+}
+
 /** Traite les notifications */
 async function handleNotifications(data) {
   if (!data) return;
@@ -427,9 +448,28 @@ let isRefreshing = false;
 
 /**
  * Actualise le statut en arrière-plan de manière discrète.
- * Crée une fenêtre minimisée, attend les données, puis la ferme.
- * Si la session est expirée et que des identifiants sont enregistrés,
- * effectue une connexion automatique.
+ * Crée une fenêtre minimisée, attend les données interceptées par le
+ * content script, puis la ferme. Gère automatiquement la connexion
+ * si la session est expirée et que des identifiants sont enregistrés.
+ *
+ * ⚠️  ATTENTION — NE PAS MODIFIER la création de la fenêtre ci-dessous.
+ * ──────────────────────────────────────────────────────────────────────
+ * La méthode `chrome.windows.create({ state: 'minimized' })` est la
+ * SEULE approche qui fonctionne correctement. Toutes les alternatives
+ * ont été testées et échouent :
+ *
+ *   - type:'popup' + coordonnées hors-écran → Chrome throttle le JS,
+ *     Angular ne charge pas, les données ne sont jamais reçues.
+ *   - type:'popup' + petites dimensions (1×1) → même problème de throttle.
+ *   - state:'minimized' + focused:false → la page ne charge pas les données.
+ *   - windows.update() après create → ferme la popup de l'extension
+ *     (erreur "Extension context invalidated").
+ *   - chrome.tabs.create({ active: false }) → onglet visible dans la
+ *     barre d'onglets de l'utilisateur.
+ *
+ * Le state:'minimized' provoque un très bref flash dans la barre des
+ * tâches Windows, mais c'est le seul compromis fonctionnel.
+ * ──────────────────────────────────────────────────────────────────────
  */
 async function backgroundRefresh() {
   // Éviter les appels simultanés
@@ -442,14 +482,14 @@ async function backgroundRefresh() {
   logger.info('🔄 Démarrage actualisation...');
 
   // Configuration des délais
-  const TIMEOUT_MS = 45000;
-  const LOGIN_TIMEOUT_MS = 90000;
-  const CHECK_INTERVAL_MS = 500;
-  const WAIT_BEFORE_CHECK_MS = 1500;
-  const POST_LOGIN_WAIT_MS = 1000;
+  const TIMEOUT_MS = 45000;       // Timeout sans login
+  const LOGIN_TIMEOUT_MS = 90000; // Timeout avec login (SSO + ANEF)
+  const CHECK_INTERVAL_MS = 500;  // Fréquence de vérification des données
+  const WAIT_BEFORE_CHECK_MS = 1500; // Délai avant de vérifier le login
+  const POST_LOGIN_WAIT_MS = 1000;   // Délai après login réussi
   const MON_COMPTE_URL = ANEF_BASE_URL + ANEF_ROUTES.MON_COMPTE;
 
-  // État
+  // État du refresh
   let tabId = null;
   let windowId = null;
   let useWindow = true;
@@ -459,16 +499,18 @@ async function backgroundRefresh() {
   let loginCompleted = false;
   let lastUrl = '';
 
-  // Références pour détecter les nouvelles données
+  // Reset le signal de completion du script injecté
+  fetchCompleteSignal = null;
+
+  // Snapshots avant le refresh pour détecter les nouvelles données
   const beforeCheck = await storage.getLastCheck();
   const beforeApiUpdate = (await storage.getApiData())?.lastUpdate;
 
-  // Vérifier si des identifiants sont disponibles
   const credentials = await storage.getCredentials();
   const hasCredentials = !!(credentials?.username && credentials?.password);
 
   try {
-    // Créer une fenêtre minimisée dès le départ
+    // ── Création de la fenêtre (NE PAS MODIFIER — voir JSDoc) ──
     try {
       const newWindow = await chrome.windows.create({
         url: 'about:blank',
@@ -482,7 +524,7 @@ async function backgroundRefresh() {
       await chrome.tabs.update(tabId, { url: MON_COMPTE_URL });
       logger.info('✅ Fenêtre minimisée créée:', { windowId, tabId });
     } catch (winErr) {
-      // Fallback: créer un onglet inactif
+      // Fallback: onglet inactif (si windows.create échoue, ex: ChromeOS)
       logger.warn('Fenêtre impossible:', winErr.message);
       const tab = await chrome.tabs.create({ url: MON_COMPTE_URL, active: false });
       tabId = tab.id;
@@ -490,12 +532,12 @@ async function backgroundRefresh() {
       logger.info('✅ Onglet inactif créé:', { tabId });
     }
 
+    // ── Boucle d'attente des données ──
     const startTime = Date.now();
     const timeout = hasCredentials ? LOGIN_TIMEOUT_MS : TIMEOUT_MS;
-    let dossierReceived = false;
-    let dossierTime = null;
+    let dossierReceived = false;  // Données dossier (statut) reçues
+    let dossierTime = null;       // Timestamp de réception du dossier
 
-    // Boucle d'attente des données
     while (Date.now() - startTime < timeout) {
       await new Promise(r => setTimeout(r, CHECK_INTERVAL_MS));
 
@@ -611,6 +653,36 @@ async function backgroundRefresh() {
         }
       }
 
+      // Vérifier si le script injecté a terminé (succès ou échec)
+      if (fetchCompleteSignal && fetchCompleteSignal.timestamp > startTime) {
+        if (!fetchCompleteSignal.success) {
+          logger.warn('⚠️ Script injecté a échoué:', fetchCompleteSignal.reason);
+          // Si maintenance, sortir immédiatement
+          if (fetchCompleteSignal.reason === 'maintenance') {
+            break;
+          }
+          // Autres échecs : attendre encore un peu les données qui pourraient
+          // être en transit (le signal peut arriver avant les données)
+          if (fetchCompleteSignal.reason === 'no_nationality_tab' ||
+              fetchCompleteSignal.reason === 'api_error') {
+            // Laisser 3s supplémentaires au cas où des données sont en transit
+            if (Date.now() - fetchCompleteSignal.timestamp > 3000) {
+              break;
+            }
+          }
+        }
+      }
+
+      // Vérifier si la maintenance a été détectée pendant ce refresh
+      const currentApiData = await storage.getApiData();
+      if (currentApiData?.inMaintenance && currentApiData?.maintenanceDetectedAt) {
+        const detectedAt = new Date(currentApiData.maintenanceDetectedAt).getTime();
+        if (detectedAt > startTime) {
+          logger.warn('🔧 Maintenance détectée pendant le refresh, arrêt');
+          break;
+        }
+      }
+
       // Vérifier si les données sont arrivées
       const currentCheck = await storage.getLastCheck();
       if (currentCheck && (!beforeCheck || currentCheck > beforeCheck)) {
@@ -638,7 +710,7 @@ async function backgroundRefresh() {
       }
     }
 
-    // Fermer la fenêtre ou l'onglet
+    // ── Nettoyage : fermer la fenêtre ou l'onglet ──
     if (useWindow && windowId) {
       try {
         await chrome.windows.remove(windowId);
@@ -651,10 +723,19 @@ async function backgroundRefresh() {
       } catch {}
     }
 
-    // Retourner le résultat
+    // ── Résultat ──
     if (dataReceived) {
       logger.info('✅ Actualisation réussie');
       return { success: true };
+    }
+
+    // Vérifier si c'est une maintenance
+    const finalApiData = await storage.getApiData();
+    if (finalApiData?.inMaintenance && finalApiData?.maintenanceDetectedAt) {
+      const detectedAt = new Date(finalApiData.maintenanceDetectedAt).getTime();
+      if (detectedAt > startTime) {
+        return { success: false, error: 'Site ANEF en maintenance. Réessayez plus tard.', maintenance: true };
+      }
     }
 
     if (needsLogin && !hasCredentials) {
