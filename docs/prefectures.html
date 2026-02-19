@@ -163,6 +163,26 @@
     <!-- Horizontal bar chart -->
     <div class="section">
       <h2>Comparaison des durées moyennes</h2>
+      <div class="dossier-toolbar" id="bar-toolbar" style="display:none">
+        <span class="dossier-count" id="bar-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="bar-sort" class="page-size-select" title="Trier">
+            <option value="days-asc">Durée &uarr;</option>
+            <option value="days-desc">Durée &darr;</option>
+            <option value="name-asc">Nom A-Z</option>
+          </select>
+          <select id="bar-page-size" class="page-size-select" title="Par page">
+            <option value="10" selected>10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="0">Tout</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="bar-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="bar-page-info" class="page-info">1/1</span>
+          <button id="bar-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
       <div class="chart-container chart-container--tall" id="bar-chart-container" style="min-height:400px">
         <canvas id="prefecture-bar-chart"></canvas>
         <p class="no-data" id="bar-no-data" style="display:none">Pas de données</p>
@@ -173,6 +193,26 @@
     <div class="section">
       <h2>Heatmap préfecture x étape</h2>
       <p class="section-subtitle">Durée moyenne par cellule (jours)</p>
+      <div class="dossier-toolbar" id="hm-toolbar" style="display:none">
+        <span class="dossier-count" id="hm-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="hm-sort" class="page-size-select" title="Trier">
+            <option value="days-desc">Durée &darr;</option>
+            <option value="days-asc">Durée &uarr;</option>
+            <option value="name-asc">Nom A-Z</option>
+          </select>
+          <select id="hm-page-size" class="page-size-select" title="Par page">
+            <option value="10" selected>10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="0">Tout</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="hm-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="hm-page-info" class="page-info">1/1</span>
+          <button id="hm-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
       <div class="chart-container">
         <div class="heatmap-grid" id="heatmap-container"></div>
       </div>

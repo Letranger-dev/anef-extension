@@ -100,7 +100,7 @@
   function normalizePrefecture(name) {
     if (!name) return name;
     // Remove "Prefecture de/du/de la/des " prefix
-    var cleaned = name.replace(/^Pr[eé]fecture\s+(de\s+la\s+|du\s+|des\s+|de\s+|d')/i, '');
+    var cleaned = name.replace(/^Pr[eé]fecture\s+(de\s+l'|de\s+la\s+|du\s+|des\s+|de\s+|d')/i, '');
     // Exact match lookup
     if (PREF_FIXES[cleaned]) return PREF_FIXES[cleaned];
     return cleaned;

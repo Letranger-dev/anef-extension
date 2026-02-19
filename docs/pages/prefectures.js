@@ -18,7 +18,13 @@
     filters: { statut: 'all', prefecture: 'all' },
     tableSort: { col: 'avg_days', dir: 'desc' },
     tablePage: 1,
-    tablePageSize: 10
+    tablePageSize: 10,
+    barPage: 1,
+    barPageSize: 10,
+    barSort: 'days-asc',
+    hmPage: 1,
+    hmPageSize: 10,
+    hmSort: 'days-desc'
   };
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -46,6 +52,8 @@
 
       initFilters();
       initTableSort();
+      initBarPagination();
+      initHmPagination();
       renderAll();
 
     } catch (error) {
@@ -63,10 +71,10 @@
     var prefList = Object.keys(prefSet).sort();
 
     F.createPrefectureMultiSelect('filter-prefecture-container', prefList, state.filters.prefecture, function(v) {
-      state.filters.prefecture = v; state.tablePage = 1; syncAndRender();
+      state.filters.prefecture = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; syncAndRender();
     });
     F.createStatusFilter('filter-status-container', state.filters.statut, function(v) {
-      state.filters.statut = v; syncAndRender();
+      state.filters.statut = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; syncAndRender();
     });
   }
 
@@ -218,11 +226,13 @@
   // ─── Horizontal Bar Chart ────────────────────────────────
 
   function renderBarChart(prefStats) {
+    var toolbar = document.getElementById('bar-toolbar');
     var canvas = document.getElementById('prefecture-bar-chart');
     var noData = document.getElementById('bar-no-data');
 
     var withDays = prefStats.filter(function(p) { return p.avg_days != null; });
     if (!withDays.length) {
+      toolbar.style.display = 'none';
       canvas.style.display = 'none';
       noData.style.display = 'block';
       CH.destroy('prefectureBar');
@@ -232,38 +242,57 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
-    // Sort by avg_days asc (fastest first)
-    withDays.sort(function(a, b) { return a.avg_days - b.avg_days; });
+    // Sort
+    switch (state.barSort) {
+      case 'days-desc':
+        withDays.sort(function(a, b) { return b.avg_days - a.avg_days; }); break;
+      case 'name-asc':
+        withDays.sort(function(a, b) { return a.prefecture.localeCompare(b.prefecture); }); break;
+      default: // days-asc
+        withDays.sort(function(a, b) { return a.avg_days - b.avg_days; });
+    }
+
+    // Pagination
+    var total = withDays.length;
+    var ps = state.barPageSize;
+    var totalPages = ps > 0 ? Math.max(1, Math.ceil(total / ps)) : 1;
+    state.barPage = Math.min(state.barPage, totalPages);
+    var pageData = ps > 0 ? withDays.slice((state.barPage - 1) * ps, state.barPage * ps) : withDays;
+
+    toolbar.style.display = 'flex';
+    document.getElementById('bar-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('bar-page-info').textContent = state.barPage + '/' + totalPages;
+    document.getElementById('bar-btn-prev').disabled = state.barPage <= 1;
+    document.getElementById('bar-btn-next').disabled = state.barPage >= totalPages;
 
     var isMobile = window.innerWidth < 768;
 
-    var labels = withDays.map(function(p) {
+    var labels = pageData.map(function(p) {
       var name = p.prefecture;
-      // Shorten long names on mobile
       if (isMobile && name.length > 20) {
         name = name.replace(/^(Pr[ée]fecture|Sous-Pr[ée]fecture)\s+(de\s+la|de\s+l'|des|du|de)\s+/i, '');
         if (!name) name = p.prefecture;
       }
       return name;
     });
-    var values = withDays.map(function(p) { return p.avg_days; });
+    var values = pageData.map(function(p) { return p.avg_days; });
 
-    // Global average
-    var globalAvg = values.reduce(function(a, b) { return a + b; }, 0) / values.length;
+    // Global average (across ALL, not just page)
+    var allValues = withDays.map(function(p) { return p.avg_days; });
+    var globalAvg = allValues.reduce(function(a, b) { return a + b; }, 0) / allValues.length;
 
-    var colors = withDays.map(function(p) {
+    var colors = pageData.map(function(p) {
       return p.avg_days < globalAvg ? '#10b981' : '#ef4444';
     });
 
-    // Adjust container height based on number of bars
+    // Adjust container height based on number of bars on page
     var barHeight = isMobile ? 32 : 35;
     var container = document.getElementById('bar-chart-container');
-    var totalH = Math.max(400, withDays.length * barHeight);
+    var totalH = Math.max(300, pageData.length * barHeight);
     container.style.minHeight = totalH + 'px';
 
     var config = CH.horizontalBarConfig(labels, values, colors, { suffix: 'j' });
 
-    // Mobile: smaller font, show value at end of bar
     if (isMobile) {
       config.options.scales.y.ticks.font = { size: 10 };
       config.options.layout = { padding: { right: 40 } };
@@ -278,6 +307,26 @@
     }
 
     CH.create('prefectureBar', 'prefecture-bar-chart', config);
+  }
+
+  function initBarPagination() {
+    document.getElementById('bar-sort').addEventListener('change', function(e) {
+      state.barSort = e.target.value;
+      state.barPage = 1;
+      renderAll();
+    });
+    document.getElementById('bar-page-size').addEventListener('change', function(e) {
+      state.barPageSize = parseInt(e.target.value, 10);
+      state.barPage = 1;
+      renderAll();
+    });
+    document.getElementById('bar-btn-prev').addEventListener('click', function() {
+      if (state.barPage > 1) { state.barPage--; renderAll(); }
+    });
+    document.getElementById('bar-btn-next').addEventListener('click', function() {
+      state.barPage++;
+      renderAll();
+    });
   }
 
   // ─── Heatmap ─────────────────────────────────────────────
@@ -303,9 +352,11 @@
   ];
 
   function renderHeatmap(filtered, prefStats) {
+    var toolbar = document.getElementById('hm-toolbar');
     var container = document.getElementById('heatmap-container');
 
     if (!prefStats.length) {
+      toolbar.style.display = 'none';
       container.innerHTML = '<p class="no-data">Pas de donn\u00e9es</p>';
       return;
     }
@@ -361,10 +412,40 @@
       return false;
     });
 
+    // Build avg_days lookup from prefStats for sorting
+    var prefAvg = {};
+    for (var pa = 0; pa < prefStats.length; pa++) {
+      prefAvg[prefStats[pa].prefecture] = prefStats[pa].avg_days || 0;
+    }
+
+    // Sort
+    switch (state.hmSort) {
+      case 'days-asc':
+        activePrefs.sort(function(a, b) { return (prefAvg[a] || 0) - (prefAvg[b] || 0); }); break;
+      case 'name-asc':
+        activePrefs.sort(function(a, b) { return a.localeCompare(b); }); break;
+      default: // days-desc
+        activePrefs.sort(function(a, b) { return (prefAvg[b] || 0) - (prefAvg[a] || 0); });
+    }
+
     if (!activeCols.length || !activePrefs.length) {
+      toolbar.style.display = 'none';
       container.innerHTML = '<p class="no-data">Pas assez de donn\u00e9es pour la heatmap</p>';
       return;
     }
+
+    // Pagination
+    var total = activePrefs.length;
+    var ps = state.hmPageSize;
+    var totalPages = ps > 0 ? Math.max(1, Math.ceil(total / ps)) : 1;
+    state.hmPage = Math.min(state.hmPage, totalPages);
+    var pagePrefs = ps > 0 ? activePrefs.slice((state.hmPage - 1) * ps, state.hmPage * ps) : activePrefs;
+
+    toolbar.style.display = 'flex';
+    document.getElementById('hm-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('hm-page-info').textContent = state.hmPage + '/' + totalPages;
+    document.getElementById('hm-btn-prev').disabled = state.hmPage <= 1;
+    document.getElementById('hm-btn-next').disabled = state.hmPage >= totalPages;
 
     var html = '<table class="heatmap-table"><thead><tr><th></th>';
     for (var c = 0; c < activeCols.length; c++) {
@@ -374,11 +455,11 @@
     }
     html += '</tr></thead><tbody>';
 
-    for (var p = 0; p < activePrefs.length; p++) {
-      html += '<tr><td class="hm-label">' + U.escapeHtml(activePrefs[p]) + '</td>';
+    for (var p = 0; p < pagePrefs.length; p++) {
+      html += '<tr><td class="hm-label">' + U.escapeHtml(pagePrefs[p]) + '</td>';
       for (var c2 = 0; c2 < activeCols.length; c2++) {
         var colKey = activeCols[c2].key;
-        var cellKey = activePrefs[p] + '|' + colKey;
+        var cellKey = pagePrefs[p] + '|' + colKey;
         var cellData = matrix[cellKey];
         if (cellData && cellData.length) {
           var cellAvg = Math.round(cellData.reduce(function(a, b) { return a + b; }, 0) / cellData.length);
@@ -387,7 +468,7 @@
           var g = Math.round((1 - intensity) * 185 + intensity * 68);
           var b2 = Math.round((1 - intensity) * 129 + intensity * 68);
           var tipLabel = activeCols[c2].title || ('\u00e9tape ' + colKey);
-          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + activePrefs[p] + ' ' + tipLabel + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
+          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + pagePrefs[p] + ' ' + tipLabel + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
         } else {
           html += '<td class="hm-cell" style="background:rgba(255,255,255,0.03);color:var(--text-dim)">\u2014</td>';
         }
@@ -396,6 +477,26 @@
     }
     html += '</tbody></table>';
     container.innerHTML = html;
+  }
+
+  function initHmPagination() {
+    document.getElementById('hm-sort').addEventListener('change', function(e) {
+      state.hmSort = e.target.value;
+      state.hmPage = 1;
+      renderAll();
+    });
+    document.getElementById('hm-page-size').addEventListener('change', function(e) {
+      state.hmPageSize = parseInt(e.target.value, 10);
+      state.hmPage = 1;
+      renderAll();
+    });
+    document.getElementById('hm-btn-prev').addEventListener('click', function() {
+      if (state.hmPage > 1) { state.hmPage--; renderAll(); }
+    });
+    document.getElementById('hm-btn-next').addEventListener('click', function() {
+      state.hmPage++;
+      renderAll();
+    });
   }
 
   // ─── Stacked Bar ─────────────────────────────────────────
