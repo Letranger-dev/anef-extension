@@ -288,11 +288,82 @@
     });
   }
 
+  /** Create searchable prefecture dropdown (single select with search) */
+  function createSearchablePrefectureDropdown(containerId, prefectures, currentValue, onChange, options) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    var esc = ANEF.utils.escapeHtml;
+    options = options || {};
+    var allLabel = options.allLabel || 'Pr\u00e9f. : toutes';
+
+    function displayText(val) {
+      return (!val || val === '') ? allLabel : val;
+    }
+
+    var html = '<div class="pref-search-select">' +
+      '<button type="button" class="pref-ms-trigger"><span class="pref-ms-text">' + esc(displayText(currentValue)) + '</span><span class="status-select-arrow">&#x25BC;</span></button>' +
+      '<div class="pref-ms-dropdown" style="display:none">' +
+        '<input type="text" class="pref-ms-search" placeholder="Rechercher une pr\u00e9fecture...">' +
+        '<div class="pref-ms-options">' +
+          '<div class="pref-ss-option' + (!currentValue || currentValue === '' ? ' selected' : '') + '" data-value="">' + esc(allLabel) + '</div>';
+
+    for (var i = 0; i < prefectures.length; i++) {
+      var sel = currentValue === prefectures[i] ? ' selected' : '';
+      html += '<div class="pref-ss-option' + sel + '" data-value="' + esc(prefectures[i]) + '">' + esc(prefectures[i]) + '</div>';
+    }
+    html += '</div></div></div>';
+    container.innerHTML = html;
+
+    var selectEl = container.querySelector('.pref-search-select');
+    var trigger = container.querySelector('.pref-ms-trigger');
+    var dropdown = container.querySelector('.pref-ms-dropdown');
+    var searchInput = container.querySelector('.pref-ms-search');
+    var optionsDiv = container.querySelector('.pref-ms-options');
+    var textSpan = container.querySelector('.pref-ms-text');
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = dropdown.style.display !== 'none';
+      if (isOpen) { dropdown.style.display = 'none'; }
+      else { dropdown.style.display = 'flex'; searchInput.value = ''; filterOpts(''); searchInput.focus(); }
+    });
+
+    searchInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    searchInput.addEventListener('input', function() { filterOpts(searchInput.value); });
+
+    function filterOpts(q) {
+      q = q.toLowerCase().trim();
+      var opts = optionsDiv.querySelectorAll('.pref-ss-option');
+      for (var i = 0; i < opts.length; i++) {
+        var val = opts[i].dataset.value;
+        if (val === '') { opts[i].style.display = q ? 'none' : ''; continue; }
+        opts[i].style.display = (!q || opts[i].textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+      }
+    }
+
+    optionsDiv.addEventListener('click', function(e) {
+      var option = e.target.closest('.pref-ss-option');
+      if (!option) return;
+      var allOpts = optionsDiv.querySelectorAll('.pref-ss-option');
+      for (var i = 0; i < allOpts.length; i++) allOpts[i].classList.remove('selected');
+      option.classList.add('selected');
+      textSpan.textContent = displayText(option.dataset.value);
+      dropdown.style.display = 'none';
+      onChange(option.dataset.value);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!selectEl.contains(e.target)) dropdown.style.display = 'none';
+    });
+  }
+
   ANEF.filters = {
     createStepPills: createStepPills,
     createStatusFilter: createStatusFilter,
     createPrefectureDropdown: createPrefectureDropdown,
     createPrefectureMultiSelect: createPrefectureMultiSelect,
+    createSearchablePrefectureDropdown: createSearchablePrefectureDropdown,
     createOutcomeFilter: createOutcomeFilter,
     createComplementFilter: createComplementFilter,
     createGranularityToggle: createGranularityToggle,

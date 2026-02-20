@@ -19,17 +19,6 @@
     pageSize: 5,
     sort: 'status-recent',
     view: 'list',
-    tableSort: { col: 'daysAtStatus', dir: 'asc' },
-    tablePage: 1,
-    tablePageSize: 5,
-    tableFilters: {
-      statut: 'all',
-      prefecture: 'all',
-      depotMin: '',
-      depotMax: '',
-      statutDateMin: '',
-      statutDateMax: ''
-    },
     dossierFilters: {
       statut: 'all',
       prefecture: 'all',
@@ -73,9 +62,6 @@
       initDossierFilters();
       initViewToggle();
       initPageSize();
-      initTableSort();
-      initTablePagination();
-      initTableFilters();
       renderAll();
 
     } catch (error) {
@@ -92,14 +78,6 @@
       state.dossierFilters.prefecture = v; state.page = 1; renderAll();
     });
 
-    // Tableau détaillé: statut + prefecture
-    F.createStatusFilter('table-filter-statut-container', 'all', function(v) {
-      state.tableFilters.statut = v; state.tablePage = 1; renderAll();
-    });
-    F.createPrefectureDropdown('table-filter-prefecture-container', prefectures, 'all', function(v) {
-      state.tableFilters.prefecture = v; state.tablePage = 1; renderAll();
-    });
-
     // Histogram: statut + prefecture
     F.createStatusFilter('histogram-filter-statut-container', 'all', function(v) {
       state.histogramFilters.statut = v; renderAll();
@@ -111,7 +89,7 @@
 
   function renderAll() {
     renderDossiers(state.summaries);
-    renderDetailTable(state.summaries);
+    renderDurationChart();
     renderHistogram(state.summaries);
   }
 
@@ -497,162 +475,137 @@
     });
   }
 
-  // ─── Detail Table ────────────────────────────────────────
+  // ─── Duration by Step Chart ─────────────────────────────
 
-  function getTableSorted(filtered) {
-    var data = filtered.slice();
-    if (state.tableSort.col) {
-      data.sort(function(a, b) {
-        var va, vb;
-        switch (state.tableSort.col) {
-          case 'hash': va = a.hash; vb = b.hash; break;
-          case 'step': va = a.rang; vb = b.rang; break;
-          case 'daysAtStatus': va = a.daysAtCurrentStatus || 0; vb = b.daysAtCurrentStatus || 0; break;
-          case 'deposit': va = a.dateDepot || ''; vb = b.dateDepot || ''; break;
-          default: return 0;
+  var STEP9_SHORT = {
+    'controle_a_affecter': 'SDANF aff.',
+    'controle_a_effectuer': 'SDANF ctrl',
+    'controle_en_attente_pec': 'SCEC trans.',
+    'controle_pec_a_faire': 'SCEC vérif.'
+  };
+
+  /**
+   * Compute how long dossiers stay at each step before moving on.
+   * Uses transition data from grouped snapshots (only completed transitions).
+   */
+  function computeDurationAtStep(grouped) {
+    var STATUTS = C.STATUTS;
+    var STEP9 = D.STEP9_STATUTS;
+    var buckets = {};
+
+    grouped.forEach(function(snaps) {
+      for (var i = 0; i < snaps.length - 1; i++) {
+        var curr = snaps[i];
+        var next = snaps[i + 1];
+        if (!curr.date_statut || !next.date_statut) continue;
+        // Skip if same etape + same statut (duplicate snapshot)
+        if (curr.etape === next.etape && curr.statut === next.statut) continue;
+        var days = U.daysDiff(curr.date_statut, next.date_statut);
+        if (days === null || days < 0) continue;
+
+        var key, rang, phase, statut = null;
+        var statutLower = curr.statut ? curr.statut.toLowerCase() : '';
+
+        if (Number(curr.etape) === 9 && statutLower && STEP9.indexOf(statutLower) !== -1) {
+          key = 'statut:' + statutLower;
+          var info = STATUTS[statutLower];
+          rang = info ? info.rang : (curr.etape * 100);
+          phase = info ? info.phase : C.PHASE_NAMES[curr.etape];
+          statut = statutLower;
+        } else {
+          key = 'etape:' + curr.etape;
+          rang = curr.etape * 100;
+          phase = curr.phase || C.PHASE_NAMES[curr.etape];
         }
-        if (va < vb) return state.tableSort.dir === 'asc' ? -1 : 1;
-        if (va > vb) return state.tableSort.dir === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return data;
-  }
 
-  function applyTableFilters(data) {
-    var tf = state.tableFilters;
-    return data.filter(function(s) {
-      if (tf.statut && tf.statut !== 'all') {
-        if ((s.statut || '').toLowerCase() !== tf.statut) return false;
+        if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statut, rang: rang, days: [] };
+        buckets[key].days.push(days);
       }
-      if (tf.prefecture && tf.prefecture !== 'all') {
-        if (s.prefecture !== tf.prefecture) return false;
-      }
-      if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
-      if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
-      if (tf.statutDateMin && (s.dateStatut || '') < tf.statutDateMin) return false;
-      if (tf.statutDateMax && (s.dateStatut || '') > tf.statutDateMax) return false;
-      return true;
     });
+
+    return Object.keys(buckets).map(function(key) {
+      var b = buckets[key];
+      return {
+        etape: b.etape,
+        phase: b.phase,
+        statut: b.statut,
+        rang: b.rang,
+        median_days: U.round1(U.medianCalc(b.days)),
+        count: b.days.length
+      };
+    }).sort(function(a, b) { return a.rang - b.rang; });
   }
 
-  function initTableFilters() {
-    var depotMin = document.getElementById('table-filter-depot-min');
-    var depotMax = document.getElementById('table-filter-depot-max');
-    var statutMin = document.getElementById('table-filter-statut-min');
-    var statutMax = document.getElementById('table-filter-statut-max');
+  function renderDurationChart() {
+    var canvas = document.getElementById('duration-chart');
+    var noData = document.getElementById('duration-no-data');
+    var container = document.getElementById('duration-chart-container');
+    var data = computeDurationAtStep(state.grouped);
 
-    depotMin.addEventListener('change', function() {
-      state.tableFilters.depotMin = depotMin.value;
-      state.tablePage = 1;
-      renderAll();
-    });
-    depotMax.addEventListener('change', function() {
-      state.tableFilters.depotMax = depotMax.value;
-      state.tablePage = 1;
-      renderAll();
-    });
-    statutMin.addEventListener('change', function() {
-      state.tableFilters.statutDateMin = statutMin.value;
-      state.tablePage = 1;
-      renderAll();
-    });
-    statutMax.addEventListener('change', function() {
-      state.tableFilters.statutDateMax = statutMax.value;
-      state.tablePage = 1;
-      renderAll();
-    });
-  }
-
-  function renderDetailTable(allSummaries) {
-    var tbody = document.getElementById('detail-tbody');
-    var toolbar = document.getElementById('table-toolbar');
-    var tableData = applyTableFilters(allSummaries);
-    var data = getTableSorted(tableData);
+    data = data.filter(function(d) { return d.median_days > 0 && d.count >= 2 && d.etape >= 2; });
 
     if (!data.length) {
-      toolbar.style.display = 'none';
-      tbody.innerHTML = '<tr><td colspan="11" class="no-data">Aucun dossier</td></tr>';
+      canvas.style.display = 'none';
+      noData.style.display = 'block';
+      CH.destroy('duration');
       return;
     }
 
-    var totalPages = Math.max(1, Math.ceil(data.length / state.tablePageSize));
-    state.tablePage = Math.min(state.tablePage, totalPages);
-    var start = (state.tablePage - 1) * state.tablePageSize;
-    var pageData = data.slice(start, start + state.tablePageSize);
+    canvas.style.display = 'block';
+    noData.style.display = 'none';
 
-    toolbar.style.display = 'flex';
-    var tCountText = data.length === allSummaries.length
-      ? data.length + ' dossier' + (data.length > 1 ? 's' : '')
-      : data.length + ' / ' + allSummaries.length + ' dossiers';
-    document.getElementById('table-count').textContent = tCountText;
-    document.getElementById('table-page-info').textContent = state.tablePage + '/' + totalPages;
-    document.getElementById('table-btn-prev').disabled = state.tablePage <= 1;
-    document.getElementById('table-btn-next').disabled = state.tablePage >= totalPages;
+    var labels = [];
+    var values = [];
+    var colors = [];
+    var counts = [];
 
-    var html = '';
-    for (var i = 0; i < pageData.length; i++) {
-      var s = pageData[i];
-      html += '<tr>' +
-        '<td><code>#' + U.escapeHtml(s.hash) + '</code></td>' +
-        '<td class="num">' + s.sousEtape + '/12</td>' +
-        '<td title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.explication) + '</td>' +
-        '<td class="num">' + (s.daysAtCurrentStatus != null ? (s.daysAtCurrentStatus === 0 ? '< 1 j' : s.daysAtCurrentStatus + ' j') : '\u2014') + '</td>' +
-        '<td>' + U.formatDateFr(s.dateDepot) + '</td>' +
-        '<td>' + U.formatDateFr(s.dateStatut) + '</td>' +
-        '<td>' + U.formatDateFr(s.dateEntretien) + '</td>' +
-        '<td>' + U.escapeHtml(s.lieuEntretien || '\u2014') + '</td>' +
-        '<td>' + U.escapeHtml(s.numeroDecret || '\u2014') + '</td>' +
-        '<td>' + U.escapeHtml(s.prefecture || '\u2014') + '</td>' +
-        '<td>' + (s.hasComplement ? 'Oui' : 'Non') + '</td>' +
-      '</tr>';
+    for (var i = 0; i < data.length; i++) {
+      var d = data[i];
+      var sousEtape = C.formatSubStep(d.rang);
+      var shortName = d.statut && STEP9_SHORT[d.statut]
+        ? STEP9_SHORT[d.statut]
+        : (C.PHASE_SHORT[d.etape] || d.phase);
+      labels.push(sousEtape + ' \u2014 ' + shortName);
+      values.push(d.median_days);
+      colors.push(C.STEP_COLORS[d.etape] || C.STEP_COLORS[0]);
+      counts.push(d.count);
     }
-    tbody.innerHTML = html;
-  }
 
-  function initTableSort() {
-    var ths = document.querySelectorAll('th.sortable');
-    // Apply default sort indicator
-    ths.forEach(function(th) {
-      if (th.dataset.col === state.tableSort.col) {
-        th.classList.add('sort-' + state.tableSort.dir);
+    // Dynamic height based on bar count
+    container.style.height = Math.max(250, data.length * 38 + 50) + 'px';
+    container.style.minHeight = 'auto';
+
+    var config = CH.horizontalBarConfig(labels, values, colors, {
+      suffix: 'j',
+      datalabels: {
+        color: '#e2e8f0',
+        font: { size: 11, weight: 'bold' },
+        anchor: 'end',
+        align: 'right',
+        formatter: function(value, ctx) {
+          return U.formatDuration(Math.round(value)) + ' (' + counts[ctx.dataIndex] + ' dossiers)';
+        }
       }
     });
-    ths.forEach(function(th) {
-      th.addEventListener('click', function() {
-        var col = th.dataset.col;
-        if (state.tableSort.col === col) {
-          state.tableSort.dir = state.tableSort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-          state.tableSort.col = col;
-          state.tableSort.dir = 'desc';
-        }
-        state.tablePage = 1;
-        ths.forEach(function(t) { t.classList.remove('sort-asc', 'sort-desc'); });
-        th.classList.add('sort-' + state.tableSort.dir);
-        renderAll();
-      });
-    });
-  }
 
-  function initTablePagination() {
-    var sel = document.getElementById('table-page-size');
-    if (sel) {
-      sel.value = String(state.tablePageSize);
-      sel.addEventListener('change', function() {
-        state.tablePageSize = parseInt(sel.value, 10);
-        state.tablePage = 1;
-        renderAll();
-      });
+    // Register datalabels plugin
+    if (typeof ChartDataLabels !== 'undefined') {
+      config.plugins = [ChartDataLabels];
     }
-    document.getElementById('table-btn-prev').addEventListener('click', function() {
-      if (state.tablePage > 1) { state.tablePage--; renderAll(); }
-    });
-    document.getElementById('table-btn-next').addEventListener('click', function() {
-      var tableData = applyTableFilters(state.summaries);
-      var totalPages = Math.ceil(tableData.length / state.tablePageSize);
-      if (state.tablePage < totalPages) { state.tablePage++; renderAll(); }
-    });
+
+    // Custom tooltip
+    config.options.plugins.tooltip = {
+      callbacks: {
+        label: function(ctx) {
+          return 'Dur\u00e9e habituelle : ' + U.formatDuration(Math.round(ctx.parsed.x)) + ' (' + counts[ctx.dataIndex] + ' dossiers)';
+        }
+      }
+    };
+
+    // Extra right padding for datalabels
+    config.options.layout = { padding: { right: 160 } };
+
+    CH.create('duration', 'duration-chart', config);
   }
 
   // ─── Histogram ───────────────────────────────────────────
