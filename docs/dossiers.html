@@ -165,70 +165,13 @@
       <div class="dossier-grid" id="dossier-grid"></div>
     </div>
 
-    <!-- Detail Table -->
-    <div class="section" id="table-section">
-      <h2>Tableau détaillé</h2>
-      <div class="table-filters" id="table-filters">
-        <div class="table-filter-group">
-          <label>Statut</label>
-          <div id="table-filter-statut-container"></div>
-        </div>
-        <div class="table-filter-group">
-          <label>Préfecture</label>
-          <div id="table-filter-prefecture-container"></div>
-        </div>
-        <div class="table-filter-group">
-          <label>Date dépôt</label>
-          <div class="date-range">
-            <input type="date" id="table-filter-depot-min" class="table-filter-date" title="À partir du">
-            <span class="date-sep">→</span>
-            <input type="date" id="table-filter-depot-max" class="table-filter-date" title="Jusqu'au">
-          </div>
-        </div>
-        <div class="table-filter-group">
-          <label>Date statut</label>
-          <div class="date-range">
-            <input type="date" id="table-filter-statut-min" class="table-filter-date" title="À partir du">
-            <span class="date-sep">→</span>
-            <input type="date" id="table-filter-statut-max" class="table-filter-date" title="Jusqu'au">
-          </div>
-        </div>
-      </div>
-      <div class="dossier-toolbar" id="table-toolbar" style="display:none">
-        <span class="dossier-count" id="table-count">&mdash;</span>
-        <div class="toolbar-controls">
-          <select id="table-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 par page</option>
-            <option value="10">10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="50">50 par page</option>
-          </select>
-        </div>
-        <div class="pagination">
-          <button id="table-btn-prev" class="btn-page" disabled>&larr;</button>
-          <span id="table-page-info" class="page-info">1/1</span>
-          <button id="table-btn-next" class="btn-page">&rarr;</button>
-        </div>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th class="sortable" data-col="hash">Hash</th>
-              <th class="sortable" data-col="step">Étape</th>
-              <th>Statut</th>
-              <th class="sortable" data-col="daysAtStatus">Jours au statut</th>
-              <th class="sortable" data-col="deposit">Dépôt</th>
-              <th>Dernier statut</th>
-              <th>Entretien</th>
-              <th>Lieu</th>
-              <th>Décret</th>
-              <th>Préfecture</th>
-              <th>Complément</th>
-            </tr>
-          </thead>
-          <tbody id="detail-tbody"></tbody>
-        </table>
+    <!-- Duration by Step Chart -->
+    <div class="section" id="duration-section">
+      <h2>Durée par étape</h2>
+      <p class="section-subtitle">Temps habituel passé à chaque étape avant de passer à la suivante</p>
+      <div class="chart-container" id="duration-chart-container" style="min-height:550px">
+        <canvas id="duration-chart"></canvas>
+        <p class="no-data" id="duration-no-data" style="display:none">Pas de données</p>
       </div>
     </div>
 

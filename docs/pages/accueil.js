@@ -7,7 +7,10 @@
   var C = ANEF.constants;
   var U = ANEF.utils;
   var D = ANEF.data;
+  var F = ANEF.filters;
   var CH = ANEF.charts;
+
+  var allSummaries = [];
 
   function ageColor(days) {
     if (days == null) return 'var(--text-dim)';
@@ -33,6 +36,8 @@
 
       var grouped = D.groupByDossier(snapshots);
       var summaries = D.computeDossierSummaries(grouped);
+
+      allSummaries = summaries;
 
       loading.style.display = 'none';
       main.style.display = 'block';
@@ -244,12 +249,8 @@
       opt.textContent = STATUT_LABELS[statutKeys[j]] || statutKeys[j];
       statutSelect.appendChild(opt);
     }
-    var prefSelect = document.getElementById('sdanf-pref-filter');
-    Object.keys(prefs).sort().forEach(function(p) {
-      var opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      prefSelect.appendChild(opt);
+    F.createSearchablePrefectureDropdown('sdanf-pref-filter-container', Object.keys(prefs).sort(), '', function(v) {
+      sdanfState.pref = v; sdanfState.page = 1; renderSdanfPage();
     });
 
     initSdanfControls();
@@ -376,7 +377,7 @@
         changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
       }
 
-      html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
+      html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
@@ -384,6 +385,7 @@
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
+            ' <span class="statut-code">(' + U.escapeHtml((s.statut || '').toUpperCase()) + ')</span>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span style="font-weight:700;color:' + urgency + '">' + U.formatDuration(d) + '</span>' +
@@ -401,6 +403,7 @@
       '</div>';
     }
     list.innerHTML = html;
+    bindDossierClicks(list);
   }
 
   function initSdanfControls() {
@@ -409,9 +412,6 @@
     });
     document.getElementById('sdanf-statut-filter').addEventListener('change', function(e) {
       sdanfState.statut = e.target.value; sdanfState.page = 1; renderSdanfPage();
-    });
-    document.getElementById('sdanf-pref-filter').addEventListener('change', function(e) {
-      sdanfState.pref = e.target.value; sdanfState.page = 1; renderSdanfPage();
     });
     var changedCb = document.getElementById('sdanf-changed-filter');
     changedCb.addEventListener('change', function() {
@@ -453,12 +453,8 @@
       var p = entretienState.all[i].prefecture;
       if (p) prefs[p] = true;
     }
-    var prefSelect = document.getElementById('entretien-pref-filter');
-    Object.keys(prefs).sort().forEach(function(p) {
-      var opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      prefSelect.appendChild(opt);
+    F.createSearchablePrefectureDropdown('entretien-pref-filter-container', Object.keys(prefs).sort(), '', function(v) {
+      entretienState.pref = v; entretienState.page = 1; renderEntretienPage();
     });
 
     // Populate statut filter
@@ -600,7 +596,7 @@
         changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
       }
 
-      html += '<div class="dossier-row" style="--card-accent:' + color + '">' +
+      html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
@@ -608,6 +604,7 @@
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
+            ' <span class="statut-code">(' + U.escapeHtml((s.statut || '').toUpperCase()) + ')</span>' +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span>' + daysLabel + ' depuis le d\u00e9p\u00f4t</span>' +
@@ -622,6 +619,7 @@
       '</div>';
     }
     list.innerHTML = html;
+    bindDossierClicks(list);
   }
 
   function initEntretienControls() {
@@ -633,9 +631,6 @@
     });
     document.getElementById('entretien-statut-filter').addEventListener('change', function(e) {
       entretienState.statut = e.target.value; entretienState.page = 1; renderEntretienPage();
-    });
-    document.getElementById('entretien-pref-filter').addEventListener('change', function(e) {
-      entretienState.pref = e.target.value; entretienState.page = 1; renderEntretienPage();
     });
     var changedCbE = document.getElementById('entretien-changed-filter');
     changedCbE.addEventListener('change', function() {
@@ -682,12 +677,12 @@
       if (t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer') {
         caaToCAE++;
       }
-      // Passage SDANF → SCEC (contrôle terminé)
-      if (SDANF_STATUTS[t.fromStatut] && SCEC_STATUTS[t.toStatut]) {
+      // Passage vers SCEC : arrivée à un statut SCEC depuis n'importe quel autre statut
+      if (t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut]) {
         sdanfToSCEC++;
       }
-      // Arrivée étape 9 : vrai changement d'étape (pas first_seen)
-      if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9) {
+      // Arrivée étape 9 SDANF : changement d'étape vers un sous-statut SDANF uniquement
+      if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut]) {
         arrivedStep9++;
       }
     }
@@ -734,9 +729,9 @@
     var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period);
 
     var notifs = [
-      { count: m.arrivedStep9, color: 'violet', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pass\u00e9' + (n > 1 ? 's' : '') + ' \u00e0 l\u2019\u00e9tape SDANF'; } },
-      { count: m.caaToCAE, color: 'primary', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pris en charge par la SDANF'; } },
-      { count: m.sdanfToSCEC, color: 'green', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' transf\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' au SCEC'; } }
+      { count: m.arrivedStep9, color: 'violet', type: 'arrivedStep9', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pass\u00e9' + (n > 1 ? 's' : '') + ' \u00e0 l\u2019\u00e9tape SDANF'; } },
+      { count: m.caaToCAE, color: 'primary', type: 'caaToCAE', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pris en charge par la SDANF'; } },
+      { count: m.sdanfToSCEC, color: 'green', type: 'sdanfToSCEC', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' transf\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' au SCEC'; } }
     ];
 
     var active = notifs.filter(function(n) { return n.count > 0; });
@@ -749,11 +744,120 @@
     var html = '';
     for (var i = 0; i < active.length; i++) {
       var n = active[i];
-      html += '<div class="mouvement-notif mouvement-' + n.color + '">' +
+      html += '<div class="mouvement-notif mouvement-' + n.color + ' mouvement-clickable" data-type="' + n.type + '">' +
         '<span class="mouvement-notif-text"><strong class="mouvement-notif-count">' + n.count + '</strong> ' + n.text(n.count) + '</span>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
       '</div>';
     }
     grid.innerHTML = html;
+
+    // Bind click handlers
+    var cards = grid.querySelectorAll('.mouvement-clickable');
+    for (var j = 0; j < cards.length; j++) {
+      cards[j].addEventListener('click', function(e) {
+        var type = e.currentTarget.getAttribute('data-type');
+        showMovementDossiers(type);
+      });
+    }
+  }
+
+  function getMovementTransitions(type) {
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var periodDays = mouvementsState.period;
+    var cutoff = periodDays === 0 ? startOfToday : new Date(startOfToday.getTime() - periodDays * 86400000);
+
+    return mouvementsState.transitions.filter(function(t) {
+      if (new Date(t.created_at) < cutoff) return false;
+      if (type === 'arrivedStep9') return t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut];
+      if (type === 'caaToCAE') return t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer';
+      if (type === 'sdanfToSCEC') return t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut];
+      return false;
+    });
+  }
+
+  var MOVEMENT_TITLES = {
+    arrivedStep9: 'Dossiers pass\u00e9s \u00e0 l\u2019\u00e9tape SDANF',
+    caaToCAE: 'Dossiers pris en charge par la SDANF',
+    sdanfToSCEC: 'Dossiers transf\u00e9r\u00e9s au SCEC'
+  };
+
+  function showMovementDossiers(type) {
+    var transitions = getMovementTransitions(type);
+    if (!transitions.length) return;
+
+    var title = MOVEMENT_TITLES[type] || 'Dossiers';
+
+    var html = '';
+    for (var i = 0; i < transitions.length; i++) {
+      var t = transitions[i];
+      var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
+      var badge = ACTIVITY_BADGE[t.type];
+
+      var desc = (t.fromSousEtape || '?') + ' \u2192 ' + (t.toSousEtape || '?');
+      var detail = '';
+      if (t.fromExplication || t.toExplication) {
+        detail = (t.fromExplication || '') + ' \u2192 ' + (t.toExplication || '');
+      }
+      var codeDetail = U.escapeHtml((t.fromStatut || '').toUpperCase()) + ' <span class="statut-code-arrow">\u2192</span> ' + U.escapeHtml((t.toStatut || '').toUpperCase());
+      var durHtml = '';
+      if (t.daysForTransition !== null) {
+        durHtml = '<span class="history-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
+      }
+
+      html += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(t.hash) + '">' +
+        '<span class="activity-dot" style="background:' + color + ';flex-shrink:0"></span>' +
+        '<div class="mouvement-dossier-content">' +
+          '<div class="mouvement-dossier-top">' +
+            '<span class="activity-hash">#' + U.escapeHtml(t.hash) + '</span>' +
+            '<span class="badge-type ' + badge.css + '">' + badge.label + '</span>' +
+            durHtml +
+          '</div>' +
+          '<div class="mouvement-dossier-desc">' + U.escapeHtml(desc) + '</div>' +
+          (detail ? '<div class="mouvement-dossier-detail">' + U.escapeHtml(detail) + '</div>' : '') +
+          '<div class="statut-code">' + codeDetail + '</div>' +
+          '<div class="mouvement-dossier-date">' + U.formatDateTimeFr(t.created_at) + '</div>' +
+        '</div>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
+      '</div>';
+    }
+
+    // Create or reuse modal
+    var modal = document.getElementById('mouvement-list-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'mouvement-list-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<h3>' + U.escapeHtml(title) + '</h3>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list mouvement-dossier-list">' + html + '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    // Bind dossier click handlers → open history
+    var items = modal.querySelectorAll('.mouvement-dossier-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].addEventListener('click', function(e) {
+        var hash = e.currentTarget.getAttribute('data-hash');
+        modal.classList.remove('open');
+        showDossierHistory(hash, { movementType: type });
+      });
+    }
+
+    modal.classList.add('open');
   }
 
   // ─── Activity Feed with pagination ──────────────────────
@@ -774,8 +878,8 @@
         if (prev.date_statut && cur.date_statut) {
           duration = U.daysDiff(prev.date_statut, cur.date_statut);
         }
-        var fromInfo = C.STATUTS[prev.statut.toLowerCase()];
-        var toInfo = C.STATUTS[cur.statut.toLowerCase()];
+        var fromInfo = prev.statut ? C.STATUTS[prev.statut.toLowerCase()] : null;
+        var toInfo = cur.statut ? C.STATUTS[cur.statut.toLowerCase()] : null;
         var type = sameStep ? 'status_change' : 'step_change';
         transitions.push({
           type: type,
@@ -794,7 +898,7 @@
         });
       }
       if (snaps.length > 0) {
-        var firstInfo = C.STATUTS[snaps[0].statut.toLowerCase()];
+        var firstInfo = snaps[0].statut ? C.STATUTS[snaps[0].statut.toLowerCase()] : null;
         transitions.push({
           type: 'first_seen',
           hash: hash.substring(0, 6),
@@ -862,24 +966,27 @@
 
       var text;
       if (t.type === 'first_seen') {
-        var toLabel = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
-        text = 'Nouveau dossier \u2014 étape ' + t.toSousEtape + ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>';
+        var toLabel = t.toExplication || C.PHASE_NAMES[t.toStep] || '\u00e9tape ' + t.toStep;
+        text = 'Nouveau dossier \u2014 \u00e9tape ' + t.toSousEtape +
+          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(toLabel) + ')</span>' +
+          ' <span class="statut-code">(' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       } else if (t.type === 'status_change') {
-        var fromLbl = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
-        var toLbl = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
+        var fromLbl = t.fromExplication || C.PHASE_NAMES[t.fromStep] || '\u00e9tape ' + t.fromStep;
+        var toLbl = t.toExplication || C.PHASE_NAMES[t.toStep] || '\u00e9tape ' + t.toStep;
         var dur = '';
         if (t.daysForTransition !== null) {
           dur = ' <span class="activity-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
         }
-        text = 'Étape ' + t.fromStep + ' \u2014 ' +
+        text = '\u00c9tape ' + t.fromStep + ' \u2014 ' +
           '<span style="color:' + color + '">' + t.fromSousEtape + '</span>' +
           ' \u2192 ' +
           '<span style="color:' + color + '">' + t.toSousEtape + '</span>' +
           dur +
-          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLbl) + ' \u2192 ' + U.escapeHtml(toLbl) + ')</span>';
+          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLbl) + ' \u2192 ' + U.escapeHtml(toLbl) + ')</span>' +
+          ' <span class="statut-code">(' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       } else {
-        var fromLabel2 = t.fromExplication || C.PHASE_NAMES[t.fromStep] || 'étape ' + t.fromStep;
-        var toLabel2 = t.toExplication || C.PHASE_NAMES[t.toStep] || 'étape ' + t.toStep;
+        var fromLabel2 = t.fromExplication || C.PHASE_NAMES[t.fromStep] || '\u00e9tape ' + t.fromStep;
+        var toLabel2 = t.toExplication || C.PHASE_NAMES[t.toStep] || '\u00e9tape ' + t.toStep;
         var durationBadge = '';
         if (t.daysForTransition !== null) {
           durationBadge = ' <span class="activity-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
@@ -888,7 +995,8 @@
           ' \u2192 ' +
           '<span style="color:' + color + '">' + t.toSousEtape + '</span>' +
           durationBadge +
-          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLabel2) + ' \u2192 ' + U.escapeHtml(toLabel2) + ')</span>';
+          ' <span style="color:var(--text-dim)">(' + U.escapeHtml(fromLabel2) + ' \u2192 ' + U.escapeHtml(toLabel2) + ')</span>' +
+          ' <span class="statut-code">(' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       }
 
       html += '<li class="activity-item activity-clickable" data-hash="' + U.escapeHtml(t.hash) + '">' +
@@ -963,14 +1071,51 @@
     }
   }
 
+  // ─── Dossier Click Helper ─────────────────────────────
+
+  function bindDossierClicks(container) {
+    var items = container.querySelectorAll('.dossier-clickable');
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener('click', function(e) {
+        var hash = e.currentTarget.getAttribute('data-hash');
+        if (hash) showDossierHistory(hash);
+      });
+    }
+  }
+
+  function findSummary(hash) {
+    for (var i = 0; i < allSummaries.length; i++) {
+      if (allSummaries[i].hash === hash) return allSummaries[i];
+    }
+    return null;
+  }
+
+  function buildDossierInfoHtml(s) {
+    if (!s) return '';
+    var color = C.getStepColor(s.currentStep);
+    var items = [];
+
+    items.push('<span class="detail-badge" style="background:' + color + '">' + U.escapeHtml(s.sousEtape + '/12 \u2014 ' + s.explication) + '</span>');
+
+    if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
+    if (s.dateStatut) items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
+    if (s.daysSinceDeposit != null) items.push('<div class="detail-row"><span class="detail-label">Dur\u00e9e totale</span><span>' + U.formatDuration(s.daysSinceDeposit) + '</span></div>');
+    if (s.dateEntretien) items.push('<div class="detail-row"><span class="detail-label">Entretien</span><span>' + U.formatDateFr(s.dateEntretien) + '</span></div>');
+    if (s.lieuEntretien) items.push('<div class="detail-row"><span class="detail-label">Lieu</span><span>' + U.escapeHtml(s.lieuEntretien) + '</span></div>');
+    if (s.prefecture) items.push('<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(s.prefecture) + '</span></div>');
+    if (s.numeroDecret) items.push('<div class="detail-row"><span class="detail-label">D\u00e9cret</span><span>' + U.escapeHtml(s.numeroDecret) + '</span></div>');
+    if (s.hasComplement) items.push('<div class="detail-row"><span class="detail-label">Compl\u00e9ment</span><span style="color:var(--orange)">Demand\u00e9</span></div>');
+
+    return '<div class="dossier-detail-info">' + items.join('') + '</div>';
+  }
+
   // ─── Dossier History Popup ─────────────────────────────
 
-  function showDossierHistory(hash) {
+  function showDossierHistory(hash, backTo) {
+    var summary = findSummary(hash);
     var history = activityState.transitions
       .filter(function(t) { return t.hash === hash; })
       .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
-
-    if (!history.length) return;
 
     // Build timeline HTML
     var timelineHtml = '';
@@ -982,17 +1127,20 @@
       var desc;
       if (t.type === 'first_seen') {
         desc = 'Premi\u00e8re observation \u2014 \u00e9tape ' + t.toSousEtape +
-          '<br><span class="history-detail">' + U.escapeHtml(t.toExplication || '') + '</span>';
+          '<br><span class="history-detail">' + U.escapeHtml(t.toExplication || '') + '</span>' +
+          '<br><span class="statut-code">(' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       } else if (t.type === 'status_change') {
         desc = '\u00c9tape ' + t.fromStep + ' : ' + t.fromSousEtape + ' \u2192 ' + t.toSousEtape;
         var fromExp = t.fromExplication || '';
         var toExp = t.toExplication || '';
-        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp) + ' \u2192 ' + U.escapeHtml(toExp) + '</span>';
+        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp) + ' \u2192 ' + U.escapeHtml(toExp) + '</span>' +
+          '<br><span class="statut-code">(' + U.escapeHtml(t.fromStatut.toUpperCase()) + ' <span class="statut-code-arrow">\u2192</span> ' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       } else {
         desc = t.fromSousEtape + ' \u2192 ' + t.toSousEtape;
         var fromExp2 = t.fromExplication || C.PHASE_NAMES[t.fromStep] || '';
         var toExp2 = t.toExplication || C.PHASE_NAMES[t.toStep] || '';
-        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp2) + ' \u2192 ' + U.escapeHtml(toExp2) + '</span>';
+        desc += '<br><span class="history-detail">' + U.escapeHtml(fromExp2) + ' \u2192 ' + U.escapeHtml(toExp2) + '</span>' +
+          '<br><span class="statut-code">(' + U.escapeHtml(t.fromStatut.toUpperCase()) + ' <span class="statut-code-arrow">\u2192</span> ' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';
       }
 
       var durHtml = '';
@@ -1026,18 +1174,36 @@
       document.body.appendChild(modal);
     }
 
+    var backBtnHtml = backTo && backTo.movementType
+      ? '<button class="history-back" title="Retour">\u2190</button>'
+      : '';
+
+    var infoHtml = buildDossierInfoHtml(summary);
+    var historyLabel = history.length ? '<div class="detail-section-label">Historique des transitions</div>' : '<div class="detail-section-label" style="color:var(--text-dim)">Aucune transition observ\u00e9e</div>';
+
     modal.innerHTML =
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
-          '<h3>Historique du dossier #' + U.escapeHtml(hash) + '</h3>' +
+          backBtnHtml +
+          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
+        infoHtml +
+        historyLabel +
         '<div class="modal-history-list">' + timelineHtml + '</div>' +
       '</div>';
 
     modal.querySelector('.history-close').addEventListener('click', function() {
       modal.classList.remove('open');
     });
+
+    var backBtn = modal.querySelector('.history-back');
+    if (backBtn && backTo) {
+      backBtn.addEventListener('click', function() {
+        modal.classList.remove('open');
+        showMovementDossiers(backTo.movementType);
+      });
+    }
 
     // Open with animation
     modal.classList.add('open');
