@@ -216,7 +216,7 @@
 
   // ─── File d'attente SDANF ────────────────────────────────
 
-  var sdanfState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false };
+  var sdanfState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false };
 
   function renderSdanfWait(summaries) {
     // Filter dossiers at etape 9 (all SDANF & SCEC statuses)
@@ -434,7 +434,7 @@
 
   // ─── Phase entretien & decision prefecture ──────────────
 
-  var entretienState = { all: [], filtered: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false };
+  var entretienState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false };
 
   /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later) */
   function isEntretienPassed(s) {
@@ -667,7 +667,7 @@
       cutoff = new Date(startOfToday.getTime() - periodDays * 86400000);
     }
 
-    var caaToCAE = 0, sdanfToSCEC = 0, arrivedStep9 = 0;
+    var caaToCAE = 0, sdanfToSCEC = 0, arrivedStep9 = 0, arrivedDecret = 0;
 
     for (var i = 0; i < transitions.length; i++) {
       var t = transitions[i];
@@ -685,9 +685,13 @@
       if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut]) {
         arrivedStep9++;
       }
+      // Inséré dans le décret (étape 11)
+      if (t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11) {
+        arrivedDecret++;
+      }
     }
 
-    return { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9 };
+    return { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9, arrivedDecret: arrivedDecret };
   }
 
   function renderMouvements(transitions) {
@@ -731,7 +735,8 @@
     var notifs = [
       { count: m.arrivedStep9, color: 'violet', type: 'arrivedStep9', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pass\u00e9' + (n > 1 ? 's' : '') + ' \u00e0 l\u2019\u00e9tape SDANF'; } },
       { count: m.caaToCAE, color: 'primary', type: 'caaToCAE', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pris en charge par la SDANF'; } },
-      { count: m.sdanfToSCEC, color: 'green', type: 'sdanfToSCEC', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' transf\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' au SCEC'; } }
+      { count: m.sdanfToSCEC, color: 'green', type: 'sdanfToSCEC', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' transf\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' au SCEC'; } },
+      { count: m.arrivedDecret, color: 'warning', type: 'arrivedDecret', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' ins\u00e9r\u00e9' + (n > 1 ? 's' : '') + ' dans le d\u00e9cret'; } }
     ];
 
     var active = notifs.filter(function(n) { return n.count > 0; });
@@ -772,6 +777,7 @@
       if (type === 'arrivedStep9') return t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut];
       if (type === 'caaToCAE') return t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer';
       if (type === 'sdanfToSCEC') return t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut];
+      if (type === 'arrivedDecret') return t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11;
       return false;
     });
   }
@@ -779,7 +785,8 @@
   var MOVEMENT_TITLES = {
     arrivedStep9: 'Dossiers pass\u00e9s \u00e0 l\u2019\u00e9tape SDANF',
     caaToCAE: 'Dossiers pris en charge par la SDANF',
-    sdanfToSCEC: 'Dossiers transf\u00e9r\u00e9s au SCEC'
+    sdanfToSCEC: 'Dossiers transf\u00e9r\u00e9s au SCEC',
+    arrivedDecret: 'Dossiers ins\u00e9r\u00e9s dans le d\u00e9cret'
   };
 
   function showMovementDossiers(type) {

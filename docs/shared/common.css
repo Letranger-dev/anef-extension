@@ -209,6 +209,33 @@ html { scroll-behavior: smooth; }
   margin-top: -0.5rem;
   margin-bottom: 1rem;
 }
+.chart-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.chart-stat {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  flex: 1 1 0;
+  min-width: 100px;
+  text-align: center;
+}
+.chart-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.chart-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
 
 /* ─── Dossier Toolbar ─── mobile: stacked ──────────────────── */
 
@@ -1387,6 +1414,19 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .table-filter-date {
     flex: 1;
     width: auto;
+  }
+
+  /* Chart stats: 2 columns on mobile */
+  .chart-stats {
+    gap: 0.35rem;
+  }
+  .chart-stat {
+    flex: 1 1 calc(50% - 0.35rem);
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+  }
+  .chart-stat-value {
+    font-size: 0.95rem;
   }
 
   /* Tall charts on mobile: scrollable with max-height */
