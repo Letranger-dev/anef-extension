@@ -40,10 +40,11 @@
 
   <!-- Header -->
   <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
-    <div class="max-w-container mx-auto px-4 py-5 md:py-8 text-center">
-      <h1 class="text-xl md:text-2xl font-bold mb-1">ANEF Status Tracker</h1>
-      <p class="text-text-muted text-base">Statistiques communautaires</p>
-      <span class="inline-block bg-primary text-white text-xs px-3 py-1 rounded-full mt-2">Données anonymes</span>
+    <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
+      <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
+      <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
+      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
     </div>
   </header>
 
@@ -82,13 +83,6 @@
       </a>
     </div>
   </nav>
-
-  <!-- Evolution banner -->
-  <div class="max-w-container mx-auto px-4 md:px-6 mt-4">
-    <div class="bg-primary/10 border border-primary/30 rounded-card px-4 py-3 text-center text-sm text-text-muted">
-      Ce site est en constante évolution et s'améliore chaque jour. N'hésitez pas à revenir régulièrement pour découvrir les nouveautés !
-    </div>
-  </div>
 
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
@@ -168,7 +162,8 @@
     <!-- Duration by Step Chart -->
     <div class="section" id="duration-section">
       <h2>Durée par étape</h2>
-      <p class="section-subtitle">Temps habituel passé à chaque étape avant de passer à la suivante</p>
+      <p class="section-subtitle">Combien de temps les dossiers restent à chaque étape avant de passer à la suivante — basé sur les dossiers ayant déjà changé d'étape</p>
+      <div id="duration-stats" class="chart-stats" style="display:none"></div>
       <div class="chart-container" id="duration-chart-container" style="min-height:550px">
         <canvas id="duration-chart"></canvas>
         <p class="no-data" id="duration-no-data" style="display:none">Pas de données</p>
@@ -177,7 +172,8 @@
 
     <!-- Histogram -->
     <div class="section" id="histogram-section">
-      <h2>Distribution des durées depuis le dépôt</h2>
+      <h2>Temps écoulé depuis le dépôt</h2>
+      <p class="section-subtitle">Durée entre le dépôt et l'étape actuelle de chaque dossier — ne représente pas la durée totale de la procédure</p>
       <div class="table-filters" id="histogram-filters">
         <div class="table-filter-group">
           <label>Statut</label>
@@ -188,6 +184,7 @@
           <div id="histogram-filter-prefecture-container"></div>
         </div>
       </div>
+      <div id="histogram-stats" class="chart-stats" style="display:none"></div>
       <div class="chart-container" style="min-height:350px">
         <canvas id="histogram-chart"></canvas>
         <p class="no-data" id="histogram-no-data" style="display:none">Pas de données</p>

@@ -74,8 +74,8 @@
     F.createStatusFilter('dossier-filter-statut-container', 'all', function(v) {
       state.dossierFilters.statut = v; state.page = 1; renderAll();
     });
-    F.createPrefectureDropdown('dossier-filter-prefecture-container', prefectures, 'all', function(v) {
-      state.dossierFilters.prefecture = v; state.page = 1; renderAll();
+    F.createSearchablePrefectureDropdown('dossier-filter-prefecture-container', prefectures, '', function(v) {
+      state.dossierFilters.prefecture = v || 'all'; state.page = 1; renderAll();
     });
 
     // Histogram: statut + prefecture
@@ -525,12 +525,20 @@
 
     return Object.keys(buckets).map(function(key) {
       var b = buckets[key];
+      var sorted = b.days.slice().sort(function(a, c) { return a - c; });
+      var sum = 0;
+      for (var j = 0; j < sorted.length; j++) sum += sorted[j];
       return {
         etape: b.etape,
         phase: b.phase,
         statut: b.statut,
         rang: b.rang,
         median_days: U.round1(U.medianCalc(b.days)),
+        avg_days: U.round1(sum / sorted.length),
+        min_days: sorted[0],
+        max_days: sorted[sorted.length - 1],
+        p25_days: M.percentile(sorted, 25),
+        p75_days: M.percentile(sorted, 75),
         count: b.days.length
       };
     }).sort(function(a, b) { return a.rang - b.rang; });
@@ -540,6 +548,7 @@
     var canvas = document.getElementById('duration-chart');
     var noData = document.getElementById('duration-no-data');
     var container = document.getElementById('duration-chart-container');
+    var statsDiv = document.getElementById('duration-stats');
     var data = computeDurationAtStep(state.grouped);
 
     data = data.filter(function(d) { return d.median_days > 0 && d.count >= 2 && d.etape >= 2; });
@@ -547,6 +556,7 @@
     if (!data.length) {
       canvas.style.display = 'none';
       noData.style.display = 'block';
+      if (statsDiv) statsDiv.style.display = 'none';
       CH.destroy('duration');
       return;
     }
@@ -554,10 +564,35 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
+    // Find slowest step and total transitions
+    var totalTransitions = 0;
+    var slowest = data[0];
+    var fastest = data[0];
+    for (var k = 0; k < data.length; k++) {
+      totalTransitions += data[k].count;
+      if (data[k].median_days > slowest.median_days) slowest = data[k];
+      if (data[k].median_days < fastest.median_days) fastest = data[k];
+    }
+
+    // Stats cards
+    if (statsDiv) {
+      var slowLabel = slowest.statut && STEP9_SHORT[slowest.statut]
+        ? STEP9_SHORT[slowest.statut]
+        : (C.PHASE_SHORT[slowest.etape] || slowest.phase);
+      var fastLabel = fastest.statut && STEP9_SHORT[fastest.statut]
+        ? STEP9_SHORT[fastest.statut]
+        : (C.PHASE_SHORT[fastest.etape] || fastest.phase);
+      statsDiv.style.display = 'flex';
+      statsDiv.innerHTML =
+        '<div class="chart-stat"><span class="chart-stat-value">' + totalTransitions + '</span><span class="chart-stat-label">passages observés</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(Math.round(fastest.median_days)) + '</span><span class="chart-stat-label">étape la plus rapide<br><small style="color:var(--text-dim)">' + U.escapeHtml(fastLabel) + '</small></span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(Math.round(slowest.median_days)) + '</span><span class="chart-stat-label">étape la plus lente<br><small style="color:var(--text-dim)">' + U.escapeHtml(slowLabel) + '</small></span></div>';
+    }
+
     var labels = [];
     var values = [];
     var colors = [];
-    var counts = [];
+    var stepData = [];
 
     for (var i = 0; i < data.length; i++) {
       var d = data[i];
@@ -568,7 +603,7 @@
       labels.push(sousEtape + ' \u2014 ' + shortName);
       values.push(d.median_days);
       colors.push(C.STEP_COLORS[d.etape] || C.STEP_COLORS[0]);
-      counts.push(d.count);
+      stepData.push(d);
     }
 
     // Dynamic height based on bar count
@@ -583,7 +618,7 @@
         anchor: 'end',
         align: 'right',
         formatter: function(value, ctx) {
-          return U.formatDuration(Math.round(value)) + ' (' + counts[ctx.dataIndex] + ' dossiers)';
+          return U.formatDuration(Math.round(value)) + ' (' + stepData[ctx.dataIndex].count + ' dossiers)';
         }
       }
     });
@@ -593,11 +628,25 @@
       config.plugins = [ChartDataLabels];
     }
 
-    // Custom tooltip
+    // Enriched tooltip
     config.options.plugins.tooltip = {
       callbacks: {
+        title: function(items) { return items[0].label; },
         label: function(ctx) {
-          return 'Dur\u00e9e habituelle : ' + U.formatDuration(Math.round(ctx.parsed.x)) + ' (' + counts[ctx.dataIndex] + ' dossiers)';
+          var d = stepData[ctx.dataIndex];
+          return 'Attente habituelle : ' + U.formatDuration(Math.round(d.median_days));
+        },
+        afterLabel: function(ctx) {
+          var d = stepData[ctx.dataIndex];
+          var lines = [];
+          lines.push('Le plus rapide : ' + U.formatDuration(d.min_days));
+          lines.push('Le plus long : ' + U.formatDuration(d.max_days));
+          if (d.count >= 4) {
+            lines.push('25% passent en moins de ' + U.formatDuration(d.p25_days));
+            lines.push('75% passent en moins de ' + U.formatDuration(d.p75_days));
+          }
+          lines.push(d.count + ' dossiers observés');
+          return lines;
         }
       }
     };
@@ -626,6 +675,7 @@
   function renderHistogram(allSummaries) {
     var canvas = document.getElementById('histogram-chart');
     var noData = document.getElementById('histogram-no-data');
+    var statsDiv = document.getElementById('histogram-stats');
 
     var filtered = applyHistogramFilters(allSummaries);
     var days = filtered.filter(function(s) { return s.daysSinceDeposit != null; }).map(function(s) { return s.daysSinceDeposit; });
@@ -633,6 +683,7 @@
     if (!days.length) {
       canvas.style.display = 'none';
       noData.style.display = 'block';
+      if (statsDiv) statsDiv.style.display = 'none';
       CH.destroy('histogram');
       return;
     }
@@ -640,23 +691,51 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
-    // Buckets of 30 days
-    var maxDays = Math.max.apply(null, days);
-    var bucketSize = 30;
-    var numBuckets = Math.ceil(maxDays / bucketSize) + 1;
+    // Stats
+    var avg = Math.round(days.reduce(function(a, b) { return a + b; }, 0) / days.length);
+    var med = Math.round(U.medianCalc(days));
+    var maxD = Math.max.apply(null, days);
+    var total = days.length;
+
+    // Percentiles
+    var sorted = days.slice().sort(function(a, b) { return a - b; });
+    var p25 = Math.round(M.percentile(sorted, 25));
+    var p75 = Math.round(M.percentile(sorted, 75));
+
+    // Render stats cards
+    if (statsDiv) {
+      statsDiv.style.display = 'flex';
+      statsDiv.innerHTML =
+        '<div class="chart-stat"><span class="chart-stat-value">' + total + '</span><span class="chart-stat-label">dossiers suivis</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(p25) + '</span><span class="chart-stat-label">25% attendent moins de</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#3b82f6">' + U.formatDuration(med) + '</span><span class="chart-stat-label">attente habituelle</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#f59e0b">' + U.formatDuration(p75) + '</span><span class="chart-stat-label">75% attendent moins de</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(maxD) + '</span><span class="chart-stat-label">le plus ancien</span></div>';
+    }
+
+    // Buckets of 60 days (~2 mois)
+    var bucketSize = 60;
+    var numBuckets = Math.ceil(maxD / bucketSize) + 1;
     var buckets = new Array(numBuckets).fill(0);
     var labels = [];
 
     for (var i = 0; i < numBuckets; i++) {
-      labels.push((i * bucketSize) + '-' + ((i + 1) * bucketSize) + 'j');
+      var fromM = i * 2;
+      var toM = (i + 1) * 2;
+      labels.push(fromM + '-' + toM + ' mois');
     }
     for (var j = 0; j < days.length; j++) {
       var idx = Math.min(Math.floor(days[j] / bucketSize), numBuckets - 1);
       buckets[idx]++;
     }
 
-    var avg = days.reduce(function(a, b) { return a + b; }, 0) / days.length;
-    var med = U.medianCalc(days);
+    // Cumulative percentages for tooltips
+    var cumulative = [];
+    var cumSum = 0;
+    for (var k = 0; k < buckets.length; k++) {
+      cumSum += buckets[k];
+      cumulative.push(Math.round(cumSum / total * 100));
+    }
 
     var datasets = [{
       label: 'Dossiers',
@@ -667,11 +746,89 @@
       borderRadius: 4
     }];
 
-    var config = CH.barConfig(labels, datasets, { suffix: '', ySuffix: '', datalabels: false });
+    var config = CH.barConfig(labels, datasets, { suffix: '', ySuffix: '', datalabels: {
+      color: '#e2e8f0',
+      font: { size: 10, weight: 'bold' },
+      anchor: 'end',
+      align: 'top',
+      formatter: function(v) {
+        if (!v) return '';
+        var pct = Math.round(v / total * 100);
+        return v + ' (' + pct + '%)';
+      }
+    }});
     config.options.plugins.legend = { display: false };
+    config.options.layout = { padding: { top: 25 } };
 
-    // Add annotation lines for avg/median
-    config.options.plugins.annotation = undefined; // not using plugin, use afterDraw instead
+    // Enriched tooltip
+    config.options.plugins.tooltip = {
+      callbacks: {
+        title: function(items) {
+          var i = items[0].dataIndex;
+          var fromDays = i * bucketSize;
+          var toDays = (i + 1) * bucketSize;
+          return U.formatDuration(fromDays) + ' \u2192 ' + U.formatDuration(toDays);
+        },
+        label: function(ctx) {
+          var count = ctx.parsed.y;
+          var pct = Math.round(count / total * 100);
+          return count + ' dossier' + (count > 1 ? 's' : '') + ' (' + pct + '%)';
+        },
+        afterLabel: function(ctx) {
+          return cumulative[ctx.dataIndex] + '% attendent depuis \u2264 ' + U.formatDuration((ctx.dataIndex + 1) * bucketSize);
+        }
+      }
+    };
+
+    // Median & average vertical lines (custom plugin)
+    var medBucket = med / bucketSize;
+    var avgBucket = avg / bucketSize;
+    var refLinesPlugin = {
+      id: 'histogramRefLines',
+      afterDraw: function(chart) {
+        var xScale = chart.scales.x;
+        var yScale = chart.scales.y;
+        var ctx = chart.ctx;
+
+        var lines = [
+          { val: medBucket, color: '#3b82f6', label: 'Attente habituelle : ' + U.formatDuration(med) },
+          { val: avgBucket, color: '#f59e0b', label: 'Attente moyenne : ' + U.formatDuration(avg) }
+        ];
+
+        for (var i = 0; i < lines.length; i++) {
+          var l = lines[i];
+          // x position: interpolate between bar centers
+          var barIdx = Math.floor(l.val);
+          var frac = l.val - barIdx;
+          if (barIdx >= xScale.ticks.length) continue;
+
+          var x1 = xScale.getPixelForTick(barIdx);
+          var x2 = barIdx + 1 < xScale.ticks.length ? xScale.getPixelForTick(barIdx + 1) : x1;
+          var xPos = x1 + (x2 - x1) * frac;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = l.color;
+          ctx.lineWidth = 2;
+          ctx.moveTo(xPos, yScale.top);
+          ctx.lineTo(xPos, yScale.bottom);
+          ctx.stroke();
+
+          // Label
+          ctx.setLineDash([]);
+          ctx.fillStyle = l.color;
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = xPos > chart.width / 2 ? 'right' : 'left';
+          var xLabel = xPos > chart.width / 2 ? xPos - 6 : xPos + 6;
+          ctx.fillText(l.label, xLabel, yScale.top + 14 + i * 16);
+          ctx.restore();
+        }
+      }
+    };
+
+    config.plugins = config.plugins || [];
+    config.plugins.push(refLinesPlugin);
 
     CH.create('histogram', 'histogram-chart', config);
   }

@@ -14,6 +14,31 @@
   var CACHE_KEY = 'anef_snapshots';
   var CACHE_TTL = 300000; // 5 min
 
+  // Pull-to-refresh / F5 : vider le cache pour forcer un fetch frais
+  try {
+    var navEntry = performance.getEntriesByType('navigation')[0];
+    if (navEntry && navEntry.type === 'reload') {
+      sessionStorage.removeItem(CACHE_KEY);
+    }
+  } catch(e) { /* old browser, ignore */ }
+
+  // bfcache (retour arrière mobile) : vider le cache à la restauration
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted) sessionStorage.removeItem(CACHE_KEY);
+  });
+
+  // Retour depuis arrière-plan mobile : recharger si données périmées
+  var _lastVisible = Date.now();
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      if (Date.now() - _lastVisible > CACHE_TTL) {
+        sessionStorage.removeItem(CACHE_KEY);
+        location.reload();
+      }
+      _lastVisible = Date.now();
+    }
+  });
+
   /** Fetch all snapshots from Supabase REST API (with pagination) */
   async function fetchAllSnapshots() {
     var PAGE_SIZE = 1000;
@@ -175,13 +200,17 @@
       var sousEtape = ANEF.constants.formatSubStep(rang);
       var explication = statutInfo ? statutInfo.explication : (latest.phase || PHASE_NAMES[latest.etape] || 'Inconnu');
 
-      // Previous statut (if multiple snapshots = status changed)
+      // Previous statut (only if it actually differs from current)
       var previousStatut = null;
       var previousDateStatut = null;
       if (snaps.length > 1) {
         var prev = snaps[snaps.length - 2];
-        previousStatut = prev.statut || null;
-        previousDateStatut = prev.date_statut || null;
+        var prevStatutNorm = (prev.statut || '').toLowerCase();
+        var curStatutNorm = (latest.statut || '').toLowerCase();
+        if (prevStatutNorm && prevStatutNorm !== curStatutNorm) {
+          previousStatut = prev.statut || null;
+          previousDateStatut = prev.date_statut || null;
+        }
       }
 
       summaries.push({
