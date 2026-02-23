@@ -119,15 +119,25 @@
     'Hauts De Seine': 'Hauts-de-Seine',
     'Puy De Dome': 'Puy-de-Dôme',
     'Seine Maritime': 'Seine-Maritime',
-    'Charente Maritime': 'Charente-Maritime'
+    'Charente Maritime': 'Charente-Maritime',
+    'Haute Corse': 'Haute-Corse',
+    'Corse Du Sud': 'Corse-du-Sud',
+    'Bouches du Rhone': 'Bouches-du-Rhône',
+    'Herault': 'Hérault',
+    'Puy de Dôme': 'Puy-de-Dôme',
+    'Police': 'Préfecture de Police'
   };
+
+  // Build a case-insensitive lookup from PREF_FIXES
+  var PREF_FIXES_LOWER = {};
+  for (var k in PREF_FIXES) PREF_FIXES_LOWER[k.toLowerCase()] = PREF_FIXES[k];
 
   function normalizePrefecture(name) {
     if (!name) return name;
     // Remove "Prefecture de/du/de la/des " prefix
     var cleaned = name.replace(/^Pr[eé]fecture\s+(de\s+l'|de\s+la\s+|du\s+|des\s+|de\s+|d')/i, '');
-    // Exact match lookup
-    if (PREF_FIXES[cleaned]) return PREF_FIXES[cleaned];
+    // Case-insensitive lookup
+    if (PREF_FIXES_LOWER[cleaned.toLowerCase()]) return PREF_FIXES_LOWER[cleaned.toLowerCase()];
     return cleaned;
   }
 
