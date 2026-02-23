@@ -25,6 +25,14 @@ jobs:
           VERSION=$(grep -oP '"version":\s*"\K[^"]+' manifest.json)
           echo "VERSION=v${VERSION}" >> $GITHUB_OUTPUT
 
+          # Vérifier si la version a changé par rapport au commit précédent
+          PREV_VERSION=$(git show HEAD~1:manifest.json 2>/dev/null | grep -oP '"version":\s*"\K[^"]+' || echo "")
+          if [ "$VERSION" != "$PREV_VERSION" ]; then
+            echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create extension ZIP
         run: |
           mkdir -p build
@@ -65,9 +73,11 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
           body: |
-            ## Chrome Web Store (bientôt disponible)
+            ## Chrome Web Store
 
-            L'extension est en cours de validation sur le Chrome Web Store. Une fois approuvée, vous pourrez l'installer en un clic et les mises à jour seront automatiques.
+            [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/icnpklneeaiffilemaflccdejefpehek?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)
+
+            **[Installer depuis le Chrome Web Store](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)** — installation en un clic, mises à jour automatiques.
 
             ## Installation manuelle
 
@@ -87,7 +97,7 @@ jobs:
       # ── Publication Chrome Web Store ──
       - name: Publish to Chrome Web Store
         continue-on-error: true
-        if: ${{ env.HAS_CWS == 'true' }}
+        if: ${{ env.HAS_CWS == 'true' && steps.get_version.outputs.VERSION_CHANGED == 'true' }}
         uses: mnao305/chrome-extension-upload@v5.0.0
         with:
           file-path: anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip

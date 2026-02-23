@@ -1,5 +1,7 @@
 # ANEF Status Tracker
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/icnpklneeaiffilemaflccdejefpehek?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)
+
 Extension Chrome pour suivre votre statut de naturalisation française en temps réel.
 
 > **💬 Bugs ou suggestions ?** Rejoignez le groupe Facebook pour en discuter :
@@ -18,7 +20,11 @@ Extension Chrome pour suivre votre statut de naturalisation française en temps 
 
 ## Installation
 
-### Méthode 1 : Télécharger depuis les Releases (recommandé)
+### Méthode 1 : Chrome Web Store (recommandé)
+
+**[Installer depuis le Chrome Web Store](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)** — installation en un clic, mises à jour automatiques.
+
+### Méthode 2 : Télécharger depuis les Releases
 
 1. Téléchargez le fichier ZIP depuis la [page Releases](../../releases/latest)
 2. Décompressez le fichier ZIP
@@ -27,7 +33,7 @@ Extension Chrome pour suivre votre statut de naturalisation française en temps 
 5. Cliquez sur **"Charger l'extension non empaquetée"**
 6. Sélectionnez le dossier décompressé
 
-### Méthode 2 : Cloner le repository
+### Méthode 3 : Cloner le repository
 
 ```bash
 git clone https://github.com/Letranger-dev/anef-extension.git

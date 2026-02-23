@@ -102,41 +102,52 @@
     <div class="section">
       <h2>Comment installer l'extension ?</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
-        <ol class="space-y-4 text-text-muted">
-          <li class="flex gap-3">
-            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">1</span>
-            <div>
-              <p class="text-text-main font-semibold">Téléchargez l'extension</p>
-              <p class="text-sm mt-1">Rendez-vous sur la <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="text-primary-light hover:underline">page GitHub du projet</a> et téléchargez la dernière version (fichier ZIP).</p>
-            </div>
-          </li>
-          <li class="flex gap-3">
-            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">2</span>
-            <div>
-              <p class="text-text-main font-semibold">Ouvrez les extensions Chrome</p>
-              <p class="text-sm mt-1">Dans Chrome, tapez <code class="bg-bg px-2 py-0.5 rounded text-primary-light text-xs">chrome://extensions</code> dans la barre d'adresse.</p>
-            </div>
-          </li>
-          <li class="flex gap-3">
-            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">3</span>
-            <div>
-              <p class="text-text-main font-semibold">Activez le mode développeur</p>
-              <p class="text-sm mt-1">En haut à droite de la page, activez le bouton « Mode développeur ».</p>
-            </div>
-          </li>
-          <li class="flex gap-3">
-            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">4</span>
-            <div>
-              <p class="text-text-main font-semibold">Chargez l'extension</p>
-              <p class="text-sm mt-1">Cliquez sur « Charger l'extension non empaquetée » et sélectionnez le dossier décompressé.</p>
-            </div>
-          </li>
-        </ol>
-        <div class="mt-6 text-center">
-          <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="inline-block bg-primary hover:bg-primary-light text-white px-6 py-2.5 rounded-lg font-semibold transition-colors">
-            Télécharger sur GitHub
-          </a>
+        <!-- Chrome Web Store (recommandé) -->
+        <div class="p-5 bg-primary/10 border border-primary/30 rounded-lg mb-6">
+          <p class="text-text-main font-semibold mb-2">Chrome Web Store (recommandé)</p>
+          <p class="text-sm text-text-muted mb-4">Installation en un clic, mises à jour automatiques.</p>
+          <div class="text-center">
+            <a href="https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek" target="_blank" rel="noopener" class="inline-block bg-primary hover:bg-primary-light text-white px-6 py-2.5 rounded-lg font-semibold transition-colors">
+              Installer depuis le Chrome Web Store
+            </a>
+          </div>
         </div>
+        <!-- Installation manuelle -->
+        <details class="group">
+          <summary class="cursor-pointer text-text-muted text-sm font-semibold hover:text-text-main transition-colors select-none">
+            Installation manuelle (avancé) ▸
+          </summary>
+          <ol class="space-y-4 text-text-muted mt-4">
+            <li class="flex gap-3">
+              <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">1</span>
+              <div>
+                <p class="text-text-main font-semibold">Téléchargez l'extension</p>
+                <p class="text-sm mt-1">Rendez-vous sur la <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="text-primary-light hover:underline">page GitHub du projet</a> et téléchargez la dernière version (fichier ZIP).</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">2</span>
+              <div>
+                <p class="text-text-main font-semibold">Ouvrez les extensions Chrome</p>
+                <p class="text-sm mt-1">Dans Chrome, tapez <code class="bg-bg px-2 py-0.5 rounded text-primary-light text-xs">chrome://extensions</code> dans la barre d'adresse.</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">3</span>
+              <div>
+                <p class="text-text-main font-semibold">Activez le mode développeur</p>
+                <p class="text-sm mt-1">En haut à droite de la page, activez le bouton « Mode développeur ».</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">4</span>
+              <div>
+                <p class="text-text-main font-semibold">Chargez l'extension</p>
+                <p class="text-sm mt-1">Cliquez sur « Charger l'extension non empaquetée » et sélectionnez le dossier décompressé.</p>
+              </div>
+            </li>
+          </ol>
+        </details>
       </div>
     </div>
 
