@@ -98,11 +98,62 @@ jobs:
       - name: Publish to Chrome Web Store
         continue-on-error: true
         if: ${{ env.HAS_CWS == 'true' && steps.get_version.outputs.VERSION_CHANGED == 'true' }}
-        uses: mnao305/chrome-extension-upload@v5.0.0
-        with:
-          file-path: anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
-          extension-id: ${{ secrets.CWS_EXTENSION_ID }}
-          client-id: ${{ secrets.CWS_CLIENT_ID }}
-          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
-          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
-          publish: true
+        env:
+          CWS_EXT_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          # 1. Obtenir un access token
+          echo "::group::Get access token"
+          TOKEN_RESPONSE=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -d "client_id=${CWS_CLIENT_ID}" \
+            -d "client_secret=${CWS_CLIENT_SECRET}" \
+            -d "refresh_token=${CWS_REFRESH_TOKEN}" \
+            -d "grant_type=refresh_token")
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+          if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "❌ Failed to get access token:"
+            echo "$TOKEN_RESPONSE" | jq .
+            exit 1
+          fi
+          echo "✅ Access token obtained"
+          echo "::endgroup::"
+
+          # 2. Upload du ZIP
+          echo "::group::Upload extension"
+          ZIP_FILE="anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip"
+          UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X PUT "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CWS_EXT_ID}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "x-goog-api-version: 2" \
+            -T "$ZIP_FILE")
+          HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -1)
+          UPLOAD_BODY=$(echo "$UPLOAD_RESPONSE" | sed '$d')
+          echo "HTTP $HTTP_CODE"
+          echo "$UPLOAD_BODY" | jq . 2>/dev/null || echo "$UPLOAD_BODY"
+          UPLOAD_STATUS=$(echo "$UPLOAD_BODY" | jq -r '.uploadState' 2>/dev/null)
+          if [ "$HTTP_CODE" != "200" ] || [ "$UPLOAD_STATUS" = "FAILURE" ]; then
+            echo "❌ Upload failed"
+            exit 1
+          fi
+          echo "✅ Upload successful"
+          echo "::endgroup::"
+
+          # 3. Publier
+          echo "::group::Publish extension"
+          PUBLISH_RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://www.googleapis.com/chromewebstore/v1.1/items/${CWS_EXT_ID}/publish" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0")
+          HTTP_CODE=$(echo "$PUBLISH_RESPONSE" | tail -1)
+          PUBLISH_BODY=$(echo "$PUBLISH_RESPONSE" | sed '$d')
+          echo "HTTP $HTTP_CODE"
+          echo "$PUBLISH_BODY" | jq . 2>/dev/null || echo "$PUBLISH_BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "⚠️ Publish request returned $HTTP_CODE (may need manual review)"
+          else
+            echo "✅ Published"
+          fi
+          echo "::endgroup::"
