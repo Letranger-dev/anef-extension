@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Get version from manifest
         id: get_version
@@ -132,8 +134,17 @@ jobs:
           echo "HTTP $HTTP_CODE"
           echo "$UPLOAD_BODY" | jq . 2>/dev/null || echo "$UPLOAD_BODY"
           UPLOAD_STATUS=$(echo "$UPLOAD_BODY" | jq -r '.uploadState' 2>/dev/null)
-          if [ "$HTTP_CODE" != "200" ] || [ "$UPLOAD_STATUS" = "FAILURE" ]; then
+          if [ "$UPLOAD_STATUS" = "FAILURE" ]; then
+            # Si l'item est en pending review, c'est normal — pas une erreur
+            if echo "$UPLOAD_BODY" | jq -e '.itemError[]? | select(.error_code == "ITEM_NOT_UPDATABLE")' > /dev/null 2>&1; then
+              echo "⏳ Version déjà en review sur le CWS — upload ignoré"
+              exit 0
+            fi
             echo "❌ Upload failed"
+            exit 1
+          fi
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Upload failed (HTTP $HTTP_CODE)"
             exit 1
           fi
           echo "✅ Upload successful"
