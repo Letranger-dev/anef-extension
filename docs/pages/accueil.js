@@ -77,7 +77,7 @@
       }
       var avgDays = Math.round(totalDays / withDeposit.length);
       U.setText('kpi-avg-days', U.formatDuration(avgDays));
-      U.setText('kpi-avg-sub', 'depuis le dépôt (' + withDeposit.length + ' dossiers)');
+      U.setText('kpi-avg-sub', 'depuis le dépôt (' + summaries.length + ' dossiers)');
     }
 
     // Derniere mise a jour
@@ -222,33 +222,33 @@
     // Filter dossiers at etape 9 (all SDANF & SCEC statuses)
     sdanfState.all = summaries.filter(function(s) { return s.currentStep === 9; });
 
-    // Populate statut filter
-    var STATUT_LABELS = {
-      'controle_a_affecter': 'Attente affectation',
-      'controle_a_effectuer': 'Contrôle en cours',
-      'controle_en_attente_pec': 'Transmis SCEC',
-      'controle_pec_a_faire': 'Vérif. état civil'
+    // Populate statut filter pills
+    var STATUT_PILLS = {
+      'controle_a_affecter': { label: 'Contrôle à affecter', short: 'Ctrl. à affecter', color: '#f59e0b' },
+      'controle_a_effectuer': { label: 'Contrôle à effectuer', short: 'Ctrl. à effectuer', color: '#3b82f6' },
+      'controle_en_attente_pec': { label: 'En attente PEC', short: 'Ctrl. attente PEC', color: '#8b5cf6' },
+      'controle_pec_a_faire': { label: 'PEC à faire', short: 'Ctrl. PEC à faire', color: '#8b5cf6' }
     };
     var statuts = {};
     var prefs = {};
     for (var i = 0; i < sdanfState.all.length; i++) {
       var st = sdanfState.all[i].statut;
-      if (st) statuts[st] = true;
+      if (st) statuts[st.toLowerCase()] = true;
       var p = sdanfState.all[i].prefecture;
       if (p) prefs[p] = true;
     }
-    var statutSelect = document.getElementById('sdanf-statut-filter');
+    var pillsContainer = document.getElementById('sdanf-statut-pills');
     var statutKeys = Object.keys(statuts).sort(function(a, b) {
       var ra = C.STATUTS[a] ? C.STATUTS[a].rang : 0;
       var rb = C.STATUTS[b] ? C.STATUTS[b].rang : 0;
       return ra - rb;
     });
+    var pillsHtml = '<button class="pill sdanf-pill active" data-statut="">Tous</button>';
     for (var j = 0; j < statutKeys.length; j++) {
-      var opt = document.createElement('option');
-      opt.value = statutKeys[j];
-      opt.textContent = STATUT_LABELS[statutKeys[j]] || statutKeys[j];
-      statutSelect.appendChild(opt);
+      var info = STATUT_PILLS[statutKeys[j]] || { label: statutKeys[j], short: statutKeys[j], color: '#64748b' };
+      pillsHtml += '<button class="pill sdanf-pill" data-statut="' + statutKeys[j] + '" style="--pill-color:' + info.color + '"><span class="pill-full">' + info.label + '</span><span class="pill-short">' + info.short + '</span></button>';
     }
+    pillsContainer.innerHTML = pillsHtml;
     F.createSearchablePrefectureDropdown('sdanf-pref-filter-container', Object.keys(prefs).sort(), '', function(v) {
       sdanfState.pref = v; sdanfState.page = 1; renderSdanfPage();
     });
@@ -312,7 +312,7 @@
       'controle_en_attente_pec': { short: 'Transmis SCEC', cls: 'violet' },
       'controle_pec_a_faire': { short: 'V\u00e9rif. \u00e9tat civil', cls: 'violet' }
     };
-    var kpiHtml = '<div class="kpi-card"><div class="kpi-label">Total \u00e9tape 9</div><div class="kpi-value">' + total + '</div></div>';
+    var kpiHtml = '<span class="kpi-bar-item"><strong>' + total + '</strong> total</span>';
     var subKeys = Object.keys(subCounts).sort(function(a, b) {
       var ra = C.STATUTS[a] ? C.STATUTS[a].rang : 0;
       var rb = C.STATUTS[b] ? C.STATUTS[b].rang : 0;
@@ -321,7 +321,7 @@
     for (var sk = 0; sk < subKeys.length; sk++) {
       var info = SUB_LABELS[subKeys[sk]] || { short: subKeys[sk], cls: '' };
       var valCls = info.cls ? ' ' + info.cls : '';
-      kpiHtml += '<div class="kpi-card"><div class="kpi-label">' + U.escapeHtml(info.short) + '</div><div class="kpi-value' + valCls + '">' + subCounts[subKeys[sk]] + '</div></div>';
+      kpiHtml += '<span class="kpi-bar-item"><strong class="' + valCls + '">' + subCounts[subKeys[sk]] + '</strong> ' + U.escapeHtml(info.short).toLowerCase() + '</span>';
     }
     kpis.innerHTML = kpiHtml;
 
@@ -410,9 +410,16 @@
     document.getElementById('sdanf-sort').addEventListener('change', function(e) {
       sdanfState.sort = e.target.value; sdanfState.page = 1; renderSdanfPage();
     });
-    document.getElementById('sdanf-statut-filter').addEventListener('change', function(e) {
-      sdanfState.statut = e.target.value; sdanfState.page = 1; renderSdanfPage();
-    });
+    var statutPills = document.querySelectorAll('.sdanf-pill');
+    for (var sp = 0; sp < statutPills.length; sp++) {
+      statutPills[sp].addEventListener('click', function(e) {
+        var all = document.querySelectorAll('.sdanf-pill');
+        for (var x = 0; x < all.length; x++) all[x].classList.remove('active');
+        e.currentTarget.classList.add('active');
+        sdanfState.statut = e.currentTarget.getAttribute('data-statut');
+        sdanfState.page = 1; renderSdanfPage();
+      });
+    }
     var changedCb = document.getElementById('sdanf-changed-filter');
     changedCb.addEventListener('change', function() {
       sdanfState.changed = changedCb.checked;
@@ -545,10 +552,10 @@
     var avg = daysArr.length ? Math.round(daysArr.reduce(function(a, b) { return a + b; }, 0) / daysArr.length) : 0;
 
     kpis.innerHTML =
-      '<div class="kpi-card"><div class="kpi-label">Total</div><div class="kpi-value">' + total + '</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Entretien passé</div><div class="kpi-value green">' + passed + '</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">En attente</div><div class="kpi-value orange">' + pending + '</div></div>' +
-      '<div class="kpi-card"><div class="kpi-label">Durée moy.</div><div class="kpi-value">' + U.formatDuration(avg) + '</div><div class="kpi-sub">depuis le dépôt</div></div>';
+      '<span class="kpi-bar-item"><strong>' + total + '</strong> total</span>' +
+      '<span class="kpi-bar-item"><strong class="green">' + passed + '</strong> entretien passé</span>' +
+      '<span class="kpi-bar-item"><strong class="orange">' + pending + '</strong> en attente</span>' +
+      '<span class="kpi-bar-item"><strong>' + U.formatDuration(avg) + '</strong> durée moy.</span>';
 
     // Pagination
     var totalPages = Math.max(1, Math.ceil(data.length / entretienState.pageSize));
@@ -697,18 +704,45 @@
   function renderMouvements(transitions) {
     mouvementsState.transitions = transitions;
 
-    // Period pills
-    var periodEl = document.getElementById('mouvements-period');
+    // Vérifier si au moins une période a des mouvements
+    var section = document.getElementById('mouvements-section');
     var periods = [
       { value: 0, label: "Aujourd\u2019hui" },
       { value: 7, label: '7 jours' },
       { value: 30, label: '30 jours' }
     ];
+    var hasAny = false;
+    for (var p = 0; p < periods.length; p++) {
+      var m = computeDailyMovements(transitions, periods[p].value);
+      if (m.caaToCAE || m.sdanfToSCEC || m.arrivedStep9 || m.arrivedDecret) { hasAny = true; break; }
+    }
+    if (!hasAny) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    // Sélectionner la première période qui a des données
+    if (mouvementsState.period === 0) {
+      var todayM = computeDailyMovements(transitions, 0);
+      if (!todayM.caaToCAE && !todayM.sdanfToSCEC && !todayM.arrivedStep9 && !todayM.arrivedDecret) {
+        for (var q = 0; q < periods.length; q++) {
+          var qm = computeDailyMovements(transitions, periods[q].value);
+          if (qm.caaToCAE || qm.sdanfToSCEC || qm.arrivedStep9 || qm.arrivedDecret) {
+            mouvementsState.period = periods[q].value;
+            break;
+          }
+        }
+      }
+    }
+
+    // Period pills
+    var periodEl = document.getElementById('mouvements-period');
     var pillsHtml = '<div class="filter-pills">';
     for (var i = 0; i < periods.length; i++) {
-      var p = periods[i];
-      var active = p.value === mouvementsState.period ? ' active' : '';
-      pillsHtml += '<button class="pill mouvement-pill' + active + '" data-period="' + p.value + '">' + p.label + '</button>';
+      var pi = periods[i];
+      var active = pi.value === mouvementsState.period ? ' active' : '';
+      pillsHtml += '<button class="pill mouvement-pill' + active + '" data-period="' + pi.value + '">' + pi.label + '</button>';
     }
     pillsHtml += '</div>';
     periodEl.innerHTML = pillsHtml;
@@ -730,6 +764,7 @@
 
   function renderMouvementsCards() {
     var grid = document.getElementById('mouvements-grid');
+    var section = document.getElementById('mouvements-section');
     var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period);
 
     var notifs = [

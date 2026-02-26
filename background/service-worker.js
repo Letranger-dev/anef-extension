@@ -789,17 +789,34 @@ async function scheduleAutoCheck() {
   await chrome.alarms.clear(ALARM_NAME);
   await chrome.alarms.clear(ALARM_RETRY_NAME);
 
-  if (!settings.autoCheckEnabled || !hasCreds || meta.disabledByFailure) {
+  if (!settings.autoCheckEnabled || !hasCreds) {
     logger.info('⏹️ Auto-check désactivé', {
       enabled: settings.autoCheckEnabled,
-      creds: hasCreds,
-      suspended: meta.disabledByFailure
+      creds: hasCreds
     });
     return;
   }
 
+  // Auto-reprise après suspension si > 24h depuis la dernière tentative
+  if (meta.disabledByFailure) {
+    if (meta.lastAttempt) {
+      const hoursSinceLast = (Date.now() - new Date(meta.lastAttempt).getTime()) / 3600000;
+      if (hoursSinceLast >= 24) {
+        logger.info('🔄 Auto-reprise après 24h de suspension');
+        await storage.saveAutoCheckMeta({ consecutiveFailures: 0, disabledByFailure: false });
+        // Continuer la programmation normalement
+      } else {
+        logger.info('⏹️ Auto-check suspendu', { suspended: true, hoursSinceLast: Math.round(hoursSinceLast) });
+        return;
+      }
+    } else {
+      logger.info('⏹️ Auto-check suspendu (pas de lastAttempt)');
+      return;
+    }
+  }
+
   // Intervalle + jitter pour décaler les utilisateurs
-  const intervalMinutes = settings.autoCheckInterval || 480;
+  const intervalMinutes = settings.autoCheckInterval || 180;
   const jitter = settings.autoCheckJitterMin || 0;
 
   // Calculer le délai intelligent avant la première alarme
@@ -859,7 +876,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       return;
     }
 
-    // Cooldown : skip si dernière tentative < 4h (ne s'applique PAS aux retries)
+    // Cooldown : skip si dernière tentative < 1h30 (ne s'applique PAS aux retries)
     const meta = await storage.getAutoCheckMeta();
     if (!isRetry && meta.lastAttempt) {
       const elapsed = Date.now() - new Date(meta.lastAttempt).getTime();
@@ -897,6 +914,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // Succès → reset compteur d'échecs
       await storage.saveAutoCheckMeta({ consecutiveFailures: 0 });
       logger.info(`✅ Auto-check réussi (${durationSec}s)`);
+    } else if (result.maintenance) {
+      // Maintenance → ne pas compter comme un échec (pas la faute de l'utilisateur)
+      logger.info('🔧 Site en maintenance, ne compte pas comme échec');
+    } else if (result.needsLogin) {
+      // Session expirée sans identifiants → ne pas compter comme échec
+      logger.info('🔒 Session expirée, identifiants requis');
     } else {
       // Échec
       await handleAutoCheckFailure(result.error || 'Échec inconnu', isRetry);
@@ -1011,11 +1034,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 
   if (details.reason === 'update') {
-    // Migration : activer l'auto-check pour les installations existantes
     const currentSettings = await storage.getSettings();
-    if (!currentSettings.autoCheckEnabled) {
-      await storage.saveSettings({ autoCheckEnabled: true });
-      logger.info('✅ Auto-check activé (migration)');
+    // Migration unique : activer l'auto-check pour les anciennes installations
+    // (ne pas forcer si l'utilisateur l'a volontairement désactivé)
+    if (!currentSettings.autoCheckEnabled && !currentSettings._autoCheckMigrated) {
+      await storage.saveSettings({ autoCheckEnabled: true, _autoCheckMigrated: true });
+      logger.info('✅ Auto-check activé (migration initiale)');
+    } else if (!currentSettings._autoCheckMigrated) {
+      await storage.saveSettings({ _autoCheckMigrated: true });
     }
     // Générer un jitter si absent
     if (!currentSettings.autoCheckJitterMin) {
@@ -1067,6 +1093,23 @@ chrome.runtime.onStartup.addListener(async () => {
 
   // Reprogrammer l'auto-check au démarrage du navigateur
   await scheduleAutoCheck();
+});
+
+// ─────────────────────────────────────────────────────────────
+// Filet de sécurité : reconfigurer l'alarme si les paramètres changent
+// dans le storage (fonctionne même si sendMessage échoue)
+// ─────────────────────────────────────────────────────────────
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.settings) {
+    const oldEnabled = changes.settings.oldValue?.autoCheckEnabled;
+    const newEnabled = changes.settings.newValue?.autoCheckEnabled;
+    if (oldEnabled !== newEnabled) {
+      logger.info('⚙️ autoCheckEnabled changé via storage:', oldEnabled, '→', newEnabled);
+      scheduleAutoCheck();
+    }
+  }
 });
 
 // ─────────────────────────────────────────────────────────────

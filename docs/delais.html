@@ -122,76 +122,58 @@
           </div>
           <div class="estimator-field">
             <label>Préfecture (optionnel)</label>
-            <select id="estimator-prefecture">
-              <option value="">Toutes</option>
-            </select>
+            <div id="estimator-prefecture-container"></div>
           </div>
         </div>
         <div class="estimator-result" id="estimator-result">
           <div class="estimate-card">
-            <div class="estimate-label">Rapide</div>
+            <div class="estimate-label">Optimiste</div>
             <div class="estimate-value" style="color:var(--green)" id="est-p25">&mdash;</div>
-            <div class="estimate-sub">25% font plus vite</div>
+            <div class="estimate-sub">Si votre dossier avance vite</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Typique</div>
+            <div class="estimate-label">Cas g&eacute;n&eacute;ral</div>
             <div class="estimate-value" style="color:var(--primary-light)" id="est-p50">&mdash;</div>
-            <div class="estimate-sub">la plupart des dossiers</div>
+            <div class="estimate-sub">Dur&eacute;e la plus courante</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Lent</div>
+            <div class="estimate-label">Pessimiste</div>
             <div class="estimate-value" style="color:var(--orange)" id="est-p75">&mdash;</div>
-            <div class="estimate-sub">75% font plus vite</div>
+            <div class="estimate-sub">Si votre dossier prend du temps</div>
           </div>
         </div>
         <div class="confidence-indicator" id="est-confidence" style="margin-top:0.75rem"></div>
       </div>
     </div>
 
-    <!-- Duration bar chart -->
+    <!-- Duration bar chart (collapsible) -->
     <div class="section">
-      <h2>Durée depuis le dépôt par étape</h2>
-      <div class="chart-container chart-container--tall" style="min-height:320px">
-        <canvas id="duration-bar-chart"></canvas>
-        <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de données</p>
-      </div>
+      <details id="barchart-details" class="chart-details" open>
+        <summary>
+          <h2 class="inline-heading">Temps cumul&eacute; depuis le d&eacute;p&ocirc;t</h2>
+          <span class="details-hint">Voir le graphique</span>
+        </summary>
+        <p class="section-subtitle" style="margin-top:0.5rem">Moyenne et m&eacute;diane du nombre de jours depuis le d&eacute;p&ocirc;t, par &eacute;tape</p>
+        <div class="chart-container chart-container--tall" style="min-height:320px">
+          <canvas id="duration-bar-chart"></canvas>
+          <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de donn&eacute;es</p>
+        </div>
+      </details>
     </div>
 
     <!-- Percentile table -->
     <div class="section">
-      <h2>Tableau des percentiles par étape</h2>
+      <h2>Temps d'attente par &eacute;tape</h2>
       <div class="table-container">
-        <table>
+        <table class="percentile-table">
           <thead>
-            <tr><th>Étape</th><th>Très rapide</th><th>Rapide</th><th>Typique</th><th>Lent</th><th>Très lent</th><th>Échantillon</th></tr>
+            <tr><th>&Eacute;tape</th><th>Rapide</th><th>Habituel</th><th>Long</th><th>Dossiers</th></tr>
           </thead>
           <tbody id="percentile-tbody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- Cumulative curve -->
-    <div class="section">
-      <h2>Courbe cumulative des durées</h2>
-      <p class="section-subtitle">Jours cumulés du dépôt à chaque étape (optimiste, typique, pessimiste)</p>
-      <div class="chart-container chart-container--tall" style="min-height:320px">
-        <canvas id="cumulative-chart"></canvas>
-        <p class="no-data" id="cumulative-no-data" style="display:none">Pas de données</p>
-      </div>
-    </div>
-
-    <!-- Duration table -->
-    <div class="section">
-      <h2>Durées détaillées par étape</h2>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr><th>Étape</th><th>Moyenne</th><th>Typique</th><th>Rapide</th><th>Lent</th><th>Min</th><th>Max</th><th>Échantillon</th><th>~Mois</th></tr>
-          </thead>
-          <tbody id="duration-tbody"></tbody>
-        </table>
-      </div>
-    </div>
 
   </div>
 

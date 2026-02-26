@@ -134,6 +134,7 @@
     <div class="section" id="sdanf-wait-section">
       <h2>Contrôle SDANF & SCEC</h2>
       <p class="section-subtitle">Dossiers à l'étape 9 — contrôle ministériel et vérification d'état civil</p>
+      <div id="sdanf-statut-pills" class="sdanf-statut-pills"></div>
       <div class="dossier-toolbar" id="sdanf-toolbar" style="display:none">
         <span class="dossier-count" id="sdanf-count">&mdash;</span>
         <div class="toolbar-controls">
@@ -141,9 +142,6 @@
             <option value="days-desc">Attente &darr;</option>
             <option value="days-asc">Attente &uarr;</option>
             <option value="pref">Préfecture</option>
-          </select>
-          <select id="sdanf-statut-filter" class="page-size-select" title="Statut">
-            <option value="">Statut : tous</option>
           </select>
           <div id="sdanf-pref-filter-container"></div>
           <label class="toggle-filter" id="sdanf-changed-label" title="Afficher uniquement les dossiers dont le statut a changé">
@@ -162,7 +160,7 @@
           <button id="sdanf-btn-next" class="btn-page">&rarr;</button>
         </div>
       </div>
-      <div id="sdanf-kpis" class="kpi-grid" style="margin-bottom:0.75rem"></div>
+      <div id="sdanf-kpis" class="kpi-bar"></div>
       <div class="dossier-list" id="sdanf-list"></div>
     </div>
 
@@ -204,7 +202,7 @@
           <button id="entretien-btn-next" class="btn-page">&rarr;</button>
         </div>
       </div>
-      <div id="entretien-kpis" class="kpi-grid" style="margin-bottom:0.75rem"></div>
+      <div id="entretien-kpis" class="kpi-bar"></div>
       <div class="dossier-list" id="entretien-list"></div>
     </div>
 

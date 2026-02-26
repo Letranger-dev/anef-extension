@@ -784,6 +784,11 @@ body {
   margin-bottom: 12px;
 }
 
+.check-log-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 .check-log-entry {
   display: flex;
   align-items: center;

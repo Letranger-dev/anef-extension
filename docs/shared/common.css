@@ -89,6 +89,29 @@ html { scroll-behavior: smooth; }
   color: #fff;
 }
 
+.sdanf-statut-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.sdanf-pill {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 26px;
+  border-radius: 13px;
+  letter-spacing: 0.01em;
+}
+.sdanf-pill:not(.active) {
+  border-color: color-mix(in srgb, var(--pill-color, var(--border)) 50%, transparent);
+  color: var(--pill-color, var(--text-muted));
+}
+.sdanf-pill:not(.active):hover {
+  background: color-mix(in srgb, var(--pill-color, var(--primary)) 12%, transparent);
+}
+.sdanf-pill .pill-short { display: none; }
+
 .filter-bar select,
 .filter-group select {
   background: var(--bg);
@@ -186,6 +209,27 @@ html { scroll-behavior: smooth; }
 .kpi-value.red    { color: var(--red); }
 
 .kpi-sub { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.25rem; }
+
+.kpi-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.kpi-bar-item strong {
+  color: var(--primary-light);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.kpi-bar-item strong.green  { color: var(--green); }
+.kpi-bar-item strong.orange { color: var(--orange); }
+.kpi-bar-item strong.violet { color: var(--violet); }
 
 /* ─── Section ──────────────────────────────────────────────── */
 
@@ -552,6 +596,36 @@ html { scroll-behavior: smooth; }
 .chart-container--tall canvas { max-height: none; }
 .chart-container h3 { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem; }
 .chart-subtitle { font-size: 0.82rem; color: var(--text-dim); margin: -0.5rem 0 1rem; }
+
+/* ─── Collapsible chart section ──────────────────────────── */
+
+.chart-details { width: 100%; }
+.chart-details summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.chart-details summary::-webkit-details-marker { display: none; }
+.chart-details summary::before {
+  content: '\25B6';
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+.chart-details[open] summary::before { transform: rotate(90deg); }
+.chart-details .inline-heading {
+  font-size: inherit;
+  margin: 0;
+  display: inline;
+}
+.chart-details .details-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.chart-details[open] .details-hint { display: none; }
+
 .chart-container select {
   width: 100%;
   margin-bottom: 0.75rem;
@@ -617,7 +691,15 @@ thead th.sort-desc::after { content: ' \25BC'; font-size: 0.7em; }
 tbody td { padding: 0.6rem; border-bottom: 1px solid var(--border); }
 tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
 tbody tr:hover { background: var(--bg-card-hover); }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Percentile table: compact, evenly-spaced duration columns */
+.percentile-table { table-layout: fixed; }
+.percentile-table th:nth-child(1) { width: 36%; }
+.percentile-table th:nth-child(2),
+.percentile-table th:nth-child(3),
+.percentile-table th:nth-child(4) { width: 18%; text-align: right; }
+.percentile-table th:nth-child(5) { width: 10%; text-align: right; }
 
 /* ─── Summary Cards ────────────────────────────────────────── */
 
@@ -1314,54 +1396,56 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .table-filters {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem 1rem;
   margin-bottom: 0.5rem;
-  padding: 0.45rem 0.65rem;
+  padding: 0.7rem 0.85rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 .table-filter-group {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.25rem;
   min-width: 0;
 }
 .table-filter-group label {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 .table-filter-group .status-select { min-width: 160px; }
 .table-filter-group .status-select-trigger {
-  padding: 0.25rem 0.45rem;
-  font-size: 0.78rem;
-  min-height: 30px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  min-height: 32px;
+  border-radius: 6px;
 }
 .table-filter-group select {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 0.25rem 0.4rem;
-  font-size: 0.78rem;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
   cursor: pointer;
   min-width: 0;
+  transition: border-color 0.15s;
 }
 .table-filter-group select:hover { border-color: var(--primary); }
+.table-filter-group select:focus { outline: none; border-color: var(--primary); }
 .table-filter-input {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text);
-  padding: 0.25rem 0.45rem;
-  font-size: 0.78rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
   width: 140px;
+  transition: border-color 0.15s;
 }
 .table-filter-input:focus {
   outline: none;
@@ -1370,7 +1454,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .date-range {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.3rem;
 }
 .date-sep {
   color: var(--text-dim);
@@ -1380,12 +1464,13 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .table-filter-date {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 6px;
   color: var(--text);
-  padding: 0.25rem 0.3rem;
-  font-size: 0.72rem;
-  width: 115px;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.75rem;
+  width: 120px;
   min-width: 0;
+  transition: border-color 0.15s;
 }
 .table-filter-date:focus {
   outline: none;
@@ -1399,11 +1484,17 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* Mobile: stack filter groups */
 @media (max-width: 767px) {
   .table-filters {
-    gap: 0.4rem;
-    padding: 0.4rem 0.55rem;
+    gap: 0.5rem;
+    padding: 0.6rem 0.65rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   .table-filter-group {
-    width: 100%;
+    min-width: 0;
+  }
+  .table-filter-group:has(select#dossier-filter-history),
+  .table-filter-group:has(.date-range) {
+    grid-column: span 2;
   }
   .table-filter-group .status-select { width: 100%; min-width: 0; }
   .table-filter-group select { width: 100%; flex: 1; }
@@ -1455,7 +1546,17 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .toolbar-controls .toggle-filter {
     justify-content: center;
   }
-
+  .sdanf-statut-pills {
+    gap: 4px;
+  }
+  .sdanf-pill {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.68rem;
+    min-height: 24px;
+    border-radius: 12px;
+  }
+  .sdanf-pill .pill-full { display: none; }
+  .sdanf-pill .pill-short { display: inline; }
   /* Dossier rows: tighter on mobile */
   .dossier-row {
     padding: 0.5rem 0.55rem;
@@ -1523,7 +1624,6 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   table { font-size: 0.75rem; }
   thead th { padding: 0.4rem 0.35rem; font-size: 0.7rem; }
   tbody td { padding: 0.4rem 0.35rem; }
-  td.num { white-space: nowrap; }
 }
 
 /* =============================================================

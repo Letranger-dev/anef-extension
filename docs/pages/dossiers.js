@@ -82,8 +82,8 @@
     F.createStatusFilter('histogram-filter-statut-container', 'all', function(v) {
       state.histogramFilters.statut = v; renderAll();
     });
-    F.createPrefectureDropdown('histogram-filter-prefecture-container', prefectures, 'all', function(v) {
-      state.histogramFilters.prefecture = v; renderAll();
+    F.createSearchablePrefectureDropdown('histogram-filter-prefecture-container', prefectures, '', function(v) {
+      state.histogramFilters.prefecture = v || 'all'; renderAll();
     });
   }
 
