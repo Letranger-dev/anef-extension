@@ -475,7 +475,7 @@ async function loadCheckLog() {
         const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
         const badge = `<span class="check-log-badge ${typeClasses[entry.type] || ''}">${typeLabels[entry.type] || entry.type}</span>`;
         const icon = entry.success ? '<span class="check-log-icon success">✓</span>' : '<span class="check-log-icon error">✗</span>';
-        const duration = entry.duration ? `<span class="check-log-duration">${Math.round(entry.duration / 1000)}s</span>` : '';
+        const duration = entry.duration != null ? `<span class="check-log-duration">${entry.duration}s</span>` : '';
 
         return `<div class="check-log-entry">${time} ${badge} ${icon} ${duration}</div>`;
       }).join('');

@@ -43,6 +43,14 @@
       initEstimator(prefectures);
       renderAll();
 
+      // Lazy-render bar chart when details is opened
+      var details = document.getElementById('barchart-details');
+      if (details) {
+        details.addEventListener('toggle', function() {
+          if (details.open) renderAll();
+        });
+      }
+
     } catch (error) {
       loading.innerHTML = '<div class="error-msg"><p>Erreur: ' + U.escapeHtml(error.message) + '</p></div>';
     }
@@ -81,17 +89,17 @@
     var countEl = document.getElementById('filter-count');
     countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '');
 
-    var durations = D.computeDurationByStatus(filteredSnapshots);
+    var durations = D.computeDurationByStatus(filteredSnapshots)
+      .filter(function(d) { return d.etape !== 0; });
 
     renderDurationBarChart(durations);
     renderPercentileTable(durations);
-    renderCumulativeCurve(durations);
-    renderDurationTable(durations);
   }
 
   // ─── Estimator ───────────────────────────────────────────
 
   var estimatorStatut = 'verification_formelle_a_traiter';
+  var estimatorPrefecture = '';
 
   function initEstimator(prefectures) {
     ANEF.ui.createStatusSelect('estimator-status-container', {
@@ -104,21 +112,17 @@
       }
     });
 
-    var prefSelect = document.getElementById('estimator-prefecture');
-    for (var j = 0; j < prefectures.length; j++) {
-      var opt = document.createElement('option');
-      opt.value = prefectures[j];
-      opt.textContent = prefectures[j];
-      prefSelect.appendChild(opt);
-    }
-    prefSelect.addEventListener('change', updateEstimator);
+    F.createSearchablePrefectureDropdown('estimator-prefecture-container', prefectures, '', function(v) {
+      estimatorPrefecture = v;
+      updateEstimator();
+    }, { allLabel: 'Toutes' });
 
     updateEstimator();
   }
 
   function updateEstimator() {
     var statut = estimatorStatut;
-    var pref = document.getElementById('estimator-prefecture').value || null;
+    var pref = estimatorPrefecture || null;
     var currentInfo = C.STATUTS[statut];
     var currentRang = currentInfo ? currentInfo.rang : 0;
 
@@ -223,7 +227,7 @@
   function labelWithStatus(d) {
     if (d.statut && STEP9_SHORT[d.statut]) {
       var sub = C.formatSubStep(d.rang);
-      return sub + '. ' + d.phase + ' (' + d.statut + ')';
+      return sub + '. ' + d.phase + ' (' + STEP9_SHORT[d.statut] + ')';
     }
     return d.etape + '. ' + d.phase;
   }
@@ -266,7 +270,7 @@
 
     var datasets = [
       {
-        label: 'Moyenne (jours)',
+        label: 'Moyenne',
         data: avgValues,
         backgroundColor: colors.map(function(c) { return c + '99'; }),
         borderColor: colors,
@@ -274,7 +278,7 @@
         borderRadius: 4
       },
       {
-        label: 'Typique (jours)',
+        label: 'Habituel',
         data: medValues,
         backgroundColor: '#f59e0b55',
         borderColor: '#f59e0b',
@@ -284,11 +288,14 @@
     ];
 
     var config = CH.barConfig(chartLabels, datasets, { suffix: 'j', ySuffix: 'j', datalabels: isMobile ? false : undefined });
-    // Use full labels in tooltips
+    // Use full labels and formatDuration in tooltips
     config.options.plugins.tooltip = config.options.plugins.tooltip || {};
     config.options.plugins.tooltip.callbacks = config.options.plugins.tooltip.callbacks || {};
     config.options.plugins.tooltip.callbacks.title = function(items) {
       return fullLabels[items[0].dataIndex] || items[0].label;
+    };
+    config.options.plugins.tooltip.callbacks.label = function(item) {
+      return item.dataset.label + ' : ' + U.formatDuration(Math.round(item.raw));
     };
     // Mobile: rotate labels more, smaller font
     if (isMobile) {
@@ -303,7 +310,7 @@
   function renderPercentileTable(durations) {
     var tbody = document.getElementById('percentile-tbody');
     if (!durations.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Pas de données</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="no-data">Pas de donn\u00e9es</td></tr>';
       return;
     }
 
@@ -313,104 +320,14 @@
       var days = d.days || [];
       html += '<tr>' +
         '<td>' + U.escapeHtml(labelWithStatus(d)) + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 10)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 25)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 50)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 75)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 90)) + ' j' : '\u2014') + '</td>' +
+        '<td class="num">' + (days.length ? U.formatDuration(Math.round(M.percentile(days, 25))) : '\u2014') + '</td>' +
+        '<td class="num">' + (days.length ? U.formatDuration(Math.round(M.percentile(days, 50))) : '\u2014') + '</td>' +
+        '<td class="num">' + (days.length ? U.formatDuration(Math.round(M.percentile(days, 75))) : '\u2014') + '</td>' +
         '<td class="num">' + d.count + '</td>' +
       '</tr>';
     }
     tbody.innerHTML = html;
   }
 
-  // ─── Cumulative Curve ────────────────────────────────────
-
-  function renderCumulativeCurve(durations) {
-    var canvas = document.getElementById('cumulative-chart');
-    var noData = document.getElementById('cumulative-no-data');
-
-    if (durations.length < 2) {
-      canvas.style.display = 'none';
-      noData.style.display = 'block';
-      CH.destroy('cumulative');
-      return;
-    }
-
-    canvas.style.display = 'block';
-    noData.style.display = 'none';
-
-    var isMobile = window.innerWidth < 768;
-    var chartLabels = durations.map(shortLabel);
-    var fullLabels = durations.map(labelWithStatus);
-
-    // Cumulative P25/P50/P75
-    var cumP25 = [], cumP50 = [], cumP75 = [];
-    var runP25 = 0, runP50 = 0, runP75 = 0;
-
-    for (var i = 0; i < durations.length; i++) {
-      var days = durations[i].days || [];
-      if (days.length) {
-        runP25 += M.percentile(days, 25);
-        runP50 += M.percentile(days, 50);
-        runP75 += M.percentile(days, 75);
-      }
-      cumP25.push(Math.round(runP25));
-      cumP50.push(Math.round(runP50));
-      cumP75.push(Math.round(runP75));
-    }
-
-    var datasets = [
-      { label: 'Optimiste (rapide)', data: cumP25, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: false, tension: 0.3 },
-      { label: 'Typique', data: cumP50, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: false, tension: 0.3, borderWidth: 3 },
-      { label: 'Pessimiste (lent)', data: cumP75, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: false, tension: 0.3 }
-    ];
-
-    var config = CH.lineConfig(chartLabels, datasets, { ySuffix: 'j' });
-    // Use full labels in tooltips
-    config.options.plugins.tooltip = config.options.plugins.tooltip || {};
-    config.options.plugins.tooltip.callbacks = config.options.plugins.tooltip.callbacks || {};
-    config.options.plugins.tooltip.callbacks.title = function(items) {
-      return fullLabels[items[0].dataIndex] || items[0].label;
-    };
-    // Mobile: compact legend + smaller axis font
-    if (isMobile) {
-      config.options.scales.x.ticks.maxRotation = 65;
-      config.options.scales.x.ticks.font = { size: 9 };
-      config.options.plugins.legend.labels.font = { size: 10 };
-      config.options.plugins.legend.labels.boxWidth = 12;
-    }
-    CH.create('cumulative', 'cumulative-chart', config);
-  }
-
-  // ─── Duration Table ──────────────────────────────────────
-
-  function renderDurationTable(durations) {
-    var tbody = document.getElementById('duration-tbody');
-    if (!durations.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="no-data">Pas de données</td></tr>';
-      return;
-    }
-
-    var html = '';
-    for (var i = 0; i < durations.length; i++) {
-      var d = durations[i];
-      var days = d.days || [];
-      var minDays = days.length ? Math.min.apply(null, days) : null;
-      var maxDays = days.length ? Math.max.apply(null, days) : null;
-      html += '<tr>' +
-        '<td>' + U.escapeHtml(labelWithStatus(d)) + '</td>' +
-        '<td class="num">' + d.avg_days + ' j</td>' +
-        '<td class="num">' + d.median_days + ' j</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 25)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (days.length ? Math.round(M.percentile(days, 75)) + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (minDays !== null ? minDays + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + (maxDays !== null ? maxDays + ' j' : '\u2014') + '</td>' +
-        '<td class="num">' + d.count + '</td>' +
-        '<td>' + U.daysToMonths(d.avg_days) + '</td>' +
-      '</tr>';
-    }
-    tbody.innerHTML = html;
-  }
 
 })();
