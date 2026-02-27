@@ -1624,6 +1624,11 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   table { font-size: 0.75rem; }
   thead th { padding: 0.4rem 0.35rem; font-size: 0.7rem; }
   tbody td { padding: 0.4rem 0.35rem; }
+
+  /* Percentile table: let browser auto-size on mobile */
+  .percentile-table { table-layout: auto; }
+  .percentile-table th:nth-child(1) { width: auto; }
+  .percentile-table td.num { white-space: normal; }
 }
 
 /* =============================================================
