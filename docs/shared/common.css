@@ -1201,6 +1201,62 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .heatmap-table td.hm-cell:hover { opacity: 0.8; }
 .heatmap-table .hm-label { text-align: left; color: var(--text-muted); font-weight: 500; min-width: 80px; font-size: 0.75rem; }
 
+/* ─── Distribution Table ──────────────────────────────────── */
+
+.distrib-step-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.distrib-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.distrib-bar-seg { height: 100%; }
+.distrib-row { cursor: pointer; }
+.distrib-row td:first-child { color: var(--primary-light); }
+.distrib-row:hover { background: var(--bg-card-hover) !important; }
+.distrib-row-open { background: rgba(59,130,246,0.06); }
+.distrib-toggle {
+  display: inline-block;
+  font-size: 0.55rem;
+  color: var(--primary-light);
+  width: 1em;
+  margin-right: 0.2rem;
+  transition: transform 0.15s;
+}
+.distrib-detail td { background: rgba(255,255,255,0.02); }
+.distrib-detail-name {
+  padding-left: 1.5rem !important;
+  color: var(--text-muted);
+}
+.distrib-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.distrib-detail-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  min-width: 40px;
+}
+.distrib-detail-bar > div {
+  height: 100%;
+  border-radius: 3px;
+}
+.text-dim { color: var(--text-dim); font-size: 0.72rem; }
+
 /* ─── Funnel ───────────────────────────────────────────────── */
 
 .funnel { margin-bottom: 1.5rem; }
