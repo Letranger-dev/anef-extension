@@ -212,12 +212,42 @@
       </div>
     </div>
 
-    <!-- Stacked bar: distribution par etape -->
+    <!-- Distribution par etape -->
     <div class="section">
       <h2>Distribution par étape</h2>
-      <div class="chart-container" style="min-height:400px">
-        <canvas id="stacked-chart"></canvas>
-        <p class="no-data" id="stacked-no-data" style="display:none">Pas de données</p>
+      <p class="section-subtitle">Où en sont les dossiers de chaque préfecture</p>
+      <div class="dossier-toolbar" id="distrib-toolbar" style="display:none">
+        <span class="dossier-count" id="distrib-count">&mdash;</span>
+        <div class="toolbar-controls">
+          <select id="distrib-sort" class="page-size-select" title="Trier">
+            <option value="total-desc">Dossiers &darr;</option>
+            <option value="total-asc">Dossiers &uarr;</option>
+            <option value="name-asc">Nom A-Z</option>
+          </select>
+          <select id="distrib-page-size" class="page-size-select" title="Par page">
+            <option value="10" selected>10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="0">Tout</option>
+          </select>
+        </div>
+        <div class="pagination">
+          <button id="distrib-btn-prev" class="btn-page" disabled>&larr;</button>
+          <span id="distrib-page-info" class="page-info">1/1</span>
+          <button id="distrib-btn-next" class="btn-page">&rarr;</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Préfecture</th>
+              <th>Étape principale</th>
+              <th>Dossiers</th>
+              <th>Répartition</th>
+            </tr>
+          </thead>
+          <tbody id="distrib-tbody"></tbody>
+        </table>
       </div>
     </div>
 

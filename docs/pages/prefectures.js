@@ -24,7 +24,10 @@
     barSort: 'days-asc',
     hmPage: 1,
     hmPageSize: 10,
-    hmSort: 'days-desc'
+    hmSort: 'days-desc',
+    distribPage: 1,
+    distribPageSize: 10,
+    distribSort: 'total-desc'
   };
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -54,6 +57,7 @@
       initTableSort();
       initBarPagination();
       initHmPagination();
+      initDistribPagination();
       renderAll();
 
     } catch (error) {
@@ -71,10 +75,10 @@
     var prefList = Object.keys(prefSet).sort();
 
     F.createPrefectureMultiSelect('filter-prefecture-container', prefList, state.filters.prefecture, function(v) {
-      state.filters.prefecture = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; syncAndRender();
+      state.filters.prefecture = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; state.distribPage = 1; syncAndRender();
     });
     F.createStatusFilter('filter-status-container', state.filters.statut, function(v) {
-      state.filters.statut = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; syncAndRender();
+      state.filters.statut = v; state.tablePage = 1; state.barPage = 1; state.hmPage = 1; state.distribPage = 1; syncAndRender();
     });
   }
 
@@ -96,7 +100,7 @@
     renderRankingTable(prefStats);
     renderBarChart(prefStats);
     renderHeatmap(filtered, prefStats);
-    renderStackedBar(prefStats, filtered);
+    renderDistribTable(prefStats, filtered);
   }
 
   // ─── Ranking Table ───────────────────────────────────────
@@ -468,7 +472,7 @@
           var g = Math.round((1 - intensity) * 185 + intensity * 68);
           var b2 = Math.round((1 - intensity) * 129 + intensity * 68);
           var tipLabel = activeCols[c2].title || ('\u00e9tape ' + colKey);
-          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + pagePrefs[p] + ' ' + tipLabel + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
+          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + U.escapeHtml(pagePrefs[p]) + ' ' + U.escapeHtml(tipLabel) + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
         } else {
           html += '<td class="hm-cell" style="background:rgba(255,255,255,0.03);color:var(--text-dim)">\u2014</td>';
         }
@@ -499,100 +503,155 @@
     });
   }
 
-  // ─── Stacked Bar ─────────────────────────────────────────
+  // ─── Distribution Table ──────────────────────────────────
 
-  // Series definition for stacked bar: steps 1-8, 4 sub-statuts for step 9, 10-12
-  var STACKED_SERIES = [
-    { step: 1, label: '1. ' + C.PHASE_NAMES[1], color: C.STEP_COLORS[1] },
-    { step: 2, label: '2. ' + C.PHASE_NAMES[2], color: C.STEP_COLORS[2] },
-    { step: 3, label: '3. ' + C.PHASE_NAMES[3], color: C.STEP_COLORS[3] },
-    { step: 4, label: '4. ' + C.PHASE_NAMES[4], color: C.STEP_COLORS[4] },
-    { step: 5, label: '5. ' + C.PHASE_NAMES[5], color: C.STEP_COLORS[5] },
-    { step: 6, label: '6. ' + C.PHASE_NAMES[6], color: C.STEP_COLORS[6] },
-    { step: 7, label: '7. ' + C.PHASE_NAMES[7], color: C.STEP_COLORS[7] },
-    { step: 8, label: '8. ' + C.PHASE_NAMES[8], color: C.STEP_COLORS[8] },
-    { step: 9, statut: 'controle_a_affecter', label: '9.1 SDANF aff.', color: '#f59e0b' },
-    { step: 9, statut: 'controle_a_effectuer', label: '9.2 SDANF ctrl', color: '#d97706' },
-    { step: 9, statut: 'controle_en_attente_pec', label: '9.3 SCEC trans.', color: '#b45309' },
-    { step: 9, statut: 'controle_pec_a_faire', label: '9.4 SCEC v\u00e9rif.', color: '#92400e' },
-    { step: 10, label: '10. ' + C.PHASE_NAMES[10], color: C.STEP_COLORS[10] },
-    { step: 11, label: '11. ' + C.PHASE_NAMES[11], color: C.STEP_COLORS[11] },
-    { step: 12, label: '12. ' + C.PHASE_NAMES[12], color: C.STEP_COLORS[12] }
-  ];
-
-  function renderStackedBar(prefStats, filtered) {
-    var canvas = document.getElementById('stacked-chart');
-    var noData = document.getElementById('stacked-no-data');
+  function renderDistribTable(prefStats, filtered) {
+    var toolbar = document.getElementById('distrib-toolbar');
+    var tbody = document.getElementById('distrib-tbody');
 
     if (!prefStats.length) {
-      canvas.style.display = 'none';
-      noData.style.display = 'block';
-      CH.destroy('stacked');
+      toolbar.style.display = 'none';
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">Aucune pr\u00e9fecture</td></tr>';
       return;
     }
 
-    canvas.style.display = 'block';
-    noData.style.display = 'none';
-
-    var prefNames = prefStats.map(function(p) { return p.prefecture; });
-
-    // Init counts for each series
-    var seriesCounts = [];
-    for (var si = 0; si < STACKED_SERIES.length; si++) {
-      var counts = {};
-      for (var j = 0; j < prefNames.length; j++) counts[prefNames[j]] = 0;
-      seriesCounts.push(counts);
-    }
-
+    // Count dossiers per step per prefecture
+    var prefSteps = {};
     for (var i = 0; i < filtered.length; i++) {
       var s = filtered[i];
       if (!s.prefecture) continue;
-      var sStatutLower = s.statut ? s.statut.toLowerCase() : '';
-      var matched = false;
-      for (var si2 = 0; si2 < STACKED_SERIES.length; si2++) {
-        var ser = STACKED_SERIES[si2];
-        if (ser.statut) {
-          // Step 9 sub-statut match (lowercase comparison)
-          if (s.currentStep === 9 && sStatutLower === ser.statut && seriesCounts[si2][s.prefecture] !== undefined) {
-            seriesCounts[si2][s.prefecture]++;
-            matched = true;
-            break;
-          }
-        } else if (s.currentStep === ser.step && s.currentStep !== 9) {
-          if (seriesCounts[si2][s.prefecture] !== undefined) {
-            seriesCounts[si2][s.prefecture]++;
-          }
-          matched = true;
-          break;
-        }
-      }
-      // Step 9 dossiers with unknown statut — put in first step-9 bucket
-      if (!matched && s.currentStep === 9) {
-        var idx9 = 8; // index of first step-9 series
-        if (seriesCounts[idx9][s.prefecture] !== undefined) {
-          seriesCounts[idx9][s.prefecture]++;
-        }
-      }
+      var step = s.currentStep || 0;
+      if (!prefSteps[s.prefecture]) prefSteps[s.prefecture] = {};
+      prefSteps[s.prefecture][step] = (prefSteps[s.prefecture][step] || 0) + 1;
     }
 
-    var datasets = [];
-    for (var si3 = 0; si3 < STACKED_SERIES.length; si3++) {
-      var data = prefNames.map(function(p) { return seriesCounts[si3][p]; });
-      datasets.push({
-        label: STACKED_SERIES[si3].label,
-        data: data,
-        backgroundColor: STACKED_SERIES[si3].color + 'cc',
-        borderColor: STACKED_SERIES[si3].color,
-        borderWidth: 1
+    // Build rows: prefecture, dominant step, total, step counts
+    var rows = [];
+    for (var pi = 0; pi < prefStats.length; pi++) {
+      var p = prefStats[pi];
+      var steps = prefSteps[p.prefecture] || {};
+      var dominantStep = 0;
+      var dominantCount = 0;
+      var stepKeys = Object.keys(steps);
+      for (var sk = 0; sk < stepKeys.length; sk++) {
+        var st = Number(stepKeys[sk]);
+        if (steps[st] > dominantCount) {
+          dominantCount = steps[st];
+          dominantStep = st;
+        }
+      }
+      rows.push({
+        prefecture: p.prefecture,
+        total: p.total,
+        dominantStep: dominantStep,
+        dominantCount: dominantCount,
+        dominantPct: p.total > 0 ? Math.round(dominantCount / p.total * 100) : 0,
+        steps: steps
       });
     }
 
-    var config = CH.barConfig(prefNames, datasets, { stacked: true, datalabels: false, ySuffix: '' });
-    config.options.plugins.legend = {
-      position: 'bottom',
-      labels: { color: '#e2e8f0', font: { size: 10 }, boxWidth: 12 }
-    };
-    CH.create('stacked', 'stacked-chart', config);
+    // Sort
+    switch (state.distribSort) {
+      case 'total-asc':
+        rows.sort(function(a, b) { return a.total - b.total; }); break;
+      case 'name-asc':
+        rows.sort(function(a, b) { return a.prefecture.localeCompare(b.prefecture); }); break;
+      default:
+        rows.sort(function(a, b) { return b.total - a.total; });
+    }
+
+    // Pagination
+    var total = rows.length;
+    var ps = state.distribPageSize;
+    var totalPages = ps > 0 ? Math.max(1, Math.ceil(total / ps)) : 1;
+    state.distribPage = Math.min(state.distribPage, totalPages);
+    var pageRows = ps > 0 ? rows.slice((state.distribPage - 1) * ps, state.distribPage * ps) : rows;
+
+    toolbar.style.display = 'flex';
+    document.getElementById('distrib-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('distrib-page-info').textContent = state.distribPage + '/' + totalPages;
+    document.getElementById('distrib-btn-prev').disabled = state.distribPage <= 1;
+    document.getElementById('distrib-btn-next').disabled = state.distribPage >= totalPages;
+
+    var html = '';
+    for (var r = 0; r < pageRows.length; r++) {
+      var row = pageRows[r];
+      var stepName = C.PHASE_NAMES[row.dominantStep] || ('\u00c9tape ' + row.dominantStep);
+      var stepColor = C.STEP_COLORS[row.dominantStep] || C.STEP_COLORS[0];
+
+      // Build mini stacked bar
+      var barHtml = '<div class="distrib-bar">';
+      var barSteps = Object.keys(row.steps).map(Number).sort(function(a, b) { return a - b; });
+      for (var bs = 0; bs < barSteps.length; bs++) {
+        var bStep = barSteps[bs];
+        var bCount = row.steps[bStep];
+        var bPct = Math.round(bCount / row.total * 100);
+        if (bPct < 2) bPct = 2;
+        var bColor = C.STEP_COLORS[bStep] || C.STEP_COLORS[0];
+        barHtml += '<div class="distrib-bar-seg" style="width:' + bPct + '%;background:' + bColor + '"></div>';
+      }
+      barHtml += '</div>';
+
+      // Summary row (clickable)
+      html += '<tr class="distrib-row" data-idx="' + r + '">' +
+        '<td><span class="distrib-toggle">\u25B6</span> ' + U.escapeHtml(row.prefecture) + '</td>' +
+        '<td><span class="distrib-step-badge" style="background:' + stepColor + '22;color:' + stepColor + ';border:1px solid ' + stepColor + '44">' + row.dominantStep + '. ' + U.escapeHtml(stepName) + '</span> <span class="text-dim">' + row.dominantPct + '%</span></td>' +
+        '<td class="num">' + row.total + '</td>' +
+        '<td>' + barHtml + '</td>' +
+      '</tr>';
+
+      // Detail rows (hidden by default) — one sub-row per step, sorted by count desc
+      var detailSteps = barSteps.slice().sort(function(a, b) { return (row.steps[b] || 0) - (row.steps[a] || 0); });
+      for (var ds = 0; ds < detailSteps.length; ds++) {
+        var dStep = detailSteps[ds];
+        var dCount = row.steps[dStep];
+        var dPct = Math.round(dCount / row.total * 100);
+        var dColor = C.STEP_COLORS[dStep] || C.STEP_COLORS[0];
+        var dName = C.PHASE_NAMES[dStep] || ('\u00c9tape ' + dStep);
+        html += '<tr class="distrib-detail" data-parent="' + r + '" style="display:none">' +
+          '<td class="distrib-detail-name"><span class="distrib-dot" style="background:' + dColor + '"></span>' + dStep + '. ' + U.escapeHtml(dName) + '</td>' +
+          '<td colspan="2" class="num">' + dCount + ' <span class="text-dim">(' + dPct + '%)</span></td>' +
+          '<td><div class="distrib-detail-bar"><div style="width:' + dPct + '%;background:' + dColor + '"></div></div></td>' +
+        '</tr>';
+      }
+    }
+    tbody.innerHTML = html;
+
+    // Toggle detail rows on click
+    var summaryRows = tbody.querySelectorAll('.distrib-row');
+    for (var tr = 0; tr < summaryRows.length; tr++) {
+      summaryRows[tr].addEventListener('click', function() {
+        var idx = this.dataset.idx;
+        var toggle = this.querySelector('.distrib-toggle');
+        var details = tbody.querySelectorAll('.distrib-detail[data-parent="' + idx + '"]');
+        var isOpen = details.length && details[0].style.display !== 'none';
+        for (var d = 0; d < details.length; d++) {
+          details[d].style.display = isOpen ? 'none' : 'table-row';
+        }
+        toggle.textContent = isOpen ? '\u25B6' : '\u25BC';
+        this.classList.toggle('distrib-row-open', !isOpen);
+      });
+    }
+  }
+
+  function initDistribPagination() {
+    document.getElementById('distrib-sort').addEventListener('change', function(e) {
+      state.distribSort = e.target.value;
+      state.distribPage = 1;
+      renderAll();
+    });
+    document.getElementById('distrib-page-size').addEventListener('change', function(e) {
+      state.distribPageSize = parseInt(e.target.value, 10);
+      state.distribPage = 1;
+      renderAll();
+    });
+    document.getElementById('distrib-btn-prev').addEventListener('click', function() {
+      if (state.distribPage > 1) { state.distribPage--; renderAll(); }
+    });
+    document.getElementById('distrib-btn-next').addEventListener('click', function() {
+      state.distribPage++;
+      renderAll();
+    });
   }
 
 })();
