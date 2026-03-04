@@ -1169,11 +1169,18 @@
       var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
       var badge = ACTIVITY_BADGE[t.type];
 
-      // Durée passée sur ce statut : date_statut si elle donne un delta > 0, sinon created_at
+      // Durée passée sur ce statut
       var thisDateStatut = t.date_statut;
       var nextDateStatut = (i + 1 < history.length) ? history[i + 1].date_statut : null;
-      var timeOnStatus = (thisDateStatut && nextDateStatut) ? U.daysDiff(thisDateStatut, nextDateStatut) : null;
+      var timeOnStatus = null;
+      if (thisDateStatut && nextDateStatut) {
+        timeOnStatus = U.daysDiff(thisDateStatut, nextDateStatut);
+      } else if (thisDateStatut && !nextDateStatut) {
+        // Dernier statut (en cours) : date_statut → aujourd'hui
+        timeOnStatus = U.daysDiff(thisDateStatut, now);
+      }
       if (!timeOnStatus) {
+        // Fallback sur created_at (date de vérification Supabase)
         var thisDate = t.created_at;
         var nextDate = (i + 1 < history.length) ? history[i + 1].created_at : now;
         timeOnStatus = U.daysDiff(thisDate, nextDate);
