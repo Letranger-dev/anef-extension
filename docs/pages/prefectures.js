@@ -365,27 +365,54 @@
       return;
     }
 
-    // Build matrix: prefecture x (step or statut for step 9) => days[]
+    // Build matrix: prefecture x (step or statut for step 9) => days spent AT each step
     var matrix = {};
     var allHashes = new Set(filtered.map(function(s) { return s.fullHash; }));
     var relevantSnaps = state.snapshots.filter(function(s) { return allHashes.has(s.dossier_hash); });
 
+    // Group snapshots by dossier, sort chronologically
+    var byDossier = {};
     for (var i = 0; i < relevantSnaps.length; i++) {
       var s = relevantSnaps[i];
-      var pref = D.normalizePrefecture(s.prefecture);
-      if (!pref || !s.date_depot || !s.date_statut) continue;
-      var days = U.daysDiff(s.date_depot, s.date_statut);
-      if (days === null || days < 0) continue;
+      if (!s.dossier_hash || !s.date_statut) continue;
+      if (!byDossier[s.dossier_hash]) byDossier[s.dossier_hash] = [];
+      byDossier[s.dossier_hash].push(s);
+    }
 
-      var sLower = s.statut ? s.statut.toLowerCase() : '';
-      if (Number(s.etape) === 9 && sLower && STEP9_STATUTS.indexOf(sLower) !== -1) {
-        var sKey = pref + '|' + sLower;
-        if (!matrix[sKey]) matrix[sKey] = [];
-        matrix[sKey].push(days);
-      } else {
-        var eKey = pref + '|' + s.etape;
-        if (!matrix[eKey]) matrix[eKey] = [];
-        matrix[eKey].push(days);
+    var today = new Date();
+    var dossierKeys = Object.keys(byDossier);
+    for (var d = 0; d < dossierKeys.length; d++) {
+      var snaps = byDossier[dossierKeys[d]];
+      snaps.sort(function(a, b) {
+        var stepDiff = Number(a.etape) - Number(b.etape);
+        if (stepDiff !== 0) return stepDiff;
+        return new Date(a.date_statut || 0) - new Date(b.date_statut || 0);
+      });
+
+      for (var j = 0; j < snaps.length; j++) {
+        var cur = snaps[j];
+        var pref = D.normalizePrefecture(cur.prefecture);
+        if (!pref || !cur.date_statut) continue;
+
+        // Time spent AT this step:
+        // - If there's a next snapshot: time until next step
+        // - If it's the last (current) step: time until today
+        var endDate = (j + 1 < snaps.length) ? snaps[j + 1].date_statut : today;
+        if (!endDate) continue;
+        var days = U.daysDiff(cur.date_statut, endDate);
+        if (days === null || days < 0) continue;
+
+        var entry = { days: days, hash: dossierKeys[d].substring(0, 6) };
+        var sLower = cur.statut ? cur.statut.toLowerCase() : '';
+        if (Number(cur.etape) === 9 && sLower && STEP9_STATUTS.indexOf(sLower) !== -1) {
+          var sKey = pref + '|' + sLower;
+          if (!matrix[sKey]) matrix[sKey] = [];
+          matrix[sKey].push(entry);
+        } else {
+          var eKey = pref + '|' + cur.etape;
+          if (!matrix[eKey]) matrix[eKey] = [];
+          matrix[eKey].push(entry);
+        }
       }
     }
 
@@ -394,7 +421,8 @@
     var mKeys = Object.keys(matrix);
     for (var k = 0; k < mKeys.length; k++) {
       var arr = matrix[mKeys[k]];
-      var avg = arr.reduce(function(a, b) { return a + b; }, 0) / arr.length;
+      var sum = 0; for (var s2 = 0; s2 < arr.length; s2++) sum += arr[s2].days;
+      var avg = sum / arr.length;
       if (avg > globalMax) globalMax = avg;
     }
 
@@ -466,13 +494,19 @@
         var cellKey = pagePrefs[p] + '|' + colKey;
         var cellData = matrix[cellKey];
         if (cellData && cellData.length) {
-          var cellAvg = Math.round(cellData.reduce(function(a, b) { return a + b; }, 0) / cellData.length);
+          var daySum = 0; for (var ds = 0; ds < cellData.length; ds++) daySum += cellData[ds].days;
+          var cellAvg = Math.round(daySum / cellData.length);
+          var sorted = cellData.slice().sort(function(a, b) { return a.days - b.days; });
+          var cellMin = sorted[0].days;
+          var cellMax = sorted[sorted.length - 1].days;
+          var minHash = sorted[0].hash;
+          var maxHash = sorted[sorted.length - 1].hash;
           var intensity = globalMax > 0 ? cellAvg / globalMax : 0;
           var r = Math.round(intensity * 239 + (1 - intensity) * 16);
           var g = Math.round((1 - intensity) * 185 + intensity * 68);
           var b2 = Math.round((1 - intensity) * 129 + intensity * 68);
           var tipLabel = activeCols[c2].title || ('\u00e9tape ' + colKey);
-          html += '<td class="hm-cell" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff" title="' + U.escapeHtml(pagePrefs[p]) + ' ' + U.escapeHtml(tipLabel) + ': ' + cellAvg + 'j (n=' + cellData.length + ')">' + cellAvg + '</td>';
+          html += '<td class="hm-cell hm-clickable" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff;cursor:pointer" title="' + U.escapeHtml(pagePrefs[p]) + ' ' + U.escapeHtml(tipLabel) + ': ' + cellAvg + 'j (n=' + cellData.length + ')" data-pref="' + U.escapeHtml(pagePrefs[p]) + '" data-step="' + U.escapeHtml(tipLabel) + '" data-avg="' + cellAvg + '" data-min="' + cellMin + '" data-max="' + cellMax + '" data-min-hash="' + minHash + '" data-max-hash="' + maxHash + '" data-count="' + cellData.length + '">' + cellAvg + '</td>';
         } else {
           html += '<td class="hm-cell" style="background:rgba(255,255,255,0.03);color:var(--text-dim)">\u2014</td>';
         }
@@ -483,7 +517,157 @@
     container.innerHTML = html;
   }
 
+  // ─── Dossier detail modal (for heatmap links) ──────────
+
+  function showHmDossierDetail(hash) {
+    // Find all snapshots for this dossier
+    var snaps = state.snapshots.filter(function(s) {
+      return s.dossier_hash && s.dossier_hash.substring(0, 6) === hash;
+    }).sort(function(a, b) {
+      var stepDiff = Number(a.etape) - Number(b.etape);
+      if (stepDiff !== 0) return stepDiff;
+      return new Date(a.date_statut || 0) - new Date(b.date_statut || 0);
+    });
+
+    if (!snaps.length) return;
+
+    var timelineHtml = '';
+    for (var j = 0; j < snaps.length; j++) {
+      var snap = snaps[j];
+      var statutKey = (snap.statut || '').toLowerCase();
+      var info = C.STATUTS[statutKey];
+      var stepColor = C.STEP_COLORS[snap.etape] || '#64748b';
+      var expl = info ? info.explication : (snap.phase || '');
+      var sousEtape = info ? C.formatSubStep(info.rang) : String(snap.etape);
+
+      var durationHtml = '';
+      if (j < snaps.length - 1) {
+        var nextSnap = snaps[j + 1];
+        if (snap.date_statut && nextSnap.date_statut) {
+          var days = U.daysDiff(snap.date_statut, nextSnap.date_statut);
+          var dColor = days >= 60 ? 'var(--red);background:rgba(239,68,68,0.12)' :
+                       days >= 30 ? 'var(--orange);background:rgba(245,158,11,0.12)' :
+                                    'var(--green);background:rgba(16,185,129,0.12)';
+          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
+        }
+      } else {
+        if (snap.date_statut) {
+          var today = new Date(); today.setHours(0, 0, 0, 0);
+          var days = U.daysDiff(snap.date_statut, today);
+          durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+        }
+      }
+
+      var dateStr = snap.date_statut ? U.formatDateFr(snap.date_statut) : '';
+
+      timelineHtml += '<div class="timeline-step">' +
+        '<div class="timeline-dot-col">' +
+          '<div class="timeline-dot" style="background:' + stepColor + '"></div>' +
+          (j < snaps.length - 1 ? '<div class="timeline-line"></div>' : '') +
+        '</div>' +
+        '<div class="timeline-content">' +
+          '<div class="ts-status">' + U.escapeHtml(sousEtape) + ' \u2014 ' + U.escapeHtml(statutKey) + '</div>' +
+          (expl ? '<div class="ts-expl">' + U.escapeHtml(expl) + '</div>' : '') +
+          (dateStr ? '<div class="ts-date">' + dateStr + '</div>' : '') +
+          durationHtml +
+        '</div>' +
+      '</div>';
+    }
+
+    // Info summary
+    var latest = snaps[snaps.length - 1];
+    var pref = D.normalizePrefecture(latest.prefecture) || '';
+    var infoHtml = '';
+    if (latest.date_depot) infoHtml += '<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(latest.date_depot) + '</span></div>';
+    if (pref) infoHtml += '<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(pref) + '</span></div>';
+
+    var modal = document.getElementById('hm-dossier-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'hm-dossier-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        (infoHtml ? '<div class="dossier-detail-info">' + infoHtml + '</div>' : '') +
+        '<div class="detail-section-label">Historique des statuts</div>' +
+        '<div class="modal-history-list" style="padding:0.5rem 0">' + timelineHtml + '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+    modal.classList.add('open');
+  }
+
   function initHmPagination() {
+    // Click handler for heatmap cells (event delegation, bound once)
+    document.getElementById('heatmap-container').addEventListener('click', function(e) {
+      var cell = e.target.closest('.hm-clickable');
+      if (!cell) return;
+      var avg = parseInt(cell.dataset.avg, 10);
+      var min = parseInt(cell.dataset.min, 10);
+      var max = parseInt(cell.dataset.max, 10);
+      var count = parseInt(cell.dataset.count, 10);
+      var pref = cell.dataset.pref;
+      var step = cell.dataset.step;
+      var minHash = cell.dataset.minHash;
+      var maxHash = cell.dataset.maxHash;
+
+      // Remove existing popover
+      var old = document.querySelector('.hm-popover');
+      if (old) old.remove();
+
+      var pop = document.createElement('div');
+      pop.className = 'hm-popover';
+      pop.innerHTML =
+        '<div class="hm-popover-header">' + U.escapeHtml(pref) + '</div>' +
+        '<div class="hm-popover-step">' + U.escapeHtml(step) + '</div>' +
+        '<div class="hm-popover-stats">' +
+          '<div class="hm-popover-row"><span>Dur\u00e9e moyenne</span><strong>' + U.formatDuration(avg) + '</strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(minHash) + '"><span>Plus rapide</span><strong>' + U.formatDuration(min) + ' <span class="hm-hash-link">#' + U.escapeHtml(minHash) + '</span></strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(maxHash) + '"><span>Plus long</span><strong>' + U.formatDuration(max) + ' <span class="hm-hash-link">#' + U.escapeHtml(maxHash) + '</span></strong></div>' +
+          '<div class="hm-popover-row"><span>Dossiers</span><strong>' + count + '</strong></div>' +
+        '</div>';
+
+      // Click on "Plus rapide" / "Plus long" → open dossier detail
+      pop.querySelectorAll('.hm-popover-link').forEach(function(row) {
+        row.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          var h = row.dataset.hash;
+          if (h) {
+            pop.remove();
+            showHmDossierDetail(h);
+          }
+        });
+      });
+
+      // Position popover near the cell (absolute, follows scroll)
+      var rect = cell.getBoundingClientRect();
+      pop.style.left = Math.min(rect.left + window.scrollX, document.documentElement.clientWidth - 240 + window.scrollX) + 'px';
+      pop.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+      document.body.appendChild(pop);
+
+      // Close on click outside
+      function closePopover(ev) {
+        if (!pop.contains(ev.target) && ev.target !== cell) {
+          pop.remove();
+          document.removeEventListener('click', closePopover, true);
+        }
+      }
+      setTimeout(function() {
+        document.addEventListener('click', closePopover, true);
+      }, 0);
+    });
     document.getElementById('hm-sort').addEventListener('change', function(e) {
       state.hmSort = e.target.value;
       state.hmPage = 1;

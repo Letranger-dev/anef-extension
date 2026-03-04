@@ -935,6 +935,7 @@
           fromExplication: fromInfo ? fromInfo.explication : '',
           toExplication: toInfo ? toInfo.explication : '',
           created_at: cur.created_at,
+          date_statut: cur.date_statut || null,
           statut: cur.statut,
           daysForTransition: duration
         });
@@ -953,6 +954,7 @@
           fromExplication: null,
           toExplication: firstInfo ? firstInfo.explication : '',
           created_at: snaps[0].created_at,
+          date_statut: snaps[0].date_statut || null,
           statut: snaps[0].statut,
           daysForTransition: null
         });
@@ -1161,10 +1163,17 @@
 
     // Build timeline HTML
     var timelineHtml = '';
+    var now = new Date();
     for (var i = 0; i < history.length; i++) {
       var t = history[i];
       var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
       var badge = ACTIVITY_BADGE[t.type];
+
+      // Durée passée sur ce statut : basée sur date_statut (date ANEF réelle), fallback sur created_at
+      var thisDate = t.date_statut || t.created_at;
+      var nextDate = (i + 1 < history.length) ? (history[i + 1].date_statut || history[i + 1].created_at) : now;
+      var timeOnStatus = U.daysDiff(thisDate, nextDate);
+      var isCurrentStatus = (i === history.length - 1);
 
       var desc;
       if (t.type === 'first_seen') {
@@ -1190,6 +1199,14 @@
         durHtml = '<span class="history-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
       }
 
+      // Badge "temps passé sur ce statut"
+      var timeOnHtml = '';
+      if (timeOnStatus !== null) {
+        var cssClass = isCurrentStatus ? 'history-time-on-status current' : 'history-time-on-status';
+        var prefix = isCurrentStatus ? '\u23f3 ' : '\u23f1 ';
+        timeOnHtml = '<div class="' + cssClass + '">' + prefix + U.formatDuration(timeOnStatus) + (isCurrentStatus ? ' (en cours)' : '') + '</div>';
+      }
+
       timelineHtml += '<div class="history-item">' +
         '<div class="history-dot" style="background:' + color + '"></div>' +
         '<div class="history-connector"></div>' +
@@ -1200,6 +1217,7 @@
             '<span class="history-date">' + U.formatDateTimeFr(t.created_at) + '</span>' +
           '</div>' +
           '<div class="history-desc">' + desc + '</div>' +
+          timeOnHtml +
         '</div>' +
       '</div>';
     }

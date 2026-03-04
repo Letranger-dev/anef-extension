@@ -178,7 +178,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'BACKGROUND_REFRESH': {
       logger.info('🔄 Actualisation manuelle demandée');
       const manualStart = Date.now();
-      backgroundRefresh().then(async (result) => {
+      refreshPromise = backgroundRefresh();
+      refreshPromise.then(async (result) => {
+        // Ne pas loguer les refreshes annulés par une nouvelle demande
+        if (result.aborted) {
+          sendResponse(result);
+          return;
+        }
         const manualDuration = Math.round((Date.now() - manualStart) / 1000);
         // Logger l'entrée manuelle
         await storage.addCheckLogEntry({
@@ -445,6 +451,17 @@ async function openAnefPage(page) {
 
 // Protection contre les appels simultanés (race condition)
 let isRefreshing = false;
+let refreshAbortController = null;
+let refreshPromise = null;
+
+/** Sleep interruptible par un AbortController */
+function abortableSleep(ms, signal) {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
 
 /**
  * Actualise le statut en arrière-plan de manière discrète.
@@ -472,12 +489,17 @@ let isRefreshing = false;
  * ──────────────────────────────────────────────────────────────────────
  */
 async function backgroundRefresh() {
-  // Éviter les appels simultanés
-  if (isRefreshing) {
-    logger.warn('⚠️ Actualisation déjà en cours, ignoré');
-    return { success: false, error: 'Actualisation déjà en cours' };
+  // Si une actualisation est déjà en cours, l'annuler et attendre son nettoyage
+  if (isRefreshing && refreshAbortController) {
+    logger.warn('⚠️ Actualisation déjà en cours → annulation de l\'ancienne');
+    refreshAbortController.abort();
+    if (refreshPromise) {
+      try { await refreshPromise; } catch {}
+    }
   }
 
+  const abortController = new AbortController();
+  refreshAbortController = abortController;
   isRefreshing = true;
   logger.info('🔄 Démarrage actualisation...');
 
@@ -541,6 +563,12 @@ async function backgroundRefresh() {
     while (Date.now() - startTime < timeout) {
       await new Promise(r => setTimeout(r, CHECK_INTERVAL_MS));
 
+      // Vérifier si cette actualisation a été annulée par une nouvelle
+      if (abortController.signal.aborted) {
+        logger.info('🛑 Actualisation annulée (nouvelle demandée)');
+        break;
+      }
+
       // Vérifier si l'onglet existe encore
       let tabInfo;
       try {
@@ -578,6 +606,7 @@ async function backgroundRefresh() {
         if (isOnMonCompte && (loginAttempted.anef || loginAttempted.sso)) {
           logger.info('✅ Connexion réussie, arrivé sur mon-compte');
           loginCompleted = true;
+          fetchCompleteSignal = null; // Attendre un nouveau signal post-login
           // Attendre que Angular charge la page
           await new Promise(r => setTimeout(r, POST_LOGIN_WAIT_MS));
 
@@ -603,9 +632,11 @@ async function backgroundRefresh() {
           logger.info('🔐 Page connexion ANEF détectée');
           needsLogin = true;
           loginAttempted.anef = true;
+          fetchCompleteSignal = null; // Signal pré-login obsolète
 
           // Attendre que Angular soit prêt
-          await new Promise(r => setTimeout(r, 3000));
+          await abortableSleep(3000, abortController.signal);
+          if (abortController.signal.aborted) continue;
 
           try {
             await chrome.tabs.sendMessage(tabId, {
@@ -618,7 +649,7 @@ async function backgroundRefresh() {
           }
 
           // Attendre la redirection vers SSO
-          await new Promise(r => setTimeout(r, 5000));
+          await abortableSleep(5000, abortController.signal);
           continue;
         }
 
@@ -626,9 +657,11 @@ async function backgroundRefresh() {
         if (isSSOPage && !loginAttempted.sso && hasCredentials) {
           logger.info('🔐 Page SSO détectée');
           loginAttempted.sso = true;
+          fetchCompleteSignal = null; // Signal pré-login obsolète
 
           // Attendre que le formulaire soit prêt
-          await new Promise(r => setTimeout(r, 2000));
+          await abortableSleep(2000, abortController.signal);
+          if (abortController.signal.aborted) continue;
 
           try {
             await chrome.tabs.sendMessage(tabId, {
@@ -641,7 +674,7 @@ async function backgroundRefresh() {
           }
 
           // Attendre la soumission et redirection
-          await new Promise(r => setTimeout(r, 8000));
+          await abortableSleep(8000, abortController.signal);
           continue;
         }
 
@@ -723,6 +756,11 @@ async function backgroundRefresh() {
       } catch {}
     }
 
+    // Si annulée par une nouvelle actualisation, sortir sans résultat d'erreur
+    if (abortController.signal.aborted) {
+      return { success: false, aborted: true, error: 'Annulée (nouvelle actualisation demandée)' };
+    }
+
     // ── Résultat ──
     if (dataReceived) {
       logger.info('✅ Actualisation réussie');
@@ -764,6 +802,9 @@ async function backgroundRefresh() {
     return { success: false, error: error.message };
   } finally {
     isRefreshing = false;
+    if (refreshAbortController === abortController) {
+      refreshAbortController = null;
+    }
   }
 }
 
@@ -899,16 +940,19 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
     // Lancer le refresh et chronométrer
     const startTime = Date.now();
-    const result = await backgroundRefresh();
+    refreshPromise = backgroundRefresh();
+    const result = await refreshPromise;
     const durationSec = Math.round((Date.now() - startTime) / 1000);
 
-    // Logger le résultat
-    await storage.addCheckLogEntry({
-      type: isRetry ? 'retry' : 'auto',
-      success: !!result.success,
-      error: result.error || null,
-      duration: durationSec
-    });
+    // Ne pas loguer les refreshes annulés
+    if (!result.aborted) {
+      await storage.addCheckLogEntry({
+        type: isRetry ? 'retry' : 'auto',
+        success: !!result.success,
+        error: result.error || null,
+        duration: durationSec
+      });
+    }
 
     if (result.success) {
       // Succès → reset compteur d'échecs
@@ -920,6 +964,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     } else if (result.needsLogin) {
       // Session expirée sans identifiants → ne pas compter comme échec
       logger.info('🔒 Session expirée, identifiants requis');
+    } else if (result.aborted) {
+      // Annulé par un refresh manuel → ne pas compter comme échec
+      logger.info('🛑 Auto-check annulé par refresh manuel');
     } else {
       // Échec
       await handleAutoCheckFailure(result.error || 'Échec inconnu', isRetry);
