@@ -91,9 +91,11 @@
     }
 
     if (data) {
-      chrome.runtime.sendMessage({ type, data })
-        .then(() => logger.info('📤 Données envoyées:', type))
-        .catch(e => logger.error('Erreur envoi:', e.message));
+      try {
+        chrome.runtime.sendMessage({ type, data })
+          .then(() => logger.info('📤 Données envoyées:', type))
+          .catch(() => {});
+      } catch {}
     }
   });
 
@@ -176,7 +178,7 @@
     const { type, data } = event.data;
     logger.info('📥 Résultat auto-login:', type);
 
-    chrome.runtime.sendMessage({ type, data }).catch(() => {});
+    try { chrome.runtime.sendMessage({ type, data }).catch(() => {}); } catch {}
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -215,7 +217,7 @@
         const previousUrl = lastUrl;
         lastUrl = location.href;
         logger.info('📍 Navigation détectée:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
-        chrome.runtime.sendMessage({ type: 'PAGE_CHANGED', url: lastUrl }).catch(() => {});
+        try { chrome.runtime.sendMessage({ type: 'PAGE_CHANGED', url: lastUrl }).catch(() => {}); } catch {}
 
         // Si on arrive sur mon-compte après une connexion, relancer le script d'injection
         const wasOnLogin = previousUrl.includes('connexion-inscription') ||
@@ -250,11 +252,13 @@
   // ─────────────────────────────────────────────────────────────
 
   function notifyReady() {
-    chrome.runtime.sendMessage({
-      type: 'PAGE_READY',
-      url: window.location.href,
-      isLoggedIn: checkLoginStatus()
-    }).catch(() => {});
+    try {
+      chrome.runtime.sendMessage({
+        type: 'PAGE_READY',
+        url: window.location.href,
+        isLoggedIn: checkLoginStatus()
+      }).catch(() => {});
+    } catch {}
 
     // Optimisation: si on est sur la page d'accueil, naviguer directement vers mon-compte
     // Cela évite d'attendre que le service-worker détecte l'URL

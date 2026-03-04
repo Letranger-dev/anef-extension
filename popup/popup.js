@@ -9,8 +9,6 @@
 
 import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep } from '../lib/status-parser.js';
 import { downloadLogs, clearLogs } from '../lib/logger.js';
-import { checkForUpdate, dismissUpdate, isUpdateDismissed } from '../lib/version-check.js';
-
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
 // ─────────────────────────────────────────────────────────────
@@ -34,6 +32,7 @@ let quoteInterval = null;
 let currentQuoteIndex = 0;
 
 function startQuoteCarousel() {
+  stopQuoteCarousel();
   currentQuoteIndex = Math.floor(Math.random() * QUOTES.length);
   showQuote(currentQuoteIndex);
 
@@ -167,9 +166,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   attachEventListeners();
   await loadData();
-
-  // Vérifier les mises à jour (en arrière-plan)
-  checkForUpdates();
 });
 
 /** Attache les gestionnaires d'événements */
@@ -233,42 +229,6 @@ async function handleExportLogs() {
     }
   } catch (error) {
     console.error('[Popup] Erreur export logs:', error);
-  }
-}
-
-/** Vérifie si une mise à jour est disponible */
-async function checkForUpdates() {
-  try {
-    const result = await checkForUpdate();
-
-    if (!result.updateAvailable || !result.latestVersion) {
-      return;
-    }
-
-    // Vérifier si l'utilisateur a ignoré cette version
-    if (await isUpdateDismissed(result.latestVersion)) {
-      return;
-    }
-
-    // Afficher la bannière
-    const banner = document.getElementById('update-banner');
-    const versionSpan = document.getElementById('update-version');
-    const link = document.getElementById('update-link');
-    const dismissBtn = document.getElementById('update-dismiss');
-
-    if (banner && versionSpan && link) {
-      versionSpan.textContent = result.latestVersion;
-      link.href = result.repoUrl + '/releases';
-      banner.classList.remove('hidden');
-
-      // Gestion du bouton fermer
-      dismissBtn?.addEventListener('click', async () => {
-        await dismissUpdate(result.latestVersion);
-        banner.classList.add('hidden');
-      });
-    }
-  } catch (error) {
-    console.warn('[Popup] Erreur vérification mise à jour:', error);
   }
 }
 

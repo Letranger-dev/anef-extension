@@ -1077,6 +1077,22 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   font-size: 0.75rem;
   color: var(--text-dim);
 }
+.history-time-on-status {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.history-time-on-status.current {
+  color: var(--primary-light);
+  background: rgba(59,130,246,0.1);
+  border-color: rgba(59,130,246,0.2);
+}
 
 /* ─── Dossier Detail Info (in history modal) ──────────────── */
 
@@ -1200,6 +1216,18 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .heatmap-table td.hm-cell { transition: opacity 0.2s; }
 .heatmap-table td.hm-cell:hover { opacity: 0.8; }
 .heatmap-table .hm-label { text-align: left; color: var(--text-muted); font-weight: 500; min-width: 80px; font-size: 0.75rem; }
+
+/* Heatmap popover */
+.hm-popover { z-index: 1000; width: 220px; background: #1e2330; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); padding: 0.75rem; animation: modalIn 0.15s ease; position: absolute; }
+.hm-popover-header { font-weight: 700; font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.15rem; }
+.hm-popover-step { font-size: 0.75rem; color: var(--primary-light); margin-bottom: 0.6rem; }
+.hm-popover-stats { display: flex; flex-direction: column; gap: 0.3rem; }
+.hm-popover-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; }
+.hm-popover-row span { color: var(--text-muted); }
+.hm-popover-row strong { color: var(--text-light); font-weight: 600; }
+.hm-popover-link { cursor: pointer; border-radius: 4px; padding: 0.2rem 0.3rem; margin: -0.2rem -0.3rem; transition: background 0.15s; }
+.hm-popover-link:hover { background: rgba(255,255,255,0.08); }
+.hm-hash-link { color: var(--primary-light); font-size: 0.7rem; font-weight: 500; margin-left: 0.3rem; }
 
 /* ─── Distribution Table ──────────────────────────────────── */
 
