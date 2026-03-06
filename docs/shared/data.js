@@ -125,7 +125,9 @@
     'Bouches du Rhone': 'Bouches-du-Rhône',
     'Herault': 'Hérault',
     'Puy de Dôme': 'Puy-de-Dôme',
-    'Police': 'Préfecture de Police'
+    'Police': 'Préfecture de Police (Paris)',
+    'Paris': 'Préfecture de Police (Paris)',
+    'Prefecture de Police': 'Préfecture de Police (Paris)'
   };
 
   // Build a case-insensitive lookup from PREF_FIXES

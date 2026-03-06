@@ -315,17 +315,26 @@
       var durationHtml = '';
       if (j < snaps.length - 1) {
         var nextSnap = snaps[j + 1];
+        var days = null;
         if (snap.date_statut && nextSnap.date_statut) {
-          var days = U.daysDiff(snap.date_statut, nextSnap.date_statut);
+          days = U.daysDiff(snap.date_statut, nextSnap.date_statut);
+        }
+        if (!days && snap.created_at && nextSnap.created_at) {
+          days = U.daysDiff(snap.created_at, nextSnap.created_at);
+        }
+        if (days !== null) {
           var dColor = days >= 60 ? 'var(--red);background:rgba(239,68,68,0.12)' :
                        days >= 30 ? 'var(--orange);background:rgba(245,158,11,0.12)' :
                                     'var(--green);background:rgba(16,185,129,0.12)';
           durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
         }
       } else {
-        if (snap.date_statut) {
-          var today = new Date(); today.setHours(0, 0, 0, 0);
-          var days = U.daysDiff(snap.date_statut, today);
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
+        if (!days && snap.created_at) {
+          days = U.daysDiff(snap.created_at, today);
+        }
+        if (days !== null) {
           durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
         }
       }
