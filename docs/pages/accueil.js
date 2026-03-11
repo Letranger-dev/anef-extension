@@ -1211,12 +1211,13 @@
         durHtml = '<span class="history-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
       }
 
-      // Badge "temps passé sur ce statut"
+      // Badge "temps passé sur ce statut" + date du statut
       var timeOnHtml = '';
       if (timeOnStatus !== null) {
         var cssClass = isCurrentStatus ? 'history-time-on-status current' : 'history-time-on-status';
         var prefix = isCurrentStatus ? '\u23f3 ' : '\u23f1 ';
-        timeOnHtml = '<div class="' + cssClass + '">' + prefix + U.formatDuration(timeOnStatus) + (isCurrentStatus ? ' (en cours)' : '') + '</div>';
+        var dateStatutStr = thisDateStatut ? ' \u2014 ' + U.formatDateFr(thisDateStatut) : '';
+        timeOnHtml = '<div class="' + cssClass + '">' + prefix + U.formatDuration(timeOnStatus) + (isCurrentStatus ? ' (en cours)' : '') + dateStatutStr + '</div>';
       }
 
       timelineHtml += '<div class="history-item">' +
