@@ -93,6 +93,7 @@ let elements = {};
 function initializeElements() {
   views = {
     maintenance: document.getElementById('view-maintenance'),
+    passwordExpired: document.getElementById('view-password-expired'),
     notConnected: document.getElementById('view-not-connected'),
     noData: document.getElementById('view-no-data'),
     loading: document.getElementById('view-loading'),
@@ -173,6 +174,7 @@ function attachEventListeners() {
   elements.btnRetry?.addEventListener('click', refreshInBackground);
   elements.btnLogin?.addEventListener('click', () => openAnefPage('login'));
   elements.btnCheck?.addEventListener('click', () => openAnefPage('mon-compte'));
+  document.getElementById('btn-renew-password')?.addEventListener('click', () => openAnefPage('login'));
   elements.btnRefresh?.addEventListener('click', refreshInBackground);
   elements.btnDownload?.addEventListener('click', downloadStatusImage);
   elements.btnHistory?.addEventListener('click', () => chrome.runtime.openOptionsPage());
@@ -251,7 +253,12 @@ async function loadData() {
       return;
     }
 
-    const { lastStatus, lastCheck, apiData } = response;
+    if (response.passwordExpired) {
+      showView('passwordExpired');
+      return;
+    }
+
+    const { lastStatus, lastCheck, lastCheckAttempt, apiData } = response;
 
     if (!lastStatus) {
       showView('noData');
@@ -259,7 +266,7 @@ async function loadData() {
     }
 
     displayStatus(lastStatus, apiData, lastCheck);
-    displayLastCheck(lastCheck);
+    displayLastCheck(lastCheck, lastCheckAttempt);
     showView('status');
 
   } catch (error) {
@@ -443,11 +450,28 @@ function displayDetails(statusData, apiData) {
 }
 
 /** Affiche la date de dernière vérification */
-function displayLastCheck(lastCheck) {
+function displayLastCheck(lastCheck, lastCheckAttempt) {
   if (!elements.lastCheckDate) return;
 
+  // Nettoyer le contenu existant
+  elements.lastCheckDate.textContent = '';
+
   if (lastCheck) {
-    elements.lastCheckDate.textContent = formatDateShort(lastCheck);
+    // Si la dernière tentative est plus récente et en échec, afficher les deux
+    if (lastCheckAttempt && !lastCheckAttempt.success && lastCheckAttempt.timestamp > lastCheck) {
+      elements.lastCheckDate.textContent = formatDateShort(lastCheck) + ' ';
+      const span = document.createElement('span');
+      span.className = 'last-check-attempt';
+      span.textContent = '(tentative ' + formatDateShort(lastCheckAttempt.timestamp) + ')';
+      elements.lastCheckDate.appendChild(span);
+    } else {
+      elements.lastCheckDate.textContent = formatDateShort(lastCheck);
+    }
+  } else if (lastCheckAttempt) {
+    const span = document.createElement('span');
+    span.className = 'last-check-attempt';
+    span.textContent = 'Tentative ' + formatDateShort(lastCheckAttempt.timestamp);
+    elements.lastCheckDate.appendChild(span);
   } else {
     elements.lastCheckDate.textContent = 'Jamais';
   }
@@ -472,9 +496,9 @@ async function loadAutoCheckNext() {
 
     container.classList.remove('hidden', 'error', 'warning');
 
-    if (info.disabledByFailure) {
-      container.classList.add('error');
-      text.textContent = 'Vérification auto suspendue (échecs répétés)';
+    if (info.passwordExpired) {
+      container.classList.add('warning');
+      text.textContent = 'Mot de passe ANEF expiré · renouveler sur le portail';
     } else if (!info.hasCredentials) {
       container.classList.add('warning');
       text.textContent = 'Vérification auto activée · identifiants requis';
