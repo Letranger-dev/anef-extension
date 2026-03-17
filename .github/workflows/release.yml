@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -73,29 +70,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          name: ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}
-          body: |
-            ## Chrome Web Store
+        run: |
+          gh release create "${{ steps.get_version.outputs.VERSION }}" \
+            "anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip" \
+            --title "ANEF Status Tracker ${{ steps.get_version.outputs.VERSION }}" \
+            --notes "$(cat <<'NOTES'
+          ## Chrome Web Store
 
-            [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/icnpklneeaiffilemaflccdejefpehek?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)
+          [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/icnpklneeaiffilemaflccdejefpehek?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)
 
-            **[Installer depuis le Chrome Web Store](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)** — installation en un clic, mises à jour automatiques.
+          **[Installer depuis le Chrome Web Store](https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek)** — installation en un clic, mises à jour automatiques.
 
-            ## Installation manuelle
+          ## Installation manuelle
 
-            1. Téléchargez le fichier ZIP ci-dessous
-            2. Décompressez dans un **dossier permanent** (ex: `C:\Extensions\anef-tracker\`)
-            3. Ouvrez Chrome → `chrome://extensions`
-            4. Activez le **Mode développeur** (en haut à droite)
-            5. Cliquez sur **"Charger l'extension non empaquetée"**
-            6. Sélectionnez le dossier décompressé
-          files: |
-            anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip
-          draft: false
-          prerelease: false
+          1. Téléchargez le fichier ZIP ci-dessous
+          2. Décompressez dans un **dossier permanent** (ex: `C:\Extensions\anef-tracker\`)
+          3. Ouvrez Chrome → `chrome://extensions`
+          4. Activez le **Mode développeur** (en haut à droite)
+          5. Cliquez sur **"Charger l'extension non empaquetée"**
+          6. Sélectionnez le dossier décompressé
+          NOTES
+          )"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
