@@ -250,6 +250,23 @@ QJNdXtE3G7SjkDOn36yZSaXp
     }
   }
 
+  /** Extrait le numéro de décret depuis la réponse API détails */
+  function extractDecretId(details) {
+    if (!details) return null;
+    // Chemin : demande.informations.etat_civil.identites_decrets[].decret.id
+    try {
+      var idents = details?.demande?.informations?.etat_civil?.identites_decrets;
+      if (Array.isArray(idents) && idents.length > 0) {
+        for (var i = 0; i < idents.length; i++) {
+          if (idents[i]?.decret?.id) {
+            return String(idents[i].decret.id);
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
   async function fetchDossierDetails(dossierId) {
     try {
       log('📡 Appel API détails dossier...');
@@ -259,6 +276,27 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
       const raw = await response.json();
       const details = raw?.data ?? raw;
+
+      // Log diagnostic : clés de la réponse + recherche champ décret
+      if (details) {
+        log('📋 Clés API détails: ' + Object.keys(details).join(', '));
+        // Recherche récursive de tout champ contenant "decret"
+        var decretFields = [];
+        (function findDecret(obj, path) {
+          if (!obj || typeof obj !== 'object') return;
+          for (var k in obj) {
+            if (k.toLowerCase().includes('decret') || k.toLowerCase().includes('decree')) {
+              decretFields.push(path + '.' + k + '=' + JSON.stringify(obj[k]));
+            }
+            if (typeof obj[k] === 'object' && obj[k] !== null && path.split('.').length < 4) {
+              findDecret(obj[k], path + '.' + k);
+            }
+          }
+        })(details, 'details');
+        if (decretFields.length) {
+          log('📋 Champs décret trouvés: ' + decretFields.join(' | '));
+        }
+      }
 
       // Extraire les dates importantes
       const dateDepot = details?.taxe_payee?.date_consommation
@@ -285,7 +323,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
         type_demande: 'naturalisation',
         complement_instruction: details?.demande_complement,
         numero_national: details?.numero_national,
-        numero_decret: details?.numero_decret,
+        numero_decret: extractDecretId(details),
         raw_taxe_payee: details?.taxe_payee,
         raw_entretien: details?.entretien_assimilation
       });
