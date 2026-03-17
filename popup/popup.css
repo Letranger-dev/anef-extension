@@ -631,6 +631,11 @@ body {
   padding: 8px 0;
 }
 
+.last-check-attempt {
+  color: var(--warning-color, #e67e22);
+  font-size: 0.85em;
+}
+
 .auto-check-banner {
   display: flex;
   align-items: center;

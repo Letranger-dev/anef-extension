@@ -390,6 +390,7 @@
     if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
     var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
+    var checkedHtml = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">Vérifié le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
 
     // Status history timeline
     var snaps = state.grouped.get(s.fullHash) || [];
@@ -405,6 +406,7 @@
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
+      (checkedHtml ? '<div class="dossier-footer">' + checkedHtml + '</div>' : '') +
       '<div class="dossier-mini-timeline">' + miniTimeline + '</div>' +
       timelineHtml;
   }
@@ -445,6 +447,7 @@
     if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
     var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
+    var checkedHtml2 = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">Vérifié le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
 
     return '<div class="dossier-card" style="--card-accent:' + color + '">' +
       '<div class="dossier-header">' +
@@ -461,6 +464,7 @@
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
+      (checkedHtml2 ? '<div class="dossier-footer">' + checkedHtml2 + '</div>' : '') +
       '<div class="dossier-mini-timeline">' + miniTimeline + '</div>' +
     '</div>';
   }

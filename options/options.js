@@ -26,7 +26,6 @@ const elements = {
 
   // Paramètres
   settingNotifications: document.getElementById('setting-notifications'),
-  settingAnonymousStats: document.getElementById('setting-anonymous-stats'),
   settingHistoryLimit: document.getElementById('setting-history-limit'),
   btnSaveSettings: document.getElementById('btn-save-settings'),
   btnResetSettings: document.getElementById('btn-reset-settings'),
@@ -217,7 +216,6 @@ async function handleClearHistory() {
 async function loadSettings() {
   const settings = await storage.getSettings();
   elements.settingNotifications.checked = settings.notificationsEnabled;
-  elements.settingAnonymousStats.checked = settings.anonymousStatsEnabled;
   elements.settingHistoryLimit.value = settings.historyLimit.toString();
   if (elements.settingAutoCheck) {
     elements.settingAutoCheck.checked = settings.autoCheckEnabled;
@@ -229,7 +227,6 @@ async function handleSaveSettings() {
 
   await storage.saveSettings({
     notificationsEnabled: elements.settingNotifications.checked,
-    anonymousStatsEnabled: elements.settingAnonymousStats.checked,
     autoCheckEnabled,
     historyLimit: parseInt(elements.settingHistoryLimit.value, 10)
   });
@@ -383,7 +380,7 @@ async function loadAutoCheckStatus() {
     const info = await chrome.runtime.sendMessage({ type: 'GET_AUTO_CHECK_INFO' });
     if (!info) return;
 
-    const { enabled, hasCredentials, disabledByFailure, nextAlarm, consecutiveFailures } = info;
+    const { enabled, hasCredentials, passwordExpired, nextAlarm, consecutiveFailures } = info;
 
     // Toggle grisé si pas d'identifiants
     if (elements.settingAutoCheck) {
@@ -393,8 +390,16 @@ async function loadAutoCheckStatus() {
     // Avertissement pas d'identifiants
     elements.autoCheckNoCreds?.classList.toggle('hidden', hasCredentials);
 
-    // Avertissement suspension
-    elements.autoCheckSuspended?.classList.toggle('hidden', !disabledByFailure);
+    // Avertissement mot de passe expiré (réutilise l'élément suspension)
+    if (elements.autoCheckSuspended) {
+      if (passwordExpired) {
+        elements.autoCheckSuspended.classList.remove('hidden');
+        const suspendedText = elements.autoCheckSuspended.querySelector('.auto-check-suspended-text, span');
+        if (suspendedText) suspendedText.textContent = 'Mot de passe ANEF expiré — renouveler sur le portail';
+      } else {
+        elements.autoCheckSuspended.classList.add('hidden');
+      }
+    }
 
     // Zone de statut
     if (elements.autoCheckStatus && elements.autoCheckStatusText && elements.autoCheckDot) {
@@ -403,9 +408,14 @@ async function loadAutoCheckStatus() {
       } else {
         elements.autoCheckStatus.classList.remove('hidden');
 
-        if (disabledByFailure) {
+        if (passwordExpired) {
           elements.autoCheckDot.className = 'auto-check-dot error';
-          elements.autoCheckStatusText.textContent = 'Suspendu (échecs répétés)';
+          elements.autoCheckStatusText.textContent = 'Mot de passe expiré';
+        } else if (consecutiveFailures > 0 && nextAlarm) {
+          elements.autoCheckDot.className = 'auto-check-dot warning';
+          const nextDate = new Date(nextAlarm);
+          const diffMin = Math.round((nextDate - Date.now()) / 60000);
+          elements.autoCheckStatusText.textContent = `${consecutiveFailures} échec(s) · prochaine tentative dans ~${diffMin} min`;
         } else if (nextAlarm) {
           elements.autoCheckDot.className = 'auto-check-dot active';
           const nextDate = new Date(nextAlarm);
@@ -434,10 +444,13 @@ async function loadAutoCheckStatus() {
 
 async function handleResumeAutoCheck() {
   try {
-    await storage.saveAutoCheckMeta({
-      consecutiveFailures: 0,
-      disabledByFailure: false
-    });
+    await storage.saveAutoCheckMeta({ consecutiveFailures: 0 });
+    // Réinitialiser le flag mot de passe expiré
+    const apiData = await storage.getApiData() || {};
+    if (apiData.passwordExpired) {
+      apiData.passwordExpired = false;
+      await storage.saveApiData(apiData);
+    }
     await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
     await loadAutoCheckStatus();
     showToast('Vérification automatique réactivée', 'success');

@@ -16,6 +16,13 @@
   // Système de logs
   // ─────────────────────────────────────────────────────────────
 
+  /** Envoie un message au service worker en avalant les erreurs "No SW" */
+  function safeSendMessage(msg) {
+    try {
+      return chrome.runtime.sendMessage(msg).catch(() => {});
+    } catch { return Promise.resolve(); }
+  }
+
   const LOG_PREFIX = '[ANEF-CS]';
 
   function log(level, message, data = null) {
@@ -25,15 +32,13 @@
     console.log(data ? `${prefix} ${message}` : `${prefix} ${message}`, data || '');
 
     // Envoyer aussi au service worker pour le debug
-    try {
-      chrome.runtime.sendMessage({
-        type: 'LOG',
-        level,
-        source: 'ContentScript',
-        message,
-        data: data ? JSON.stringify(data) : null
-      }).catch(() => {});
-    } catch {}
+    safeSendMessage({
+      type: 'LOG',
+      level,
+      source: 'ContentScript',
+      message,
+      data: data ? JSON.stringify(data) : null
+    });
   }
 
   const logger = {
@@ -91,11 +96,8 @@
     }
 
     if (data) {
-      try {
-        chrome.runtime.sendMessage({ type, data })
-          .then(() => logger.info('📤 Données envoyées:', type))
-          .catch(() => {});
-      } catch {}
+      safeSendMessage({ type, data })
+        .then(() => logger.info('📤 Données envoyées:', type));
     }
   });
 
@@ -178,7 +180,7 @@
     const { type, data } = event.data;
     logger.info('📥 Résultat auto-login:', type);
 
-    try { chrome.runtime.sendMessage({ type, data }).catch(() => {}); } catch {}
+    safeSendMessage({ type, data });
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -217,7 +219,7 @@
         const previousUrl = lastUrl;
         lastUrl = location.href;
         logger.info('📍 Navigation détectée:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
-        try { chrome.runtime.sendMessage({ type: 'PAGE_CHANGED', url: lastUrl }).catch(() => {}); } catch {}
+        safeSendMessage({ type: 'PAGE_CHANGED', url: lastUrl });
 
         // Si on arrive sur mon-compte après une connexion, relancer le script d'injection
         const wasOnLogin = previousUrl.includes('connexion-inscription') ||
@@ -252,13 +254,11 @@
   // ─────────────────────────────────────────────────────────────
 
   function notifyReady() {
-    try {
-      chrome.runtime.sendMessage({
-        type: 'PAGE_READY',
-        url: window.location.href,
-        isLoggedIn: checkLoginStatus()
-      }).catch(() => {});
-    } catch {}
+    safeSendMessage({
+      type: 'PAGE_READY',
+      url: window.location.href,
+      isLoggedIn: checkLoginStatus()
+    });
 
     // Optimisation: si on est sur la page d'accueil, naviguer directement vers mon-compte
     // Cela évite d'attendre que le service-worker détecte l'URL

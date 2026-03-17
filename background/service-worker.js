@@ -139,6 +139,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleMaintenance();
       break;
 
+    // Session expirée (JWT invalide / mot de passe expiré)
+    case 'EXPIRED_SESSION':
+      logger.warn('🔑 Session expirée détectée (JWT invalide)');
+      handleExpiredSession();
+      break;
+
     // Résultat de la récupération par le script injecté
     case 'FETCH_COMPLETE':
       logger.info('📥 Fetch terminé:', message.data);
@@ -198,6 +204,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const metaUpdate = { lastAttempt: new Date().toISOString() };
         if (result.success) metaUpdate.consecutiveFailures = 0;
         await storage.saveAutoCheckMeta(metaUpdate);
+        // Enregistrer la tentative
+        await storage.saveLastCheckAttempt(!!result.success, result.error || null);
         sendResponse(result);
       });
       return true;
@@ -231,10 +239,11 @@ async function handleDossierData(data) {
   }
 
   try {
-    // Réinitialiser l'état de maintenance
+    // Réinitialiser les états d'erreur
     const apiData = await storage.getApiData() || {};
-    if (apiData.inMaintenance) {
+    if (apiData.inMaintenance || apiData.passwordExpired) {
       apiData.inMaintenance = false;
+      apiData.passwordExpired = false;
       await storage.saveApiData(apiData);
     }
 
@@ -298,6 +307,13 @@ async function handleMaintenance() {
   const apiData = await storage.getApiData() || {};
   apiData.inMaintenance = true;
   apiData.maintenanceDetectedAt = new Date().toISOString();
+  await storage.saveApiData(apiData);
+}
+
+/** Marque la session comme expirée (JWT invalide / mot de passe expiré) */
+async function handleExpiredSession() {
+  const apiData = await storage.getApiData() || {};
+  apiData.passwordExpired = true;
   await storage.saveApiData(apiData);
 }
 
@@ -411,9 +427,10 @@ async function updateBadge(statut) {
 
 /** Récupère toutes les données pour le popup */
 async function getStatusForPopup() {
-  const [lastStatus, lastCheck, apiData, history, settings] = await Promise.all([
+  const [lastStatus, lastCheck, lastCheckAttempt, apiData, history, settings] = await Promise.all([
     storage.getLastStatus(),
     storage.getLastCheck(),
+    storage.getLastCheckAttempt(),
     storage.getApiData(),
     storage.getHistory(),
     storage.getSettings()
@@ -422,10 +439,12 @@ async function getStatusForPopup() {
   return {
     lastStatus,
     lastCheck,
+    lastCheckAttempt,
     apiData,
     historyCount: history.length,
     settings,
-    inMaintenance: apiData?.inMaintenance || false
+    inMaintenance: apiData?.inMaintenance || false,
+    passwordExpired: apiData?.passwordExpired || false
   };
 }
 
@@ -524,9 +543,16 @@ async function backgroundRefresh() {
   // Reset le signal de completion du script injecté
   fetchCompleteSignal = null;
 
+  // Reset le flag mot de passe expiré (on va revérifier)
+  const preApiData = await storage.getApiData() || {};
+  if (preApiData.passwordExpired) {
+    preApiData.passwordExpired = false;
+    await storage.saveApiData(preApiData);
+  }
+
   // Snapshots avant le refresh pour détecter les nouvelles données
   const beforeCheck = await storage.getLastCheck();
-  const beforeApiUpdate = (await storage.getApiData())?.lastUpdate;
+  const beforeApiUpdate = preApiData?.lastUpdate;
 
   const credentials = await storage.getCredentials();
   const hasCredentials = !!(credentials?.username && credentials?.password);
@@ -627,6 +653,15 @@ async function backgroundRefresh() {
         const isAnefLogin = URLPatterns.isANEFLogin(currentUrl);
         const isSSOPage = !isAnefLogin && URLPatterns.isSSOPage(currentUrl);
 
+        // Page de changement de mot de passe (expiré)
+        if (URLPatterns.isPasswordExpired(currentUrl)) {
+          logger.warn('🔑 Mot de passe ANEF expiré détecté');
+          const apiData = await storage.getApiData() || {};
+          apiData.passwordExpired = true;
+          await storage.saveApiData(apiData);
+          break;
+        }
+
         // Page de connexion ANEF détectée
         if (isAnefLogin && !loginAttempted.anef && hasCredentials) {
           logger.info('🔐 Page connexion ANEF détectée');
@@ -690,8 +725,8 @@ async function backgroundRefresh() {
       if (fetchCompleteSignal && fetchCompleteSignal.timestamp > startTime) {
         if (!fetchCompleteSignal.success) {
           logger.warn('⚠️ Script injecté a échoué:', fetchCompleteSignal.reason);
-          // Si maintenance, sortir immédiatement
-          if (fetchCompleteSignal.reason === 'maintenance') {
+          // Si maintenance ou session expirée, sortir immédiatement
+          if (fetchCompleteSignal.reason === 'maintenance' || fetchCompleteSignal.reason === 'expired_session') {
             break;
           }
           // Autres échecs : attendre encore un peu les données qui pourraient
@@ -776,6 +811,11 @@ async function backgroundRefresh() {
       }
     }
 
+    // Mot de passe expiré
+    if (finalApiData?.passwordExpired) {
+      return { success: false, error: 'Votre mot de passe ANEF a expiré. Renouvelez-le sur le portail ANEF.', passwordExpired: true };
+    }
+
     if (needsLogin && !hasCredentials) {
       return { success: false, needsLogin: true };
     }
@@ -814,8 +854,7 @@ async function backgroundRefresh() {
 
 const ALARM_NAME = 'anef-auto-check';
 const ALARM_RETRY_NAME = 'anef-auto-check-retry';
-const COOLDOWN_MINUTES = 90; // 1h30
-const MAX_CONSECUTIVE_FAILURES = 3;
+const COOLDOWN_MINUTES = 60; // 1h
 
 /**
  * Configure ou annule l'alarme de vérification automatique
@@ -838,26 +877,12 @@ async function scheduleAutoCheck() {
     return;
   }
 
-  // Auto-reprise après suspension si > 24h depuis la dernière tentative
-  if (meta.disabledByFailure) {
-    if (meta.lastAttempt) {
-      const hoursSinceLast = (Date.now() - new Date(meta.lastAttempt).getTime()) / 3600000;
-      if (hoursSinceLast >= 24) {
-        logger.info('🔄 Auto-reprise après 24h de suspension');
-        await storage.saveAutoCheckMeta({ consecutiveFailures: 0, disabledByFailure: false });
-        // Continuer la programmation normalement
-      } else {
-        logger.info('⏹️ Auto-check suspendu', { suspended: true, hoursSinceLast: Math.round(hoursSinceLast) });
-        return;
-      }
-    } else {
-      logger.info('⏹️ Auto-check suspendu (pas de lastAttempt)');
-      return;
-    }
-  }
-
   // Intervalle + jitter pour décaler les utilisateurs
-  const intervalMinutes = settings.autoCheckInterval || 180;
+  // Backoff progressif : après des échecs consécutifs, augmenter l'intervalle
+  const baseInterval = settings.autoCheckInterval || 90;
+  const failures = meta.consecutiveFailures || 0;
+  const backoffMultiplier = failures > 0 ? Math.min(Math.pow(1.5, failures), 4) : 1; // cap x4 = ~12h
+  const intervalMinutes = Math.round(baseInterval * backoffMultiplier);
   const jitter = settings.autoCheckJitterMin || 0;
 
   // Calculer le délai intelligent avant la première alarme
@@ -888,7 +913,7 @@ async function scheduleAutoCheck() {
   });
 
   logger.info('⏰ Auto-check programmé', {
-    interval: intervalMinutes + ' min',
+    interval: intervalMinutes + ' min' + (failures > 0 ? ` (backoff x${backoffMultiplier.toFixed(1)}, ${failures} échec(s))` : ''),
     firstIn: delayMinutes + ' min',
     raison: delayReason
   });
@@ -954,6 +979,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       });
     }
 
+    // Enregistrer la tentative (succès ou échec)
+    if (!result.aborted) {
+      await storage.saveLastCheckAttempt(!!result.success, result.error || null);
+    }
+
     if (result.success) {
       // Succès → reset compteur d'échecs
       await storage.saveAutoCheckMeta({ consecutiveFailures: 0 });
@@ -961,6 +991,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     } else if (result.maintenance) {
       // Maintenance → ne pas compter comme un échec (pas la faute de l'utilisateur)
       logger.info('🔧 Site en maintenance, ne compte pas comme échec');
+    } else if (result.passwordExpired) {
+      // Mot de passe expiré → ne pas compter comme échec, pas la faute du système
+      logger.warn('🔑 Mot de passe expiré, ne compte pas comme échec');
     } else if (result.needsLogin) {
       // Session expirée sans identifiants → ne pas compter comme échec
       logger.info('🔒 Session expirée, identifiants requis');
@@ -980,6 +1013,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       error: error.message,
       duration: null
     });
+    await storage.saveLastCheckAttempt(false, error.message);
     await handleAutoCheckFailure(error.message, isRetry);
   }
 });
@@ -988,49 +1022,36 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * Gère un échec de vérification automatique.
  * - Si alarme principale (pas retry) → incrémente le compteur + planifie 1 retry à +30 min
  * - Si retry → pas d'incrément, pas de re-retry (seuls les cycles comptent)
- * - Après 3 échecs consécutifs (3 cycles) → suspend et notifie
+ * - Backoff progressif via consecutiveFailures (géré dans scheduleAutoCheck)
  */
 async function handleAutoCheckFailure(reason, isRetry) {
   const meta = await storage.getAutoCheckMeta();
 
-  // Seules les alarmes principales comptent pour la suspension (3 cycles différents)
   const failures = isRetry ? (meta.consecutiveFailures || 0) : (meta.consecutiveFailures || 0) + 1;
 
-  logger.warn(`⚠️ Auto-check échoué (${failures}/${MAX_CONSECUTIVE_FAILURES})`, { reason, isRetry });
+  logger.warn(`⚠️ Auto-check échoué (${failures})`, { reason, isRetry });
 
   if (!isRetry) {
     await storage.saveAutoCheckMeta({ consecutiveFailures: failures });
-  }
-
-  // Planifier un retry uniquement si c'est l'alarme principale (pas un retry)
-  if (!isRetry) {
-    await chrome.alarms.create(ALARM_RETRY_NAME, { delayInMinutes: 30 });
-    logger.info('🔄 Retry programmé dans 30 min');
-  }
-
-  // Suspendre après 3 échecs consécutifs (3 cycles)
-  if (failures >= MAX_CONSECUTIVE_FAILURES) {
-    await storage.saveAutoCheckMeta({ disabledByFailure: true });
+    // Recréer l'alarme principale avec le nouvel intervalle (backoff progressif)
+    // Ne pas toucher au retry alarm — on le crée juste après
     await chrome.alarms.clear(ALARM_NAME);
     await chrome.alarms.clear(ALARM_RETRY_NAME);
-
-    logger.error('🛑 Auto-check suspendu après 3 échecs consécutifs');
-
-    // Notifier l'utilisateur
     const settings = await storage.getSettings();
-    if (settings.notificationsEnabled) {
-      try {
-        await chrome.notifications.create('auto-check-suspended', {
-          type: 'basic',
-          iconUrl: 'assets/icon-128.png',
-          title: '⚠️ Vérification auto suspendue',
-          message: 'La vérification automatique a été suspendue après 3 échecs consécutifs. Vérifiez vos identifiants dans les paramètres.',
-          priority: 1
-        });
-      } catch (e) {
-        logger.error('Erreur notification suspension:', e.message);
-      }
-    }
+    const baseInterval = settings.autoCheckInterval || 90;
+    const backoffMultiplier = Math.min(Math.pow(1.5, failures), 4);
+    const intervalMinutes = Math.round(baseInterval * backoffMultiplier);
+    await chrome.alarms.create(ALARM_NAME, {
+      delayInMinutes: intervalMinutes,
+      periodInMinutes: intervalMinutes
+    });
+    logger.info('⏰ Auto-check reprogrammé', {
+      interval: intervalMinutes + ' min',
+      backoff: `x${backoffMultiplier.toFixed(1)} (${failures} échec(s))`
+    });
+    // Planifier un retry à +30 min
+    await chrome.alarms.create(ALARM_RETRY_NAME, { delayInMinutes: 30 });
+    logger.info('🔄 Retry programmé dans 30 min');
   }
 }
 
@@ -1042,6 +1063,7 @@ async function getAutoCheckInfo() {
   const meta = await storage.getAutoCheckMeta();
   const hasCreds = await storage.hasCredentials();
   const alarms = await chrome.alarms.getAll();
+  const apiData = await storage.getApiData();
 
   const mainAlarm = alarms.find(a => a.name === ALARM_NAME);
   const retryAlarm = alarms.find(a => a.name === ALARM_RETRY_NAME);
@@ -1052,7 +1074,7 @@ async function getAutoCheckInfo() {
     interval: settings.autoCheckInterval,
     lastAttempt: meta.lastAttempt,
     consecutiveFailures: meta.consecutiveFailures,
-    disabledByFailure: meta.disabledByFailure,
+    passwordExpired: apiData?.passwordExpired || false,
     nextAlarm: mainAlarm ? mainAlarm.scheduledTime : null,
     retryAlarm: retryAlarm ? retryAlarm.scheduledTime : null
   };
@@ -1096,10 +1118,22 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await storage.saveSettings({ autoCheckJitterMin: jitter });
       logger.info('🎲 Jitter auto-check généré (migration):', jitter + ' min');
     }
-    // Migration : forcer l'intervalle à 180 min (anciens : 60 ou 480)
-    if (currentSettings.autoCheckInterval !== 180) {
-      await storage.saveSettings({ autoCheckInterval: 180 });
-      logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 180 min');
+    // Migration : forcer l'intervalle à 90 min
+    if (currentSettings.autoCheckInterval !== 90) {
+      await storage.saveSettings({ autoCheckInterval: 90 });
+      logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 90 min');
+    }
+    // Migration v2.2.0 : supprimer disabledByFailure obsolète, reset compteur
+    const meta = await storage.getAutoCheckMeta();
+    if (meta.disabledByFailure !== undefined) {
+      // Écrire directement sans spread pour supprimer les clés obsolètes
+      await storage.set({
+        [storage.STORAGE_KEYS.AUTO_CHECK_META]: {
+          lastAttempt: meta.lastAttempt || null,
+          consecutiveFailures: 0
+        }
+      });
+      logger.info('🔄 Migration: disabledByFailure supprimé, compteur reset');
     }
 
     // Vérifier l'intégrité des identifiants après mise à jour
@@ -1128,11 +1162,11 @@ chrome.runtime.onStartup.addListener(async () => {
     await updateBadge(lastStatus.statut);
   }
 
-  // Migration ponctuelle : corriger l'ancien intervalle 60 → 480
+  // Migration ponctuelle : forcer l'intervalle à 90 min
   const currentSettings = await storage.getSettings();
-  if (currentSettings.autoCheckInterval !== 180) {
-    await storage.saveSettings({ autoCheckInterval: 180 });
-    logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 180 min');
+  if (currentSettings.autoCheckInterval !== 90) {
+    await storage.saveSettings({ autoCheckInterval: 90 });
+    logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 90 min');
   }
 
   // Synchroniser le backup au démarrage

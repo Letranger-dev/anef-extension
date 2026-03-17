@@ -183,7 +183,8 @@
       var numeroDecret = latest.numero_decret;
       var lieuEntretien = latest.lieu_entretien;
       var domicileCP = latest.domicile_code_postal;
-      var lastChecked = latest.created_at || null;
+      // checked_at = date de dernière vérif par l'extension (fallback: created_at)
+      var lastChecked = latest.checked_at || latest.created_at || null;
 
       for (var j = 0; j < snaps.length; j++) {
         if (!dateEntretien && snaps[j].date_entretien) dateEntretien = snaps[j].date_entretien;
@@ -192,8 +193,9 @@
         if (!numeroDecret && snaps[j].numero_decret) numeroDecret = snaps[j].numero_decret;
         if (!lieuEntretien && snaps[j].lieu_entretien) lieuEntretien = snaps[j].lieu_entretien;
         if (!domicileCP && snaps[j].domicile_code_postal) domicileCP = snaps[j].domicile_code_postal;
-        if (snaps[j].created_at && (!lastChecked || snaps[j].created_at > lastChecked)) {
-          lastChecked = snaps[j].created_at;
+        var snapChecked = snaps[j].checked_at || snaps[j].created_at;
+        if (snapChecked && (!lastChecked || snapChecked > lastChecked)) {
+          lastChecked = snapChecked;
         }
       }
 
