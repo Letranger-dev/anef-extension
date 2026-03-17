@@ -218,8 +218,15 @@
 
   var sdanfState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false };
 
+  var FRESHNESS_DAYS = 20;
+
+  function isFreshDossier(s) {
+    if (!s.lastChecked) return false;
+    return new Date(s.lastChecked).getTime() >= Date.now() - FRESHNESS_DAYS * 86400000;
+  }
+
   function renderSdanfWait(summaries) {
-    // Filter dossiers at etape 9 (all SDANF & SCEC statuses)
+    // Tous les dossiers étape 9, les obsolètes (>20j sans vérif) affichés en dernier
     sdanfState.all = summaries.filter(function(s) { return s.currentStep === 9; });
 
     // Populate statut filter pills
@@ -269,18 +276,23 @@
     if (sdanfState.changed) {
       data = data.filter(function(s) { return !!s.previousStatut; });
     }
+    // Trier : dossiers frais d'abord, obsolètes (>20j) en dernier
+    var fresh = data.filter(isFreshDossier);
+    var stale = data.filter(function(s) { return !isFreshDossier(s); });
+    var sortFn;
     switch (sdanfState.sort) {
       case 'days-desc':
-        data = data.slice().sort(function(a, b) { return (b.daysAtCurrentStatus || 0) - (a.daysAtCurrentStatus || 0); });
+        sortFn = function(a, b) { return (b.daysAtCurrentStatus || 0) - (a.daysAtCurrentStatus || 0); };
         break;
       case 'days-asc':
-        data = data.slice().sort(function(a, b) { return (a.daysAtCurrentStatus || 0) - (b.daysAtCurrentStatus || 0); });
+        sortFn = function(a, b) { return (a.daysAtCurrentStatus || 0) - (b.daysAtCurrentStatus || 0); };
         break;
       case 'pref':
-        data = data.slice().sort(function(a, b) { return (a.prefecture || '').localeCompare(b.prefecture || '') || (b.daysAtCurrentStatus || 0) - (a.daysAtCurrentStatus || 0); });
+        sortFn = function(a, b) { return (a.prefecture || '').localeCompare(b.prefecture || '') || (b.daysAtCurrentStatus || 0) - (a.daysAtCurrentStatus || 0); };
         break;
     }
-    return data;
+    if (sortFn) { fresh.sort(sortFn); stale.sort(sortFn); }
+    return fresh.concat(stale);
   }
 
   function renderSdanfPage() {
@@ -352,11 +364,13 @@
       var d = s.daysAtCurrentStatus || 0;
       var urgency = d >= 60 ? 'var(--red)' : d >= 30 ? 'var(--orange)' : 'var(--green)';
       var badge = BADGE_MAP[statutLower] || { text: s.sousEtape + ' ' + s.explication, cls: 'badge-entretien-non' };
+      var isFresh = isFreshDossier(s);
+      var staleStyle = isFresh ? '' : 'opacity:0.5;';
 
       // Last checked by extension
       var checkedHtml = '';
       if (s.lastChecked) {
-        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + '</span>';
+        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + (!isFresh ? ' (ancien)' : '') + '</span>';
       }
 
       // Status change indicator
@@ -377,7 +391,7 @@
         changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
       }
 
-      html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
+      html += '<div class="dossier-row dossier-clickable" style="' + staleStyle + '--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
@@ -1149,6 +1163,7 @@
     if (s.prefecture) items.push('<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(s.prefecture) + '</span></div>');
     if (s.numeroDecret) items.push('<div class="detail-row"><span class="detail-label">D\u00e9cret</span><span>' + U.escapeHtml(s.numeroDecret) + '</span></div>');
     if (s.hasComplement) items.push('<div class="detail-row"><span class="detail-label">Compl\u00e9ment</span><span style="color:var(--orange)">Demand\u00e9</span></div>');
+    if (s.lastChecked) items.push('<div class="detail-row"><span class="detail-label">Derni\u00e8re v\u00e9rif.</span><span style="color:var(--text-dim)">' + U.formatDateTimeFr(s.lastChecked) + '</span></div>');
 
     return '<div class="dossier-detail-info">' + items.join('') + '</div>';
   }

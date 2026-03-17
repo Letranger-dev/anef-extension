@@ -300,7 +300,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
   // ─────────────────────────────────────────────────────────────
 
   async function waitForNationalityTab() {
-    const MAX_WAIT = 15000;
+    const MAX_WAIT = 30000;
     log('⏳ Recherche onglet Nationalité...');
 
     // Vérifier immédiatement
@@ -353,7 +353,10 @@ QJNdXtE3G7SjkDOn36yZSaXp
         if (tab) {
           resolve(tab);
         } else {
-          log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's');
+          const allTabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li');
+          const allLinks = document.querySelectorAll('a');
+          const tabTexts = Array.from(allTabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"');
+          log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's. DOM tabs: ' + allTabs.length + ' [' + tabTexts.join(', ') + ']. Total links: ' + allLinks.length + '. Body length: ' + (document.body?.innerHTML?.length || 0));
           resolve(null);
         }
       }, MAX_WAIT);
@@ -361,10 +364,15 @@ QJNdXtE3G7SjkDOn36yZSaXp
   }
 
   function findNationalityTab() {
-    const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a');
+    const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li');
+    if (tabs.length > 0 && !findNationalityTab._logged) {
+      findNationalityTab._logged = true;
+      log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
+    }
     return Array.from(tabs).find(
       el => el.textContent?.includes("Nationalité Française") ||
             el.textContent?.includes("Nationalité") ||
+            el.textContent?.includes("nationalité") ||
             el.getAttribute('aria-label')?.includes("Nationalité")
     ) || null;
   }
@@ -484,13 +492,43 @@ QJNdXtE3G7SjkDOn36yZSaXp
       return;
     }
 
+    // Écouter les erreurs JWT Angular (session/mot de passe expiré)
+    let jwtErrorDetected = false;
+    const jwtErrorHandler = function(event) {
+      if (event.message && event.message.includes('doesn\'t appear to be a JWT')) {
+        jwtErrorDetected = true;
+        log('🔑 Erreur JWT détectée — session invalide ou mot de passe expiré');
+      }
+    };
+    window.addEventListener('error', jwtErrorHandler);
+
     try {
       await loadForge();
     } catch {
       log('forge.js non disponible, déchiffrement désactivé');
     }
 
+    // Si l'erreur JWT est déjà arrivée (elle arrive très vite), sortir immédiatement
+    if (jwtErrorDetected) {
+      window.removeEventListener('error', jwtErrorHandler);
+      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
+      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
+      sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
+      isRunning = false;
+      return;
+    }
+
     const tab = await waitForNationalityTab();
+    window.removeEventListener('error', jwtErrorHandler);
+
+    // Vérifier si l'erreur JWT est arrivée pendant l'attente
+    if (jwtErrorDetected) {
+      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
+      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
+      sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
+      isRunning = false;
+      return;
+    }
 
     if (!tab) {
       // Revérifier la maintenance (la page a pu finir de charger entre-temps)
