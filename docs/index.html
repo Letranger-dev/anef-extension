@@ -135,6 +135,43 @@
       <div class="mouvements-grid" id="mouvements-grid"></div>
     </div>
 
+    <!-- Historique mouvements (graphique) -->
+    <div class="section" id="mouvements-chart-section" style="display:none">
+      <div class="mouv-section-header" id="mouvements-chart-toggle">
+        <div class="mouv-section-title">
+          <h2>Historique des mouvements</h2>
+          <p class="section-subtitle">Évolution des transitions SDANF / SCEC</p>
+        </div>
+        <button class="mouv-expand-btn" aria-label="Déplier">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
+      <div class="mouv-chart-panel" id="mouvements-chart-panel">
+        <div class="mouv-chart-controls">
+          <div class="mouv-chart-row">
+            <div class="chart-legend-toggles" id="mouvements-chart-toggles"></div>
+          </div>
+          <div class="mouv-chart-row mouv-chart-filters">
+            <div class="mouv-filter-group">
+              <label>De</label>
+              <input type="date" id="mouv-date-from" class="mouv-date-input">
+            </div>
+            <div class="mouv-filter-group">
+              <label>À</label>
+              <input type="date" id="mouv-date-to" class="mouv-date-input">
+            </div>
+            <div class="mouv-granularity-toggles">
+              <button class="mouv-gran-btn active" data-gran="week">Semaine</button>
+              <button class="mouv-gran-btn" data-gran="month">Mois</button>
+            </div>
+          </div>
+        </div>
+        <div style="position:relative;height:340px">
+          <canvas id="mouvements-chart-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
     <!-- Attente SDANF -->
     <div class="section" id="sdanf-wait-section">
       <h2>Contrôle SDANF & SCEC</h2>
