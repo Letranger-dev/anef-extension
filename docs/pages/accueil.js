@@ -47,6 +47,7 @@
 
       var transitions = buildTransitions(snapshots, grouped);
       renderMouvements(transitions);
+      renderMouvementsChart(transitions);
 
       renderSdanfWait(summaries);
       renderEntretienPipeline(summaries);
@@ -961,6 +962,197 @@
     }
 
     modal.classList.add('open');
+  }
+
+  // ─── Mouvements Chart ───────────────────────────────────
+
+  var MOUVEMENT_SERIES = [
+    { key: 'arrivedStep9', label: 'Arriv\u00e9s SDANF', color: '#8b5cf6' },
+    { key: 'caaToCAE', label: 'Pris en charge SDANF', color: '#3b82f6' },
+    { key: 'sdanfToSCEC', label: 'Transf\u00e9r\u00e9s SCEC', color: '#10b981' },
+    { key: 'arrivedDecret', label: 'Ins\u00e9r\u00e9s d\u00e9cret', color: '#f59e0b' }
+  ];
+
+  var mouvChartState = { visible: {}, granularity: 'week', dateFrom: '', dateTo: '', transitions: [] };
+  for (var ms = 0; ms < MOUVEMENT_SERIES.length; ms++) {
+    mouvChartState.visible[MOUVEMENT_SERIES[ms].key] = true;
+  }
+
+  function getWeekLabel(date) {
+    var d = new Date(date);
+    var day = d.getDay();
+    var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    var monday = new Date(d.getFullYear(), d.getMonth(), diff);
+    return String(monday.getDate()).padStart(2, '0') + '/' + String(monday.getMonth() + 1).padStart(2, '0');
+  }
+
+  function getMonthLabel(date) {
+    var d = new Date(date);
+    var MOIS = ['Jan', 'F\u00e9v', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Ao\u00fb', 'Sep', 'Oct', 'Nov', 'D\u00e9c'];
+    return MOIS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  function classifyTransition(t) {
+    var r = { arrivedStep9: 0, caaToCAE: 0, sdanfToSCEC: 0, arrivedDecret: 0 };
+    if (t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer') r.caaToCAE = 1;
+    if (t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut]) r.sdanfToSCEC = 1;
+    if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut]) r.arrivedStep9 = 1;
+    if (t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11) r.arrivedDecret = 1;
+    return r;
+  }
+
+  function computeGroupedMovements(transitions, granularity, dateFrom, dateTo) {
+    var buckets = {};
+    var fromDate = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
+    var toDate = dateTo ? new Date(dateTo + 'T23:59:59') : null;
+
+    for (var i = 0; i < transitions.length; i++) {
+      var t = transitions[i];
+      var d = new Date(t.created_at);
+      if (fromDate && d < fromDate) continue;
+      if (toDate && d > toDate) continue;
+
+      var label = granularity === 'month' ? getMonthLabel(t.created_at) : getWeekLabel(t.created_at);
+      if (!buckets[label]) buckets[label] = { arrivedStep9: 0, caaToCAE: 0, sdanfToSCEC: 0, arrivedDecret: 0, _sort: d };
+
+      var cls = classifyTransition(t);
+      buckets[label].arrivedStep9 += cls.arrivedStep9;
+      buckets[label].caaToCAE += cls.caaToCAE;
+      buckets[label].sdanfToSCEC += cls.sdanfToSCEC;
+      buckets[label].arrivedDecret += cls.arrivedDecret;
+    }
+    var keys = Object.keys(buckets).sort(function(a, b) { return buckets[a]._sort - buckets[b]._sort; });
+    return { labels: keys, data: buckets };
+  }
+
+  function renderMouvementsChart(transitions) {
+    mouvChartState.transitions = transitions;
+    var section = document.getElementById('mouvements-chart-section');
+
+    // Check if any movement data exists
+    var hasData = false;
+    for (var i = 0; i < transitions.length; i++) {
+      var cls = classifyTransition(transitions[i]);
+      if (cls.arrivedStep9 || cls.caaToCAE || cls.sdanfToSCEC || cls.arrivedDecret) { hasData = true; break; }
+    }
+    if (!hasData) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    // Collapsible toggle
+    var header = document.getElementById('mouvements-chart-toggle');
+    var panel = document.getElementById('mouvements-chart-panel');
+    header.addEventListener('click', function() {
+      var isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open');
+      header.classList.toggle('open');
+      if (!isOpen) refreshMouvChart();
+    });
+
+    // Detect date range from data
+    var allDates = transitions.map(function(t) { return t.created_at.substring(0, 10); }).sort();
+    if (allDates.length) {
+      var fromInput = document.getElementById('mouv-date-from');
+      var toInput = document.getElementById('mouv-date-to');
+      fromInput.min = allDates[0];
+      fromInput.max = allDates[allDates.length - 1];
+      toInput.min = allDates[0];
+      toInput.max = allDates[allDates.length - 1];
+      fromInput.value = allDates[0];
+      toInput.value = allDates[allDates.length - 1];
+      mouvChartState.dateFrom = allDates[0];
+      mouvChartState.dateTo = allDates[allDates.length - 1];
+    }
+
+    // Legend toggles
+    var togglesEl = document.getElementById('mouvements-chart-toggles');
+    var togglesHtml = '';
+    for (var j = 0; j < MOUVEMENT_SERIES.length; j++) {
+      var s = MOUVEMENT_SERIES[j];
+      togglesHtml += '<span class="chart-legend-toggle active" data-key="' + s.key + '" style="color:' + s.color + '">' +
+        '<span class="legend-dot" style="background:' + s.color + '"></span>' + s.label + '</span>';
+    }
+    togglesEl.innerHTML = togglesHtml;
+
+    var toggleBtns = togglesEl.querySelectorAll('.chart-legend-toggle');
+    for (var k = 0; k < toggleBtns.length; k++) {
+      toggleBtns[k].addEventListener('click', function(e) {
+        var btn = e.currentTarget;
+        var key = btn.getAttribute('data-key');
+        mouvChartState.visible[key] = !mouvChartState.visible[key];
+        btn.classList.toggle('active', mouvChartState.visible[key]);
+        refreshMouvChart();
+      });
+    }
+
+    // Date inputs
+    document.getElementById('mouv-date-from').addEventListener('change', function(e) {
+      mouvChartState.dateFrom = e.target.value; refreshMouvChart();
+    });
+    document.getElementById('mouv-date-to').addEventListener('change', function(e) {
+      mouvChartState.dateTo = e.target.value; refreshMouvChart();
+    });
+
+    // Granularity buttons
+    var granBtns = document.querySelectorAll('.mouv-gran-btn');
+    for (var g = 0; g < granBtns.length; g++) {
+      granBtns[g].addEventListener('click', function(e) {
+        for (var gb = 0; gb < granBtns.length; gb++) granBtns[gb].classList.remove('active');
+        e.currentTarget.classList.add('active');
+        mouvChartState.granularity = e.currentTarget.getAttribute('data-gran');
+        refreshMouvChart();
+      });
+    }
+
+    refreshMouvChart();
+  }
+
+  function refreshMouvChart() {
+    var grouped = computeGroupedMovements(
+      mouvChartState.transitions,
+      mouvChartState.granularity,
+      mouvChartState.dateFrom,
+      mouvChartState.dateTo
+    );
+
+    var datasets = [];
+    for (var i = 0; i < MOUVEMENT_SERIES.length; i++) {
+      var s = MOUVEMENT_SERIES[i];
+      if (!mouvChartState.visible[s.key]) continue;
+      var values = [];
+      for (var j = 0; j < grouped.labels.length; j++) {
+        values.push(grouped.data[grouped.labels[j]][s.key]);
+      }
+      datasets.push({
+        label: s.label,
+        data: values,
+        backgroundColor: s.color + '99',
+        borderColor: s.color,
+        borderWidth: 1,
+        borderRadius: 4
+      });
+    }
+
+    var granLabel = mouvChartState.granularity === 'month' ? 'Mois de ' : 'Semaine du ';
+    var config = CH.barConfig(grouped.labels, datasets, {
+      stacked: true,
+      datalabels: false
+    });
+    config.options.plugins.legend = { display: false };
+    config.options.plugins.tooltip = {
+      mode: 'index',
+      intersect: false,
+      callbacks: {
+        title: function(items) { return granLabel + items[0].label; },
+        footer: function(items) {
+          var total = 0;
+          for (var i = 0; i < items.length; i++) total += items[i].parsed.y;
+          return 'Total : ' + total;
+        }
+      }
+    };
+    config.options.scales.x.ticks = { color: '#94a3b8', font: { size: 10 }, maxRotation: 45 };
+
+    CH.create('mouvements-weekly', 'mouvements-chart-canvas', config);
   }
 
   // ─── Activity Feed with pagination ──────────────────────
