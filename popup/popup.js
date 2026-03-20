@@ -309,29 +309,20 @@ function displayStatus(statusData, apiData, lastCheck) {
   // Date du statut : chercher la plus ancienne (manual ou auto)
   if (elements.statusDate) {
     (async () => {
-      let earliestDate = date_statut;
-
-      // Vérifier stepDates pour une date rectifiée/manuelle
+      // stepDates (rectification manuelle) a priorité absolue
       const sdData = await chrome.storage.local.get('stepDates');
       const stepDates = sdData.stepDates || [];
       const manualEntry = stepDates.find(sd =>
         (sd.statut || '').toLowerCase() === (statut || '').toLowerCase()
       );
-      if (manualEntry?.date_statut) {
-        if (!earliestDate || manualEntry.date_statut < earliestDate) {
-          earliestDate = manualEntry.date_statut;
-        }
-      }
 
-      // Vérifier l'historique pour la plus ancienne occurrence
-      const hData = await chrome.storage.local.get('history');
-      const history = hData.history || [];
-      for (const h of history) {
-        if ((h.statut || '').toLowerCase() === (statut || '').toLowerCase() && h.date_statut) {
-          if (!earliestDate || h.date_statut < earliestDate) {
-            earliestDate = h.date_statut;
-          }
-        }
+      let earliestDate;
+      if (manualEntry?.date_statut) {
+        // Date rectifiée/manuelle → fait foi
+        earliestDate = manualEntry.date_statut;
+      } else {
+        // Pas de rectification → utiliser la date ANEF
+        earliestDate = date_statut;
       }
 
       if (earliestDate) {
