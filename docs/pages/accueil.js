@@ -88,6 +88,27 @@
       }
       U.setText('kpi-updated', U.formatDateTimeFr(latest));
     }
+
+    // Dernier décret
+    var decretMap = {};
+    for (var d = 0; d < summaries.length; d++) {
+      var nd = summaries[d].numeroDecret;
+      if (nd) {
+        if (!decretMap[nd]) decretMap[nd] = [];
+        decretMap[nd].push(summaries[d]);
+      }
+    }
+    var decretKeys = Object.keys(decretMap);
+    if (decretKeys.length > 0) {
+      decretKeys.sort();
+      var lastDecret = decretKeys[decretKeys.length - 1];
+      var lastDecretDossiers = decretMap[lastDecret];
+      var card = document.getElementById('kpi-decret-card');
+      card.style.display = '';
+      U.setText('kpi-decret', lastDecret);
+      U.setText('kpi-decret-sub', lastDecretDossiers.length + ' dossier' + (lastDecretDossiers.length > 1 ? 's' : ''));
+      card.onclick = function() { showDecretDossiers(lastDecret, decretMap[lastDecret]); };
+    }
   }
 
   function renderTimeline(summaries) {
@@ -1320,6 +1341,67 @@
     }
 
     // Open with animation
+    modal.classList.add('open');
+  }
+
+  // ─── Décret Dossiers Popup ──────────────────────────────
+
+  function showDecretDossiers(decretNum, dossiers) {
+    var html = '';
+    for (var i = 0; i < dossiers.length; i++) {
+      var s = dossiers[i];
+      var color = C.getStepColor(s.currentStep);
+      var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+
+      html += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(s.hash) + '">' +
+        '<span class="activity-dot" style="background:' + color + ';flex-shrink:0"></span>' +
+        '<div class="mouvement-dossier-content">' +
+          '<div class="mouvement-dossier-top">' +
+            '<span class="activity-hash">#' + U.escapeHtml(s.hash) + '</span>' +
+            '<span class="detail-badge" style="background:' + color + ';font-size:0.7rem;padding:0.1rem 0.4rem">' + U.escapeHtml(s.sousEtape) + '</span>' +
+          '</div>' +
+          '<div class="mouvement-dossier-desc">' + U.escapeHtml(s.explication) + '</div>' +
+          '<div class="mouvement-dossier-detail">' + daysLabel + ' depuis le d\u00e9p\u00f4t' +
+            (s.prefecture ? ' \u2014 ' + U.escapeHtml(s.prefecture) : '') +
+          '</div>' +
+        '</div>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
+      '</div>';
+    }
+
+    var modal = document.getElementById('decret-list-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'decret-list-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<h3>D\u00e9cret ' + U.escapeHtml(decretNum) + ' \u2014 ' + dossiers.length + ' dossier' + (dossiers.length > 1 ? 's' : '') + '</h3>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list mouvement-dossier-list">' + html + '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    var items = modal.querySelectorAll('.mouvement-dossier-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].addEventListener('click', function(e) {
+        var hash = e.currentTarget.getAttribute('data-hash');
+        modal.classList.remove('open');
+        showDossierHistory(hash);
+      });
+    }
+
     modal.classList.add('open');
   }
 
