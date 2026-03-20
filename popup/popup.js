@@ -7,8 +7,8 @@
  * - Les détails du dossier
  */
 
-import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep } from '../lib/status-parser.js';
-import { downloadLogs, clearLogs } from '../lib/logger.js';
+import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { downloadLogs } from '../lib/logger.js';
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
 // ─────────────────────────────────────────────────────────────
@@ -275,6 +275,7 @@ async function loadData() {
   } finally {
     // Toujours afficher l'info auto-check (visible sur toutes les vues)
     loadAutoCheckNext();
+    checkStepDatesAlert();
   }
 }
 
@@ -305,18 +306,55 @@ function displayStatus(statusData, apiData, lastCheck) {
   if (elements.statusCode) elements.statusCode.textContent = statut;
   if (elements.statusDescription) elements.statusDescription.textContent = statusInfo.description;
 
-  // Date du statut
+  // Date du statut : chercher la plus ancienne (manual ou auto)
   if (elements.statusDate) {
-    if (date_statut) {
-      const days = daysSince(date_statut);
-      const formattedDate = formatDate(date_statut, true);
-      const duration = formatDuration(days);
-      elements.statusDate.textContent = days === 0
-        ? `Mis à jour le ${formattedDate} (aujourd'hui)`
-        : `Mis à jour le ${formattedDate} (il y a ${duration})`;
-    } else {
-      elements.statusDate.textContent = '—';
-    }
+    (async () => {
+      let earliestDate = date_statut;
+
+      // Vérifier stepDates pour une date rectifiée/manuelle
+      const sdData = await chrome.storage.local.get('stepDates');
+      const stepDates = sdData.stepDates || [];
+      const manualEntry = stepDates.find(sd =>
+        (sd.statut || '').toLowerCase() === (statut || '').toLowerCase()
+      );
+      if (manualEntry?.date_statut) {
+        if (!earliestDate || manualEntry.date_statut < earliestDate) {
+          earliestDate = manualEntry.date_statut;
+        }
+      }
+
+      // Vérifier l'historique pour la plus ancienne occurrence
+      const hData = await chrome.storage.local.get('history');
+      const history = hData.history || [];
+      for (const h of history) {
+        if ((h.statut || '').toLowerCase() === (statut || '').toLowerCase() && h.date_statut) {
+          if (!earliestDate || h.date_statut < earliestDate) {
+            earliestDate = h.date_statut;
+          }
+        }
+      }
+
+      if (earliestDate) {
+        const days = daysSince(earliestDate);
+        const duration = formatDuration(days);
+        elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
+      } else {
+        elements.statusDate.textContent = '—';
+      }
+
+      // Dernière MAJ (date ANEF la plus récente, peut être = date statut ou plus récente)
+      const statusLastCheck = document.getElementById('status-last-check');
+      if (statusLastCheck) {
+        if (date_statut && earliestDate && date_statut.substring(0, 10) !== earliestDate.substring(0, 10)) {
+          // La date ANEF est différente (plus récente) → afficher comme dernière MAJ
+          statusLastCheck.textContent = formatDate(date_statut, true);
+        } else if (lastCheck) {
+          statusLastCheck.textContent = formatDate(lastCheck, true);
+        } else {
+          statusLastCheck.textContent = '—';
+        }
+      }
+    })();
   }
 
   // Barre de progression
@@ -886,6 +924,59 @@ function drawStatCard(ctx, x, y, width, label, value, accentColor) {
   }
   if (lineCount < maxLines) {
     ctx.fillText(line.trim(), x + 12, lineY);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Alerte dates d'étapes
+// ─────────────────────────────────────────────────────────────
+
+async function checkStepDatesAlert() {
+  try {
+    const alertEl = document.getElementById('step-dates-alert');
+    if (!alertEl) return;
+
+    const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
+    if (!response?.lastStatus || !response?.apiData?.dossierId) return;
+
+    const currentInfo = getStatusExplanation(response.lastStatus.statut);
+    if (currentInfo.etape <= 2) return;
+    const currentRang = currentInfo.rang;
+
+    // Statuts couverts (auto + manual), normalisés en minuscules
+    const historyData = await chrome.storage.local.get('history');
+    const history = historyData.history || [];
+    const stepDatesData = await chrome.storage.local.get('stepDates');
+    const stepDates = stepDatesData.stepDates || [];
+
+    const coveredStatuts = new Set();
+    for (const h of history) coveredStatuts.add((h.statut || '').toLowerCase());
+    for (const sd of stepDates) coveredStatuts.add((sd.statut || '').toLowerCase());
+    if (response.apiData.dateDepot) coveredStatuts.add('dossier_depose');
+    if (response.apiData.dateEntretien) coveredStatuts.add('ea_en_attente_ea');
+
+    // Étapes passées ou en cours (rang <= currentRang)
+    const pastSteps = STEP_DEFAULTS.filter(s => {
+      const sRang = getStatusExplanation(s.statut).rang;
+      return sRang <= currentRang;
+    });
+
+    let missing = 0;
+    for (const s of pastSteps) {
+      if (!coveredStatuts.has(s.statut)) missing++;
+    }
+
+    if (missing === 0) return;
+
+    alertEl.classList.remove('hidden');
+
+    // Clic → ouvrir la page options
+    alertEl.onclick = (e) => {
+      e.preventDefault();
+      chrome.runtime.openOptionsPage();
+    };
+  } catch (e) {
+    console.warn('[Popup] Erreur check step dates:', e);
   }
 }
 

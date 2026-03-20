@@ -10,7 +10,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM
@@ -22,7 +22,12 @@ const tabContents = document.querySelectorAll('.tab-content');
 const elements = {
   // Historique
   historyList: document.getElementById('history-list'),
-  btnClearHistory: document.getElementById('btn-clear-history'),
+
+  // Step dates
+  stepDatesSection: document.getElementById('step-dates-section'),
+  stepDatesTimeline: document.getElementById('step-dates-timeline'),
+  btnSaveDates: document.getElementById('btn-save-dates'),
+  btnPullDates: document.getElementById('btn-pull-dates'),
 
   // Paramètres
   settingNotifications: document.getElementById('setting-notifications'),
@@ -77,6 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initVersion();
 
   await loadHistory();
+  await loadStepDates();
   await loadSettings();
   await loadCredentialStatus();
   await loadAutoCheckStatus();
@@ -116,8 +122,9 @@ function switchTab(tabName) {
 }
 
 function attachEventListeners() {
-  // Historique
-  elements.btnClearHistory?.addEventListener('click', handleClearHistory);
+  // Step dates
+  elements.btnSaveDates?.addEventListener('click', handleSaveStepDates);
+  elements.btnPullDates?.addEventListener('click', handlePullStepDates);
 
   // Paramètres
   elements.btnSaveSettings?.addEventListener('click', handleSaveSettings);
@@ -147,8 +154,23 @@ function attachEventListeners() {
 // ─────────────────────────────────────────────────────────────
 
 async function loadHistory() {
-  const history = await storage.getHistory();
+  let history = await storage.getHistory();
   const lastCheck = await storage.getLastCheck();
+
+  // Dédupliquer : une seule entrée par statut (garder la plus ancienne date)
+  const byStatut = {};
+  for (const h of history) {
+    const key = (h.statut || '').toLowerCase();
+    const date = (h.date_statut || '').substring(0, 10);
+    if (!byStatut[key] || (date && (!byStatut[key].date_statut || date < byStatut[key].date_statut.substring(0, 10)))) {
+      byStatut[key] = { ...h, statut: key };
+    }
+  }
+  const deduped = Object.values(byStatut);
+  if (deduped.length < history.length) {
+    await storage.set({ history: deduped });
+    history = deduped;
+  }
 
   // Afficher la dernière vérification en haut
   let lastCheckHtml = '';
@@ -201,12 +223,303 @@ async function loadHistory() {
   }).join('');
 }
 
-async function handleClearHistory() {
-  if (!confirm('Effacer tout l\'historique ?')) return;
+// ─────────────────────────────────────────────────────────────
+// Dates manuelles des étapes
+// ─────────────────────────────────────────────────────────────
 
-  await storage.clearHistory();
+async function loadStepDates() {
+  const apiData = await storage.getApiData();
+  if (!apiData?.dossierId) {
+    elements.stepDatesSection?.classList.add('hidden');
+    return;
+  }
+
+  elements.stepDatesSection?.classList.remove('hidden');
+
+  const history = await storage.getHistory();
+  const stepDates = await storage.getStepDates();
+  const lastStatus = await storage.getLastStatus();
+  const currentInfo = lastStatus ? getStatusExplanation(lastStatus.statut) : null;
+  const currentEtape = currentInfo ? currentInfo.etape : 0;
+  const currentRang = currentInfo ? currentInfo.rang : 0;
+
+  // Dates auto (sources fiables uniquement : apiData + statut actuel)
+  const autoByStatut = {};
+  if (apiData.dateDepot) autoByStatut['dossier_depose'] = toDateStr(apiData.dateDepot);
+  if (apiData.dateEntretien) autoByStatut['ea_en_attente_ea'] = toDateStr(apiData.dateEntretien);
+  if (lastStatus?.date_statut) {
+    autoByStatut[lastStatus.statut.toLowerCase()] = toDateStr(lastStatus.date_statut);
+  }
+
+  // Dates manuelles (saisies par l'utilisateur)
+  const manualByStatut = {};
+  for (const sd of stepDates) {
+    manualByStatut[(sd.statut || '').toLowerCase()] = toDateStr(sd.date_statut);
+  }
+
+  // Afficher toutes les étapes (passées + futures)
+  const stepsToShow = STEP_DEFAULTS;
+
+  let html = '';
+  for (const step of stepsToShow) {
+    const autoDate = autoByStatut[step.statut];
+    const manualDate = manualByStatut[step.statut];
+    const hasManualOverride = !!autoDate && !!manualDate && manualDate !== autoDate;
+    const isManualOnly = !!manualDate && !autoDate;
+    const isAuto = !!autoDate && !hasManualOverride;
+    const isLocked = !!step.locked;
+    const dateValue = hasManualOverride ? manualDate : (isManualOnly ? manualDate : (autoDate || ''));
+    const isCurrent = lastStatus && lastStatus.statut.toLowerCase() === step.statut;
+    const stepRang = getStatusExplanation(step.statut).rang;
+    const isFuture = !isCurrent && stepRang > currentRang;
+    const itemClass = (isCurrent ? 'current ' : '') + (isFuture ? 'future ' : '') + (isAuto ? 'auto' : (dateValue ? 'filled' : ''));
+    const etapeLabel = step.sub ? `Étape ${step.sub}` : `Étape ${step.etape}`;
+    const disabled = (isAuto || isLocked || isFuture) ? 'disabled' : '';
+
+    let badgeHtml = '';
+    if (hasManualOverride) {
+      badgeHtml = '<span class="step-date-badge manual">Rectifié</span>';
+    } else if (isAuto) {
+      badgeHtml = '<span class="step-date-badge auto">Auto</span>';
+    } else if (dateValue) {
+      badgeHtml = '<span class="step-date-badge manual">Manuel</span>';
+    }
+
+    // Bouton modifier pour les auto non verrouillés et non futurs
+    let editBtn = '';
+    if (disabled && !isLocked && !isFuture) {
+      editBtn = '<button class="step-date-edit-btn" title="Rectifier la date">✏️</button>';
+    }
+
+    html += `
+      <div class="step-date-item ${itemClass}" data-locked="${isLocked}">
+        <span class="step-date-dot"></span>
+        <span class="step-date-icon">${step.icon}</span>
+        <div class="step-date-info">
+          <div class="step-date-label">${step.label}</div>
+          <div class="step-date-etape">${etapeLabel} · <code>${step.code}</code></div>
+        </div>
+        <div class="step-date-field">
+          <input type="text" class="step-date-input" data-statut="${step.statut}" data-etape="${step.etape}"
+            data-auto="${isAuto ? autoDate : ''}" data-value="${dateValue || ''}"
+            data-has-saved="${isManualOnly || hasManualOverride ? '1' : ''}"
+            value="${dateValue ? formatDateFR(dateValue) : ''}"
+            placeholder="jj/mm/aaaa" maxlength="10" ${disabled}>
+          <input type="date" class="step-date-picker" tabindex="-1">
+        </div>
+        ${badgeHtml}
+        ${editBtn}
+      </div>
+    `;
+  }
+
+  elements.stepDatesTimeline.innerHTML = html;
+
+  // Bouton "Modifier" → déverrouille le champ auto
+  elements.stepDatesTimeline.querySelectorAll('.step-date-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.step-date-item');
+      const input = item.querySelector('.step-date-input');
+      input.disabled = false;
+      input.focus();
+      input.select();
+      btn.remove();
+      markUnsaved();
+    });
+  });
+
+  // Lier le datepicker caché au champ texte
+  elements.stepDatesTimeline.querySelectorAll('.step-date-field').forEach(field => {
+    const textInput = field.querySelector('.step-date-input');
+    const picker = field.querySelector('.step-date-picker');
+
+    // Clic sur l'icône calendrier du champ → ouvrir le picker
+    textInput.addEventListener('click', () => {
+      if (textInput.disabled) return;
+      picker.value = textInput.dataset.value || '';
+      try { picker.showPicker(); } catch { /* fallback navigateurs anciens */ }
+    });
+
+    // Quand le picker change → mettre à jour le champ texte
+    picker.addEventListener('change', () => {
+      const iso = picker.value;
+      textInput.dataset.value = iso;
+      textInput.value = formatDateFR(iso);
+      textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      updateBadge(textInput);
+    });
+
+    // Saisie manuelle en dd/mm/yyyy
+    textInput.addEventListener('blur', () => {
+      const val = textInput.value.trim();
+      if (!val) {
+        // Si une date était déjà enregistrée, interdire la suppression
+        if (textInput.dataset.hasSaved) {
+          textInput.value = formatDateFR(textInput.dataset.value);
+        } else {
+          textInput.dataset.value = '';
+          updateBadge(textInput);
+        }
+        return;
+      }
+      const match = val.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+      if (match) {
+        const iso = match[3] + '-' + match[2].padStart(2, '0') + '-' + match[1].padStart(2, '0');
+        textInput.dataset.value = iso;
+        textInput.value = formatDateFR(iso);
+      } else {
+        // Essayer format ISO
+        const d = toDateStr(val);
+        if (d && d.length === 10) {
+          textInput.dataset.value = d;
+          textInput.value = formatDateFR(d);
+        }
+      }
+      updateBadge(textInput);
+    });
+  });
+
+  function updateBadge(input) {
+    const item = input.closest('.step-date-item');
+    const autoVal = input.dataset.auto;
+    const curVal = input.dataset.value;
+    let badge = item.querySelector('.step-date-badge');
+    if (autoVal && curVal && curVal !== autoVal) {
+      item.classList.remove('auto');
+      item.classList.add('filled');
+      if (badge) { badge.textContent = 'Rectifié'; badge.className = 'step-date-badge manual'; }
+    } else if (autoVal && (!curVal || curVal === autoVal)) {
+      item.classList.remove('filled');
+      item.classList.add('auto');
+      if (badge) { badge.textContent = 'Auto'; badge.className = 'step-date-badge auto'; }
+    } else if (curVal) {
+      item.classList.add('filled');
+      if (!badge) {
+        input.closest('.step-date-field').insertAdjacentHTML('afterend', '<span class="step-date-badge manual">Manuel</span>');
+      }
+    }
+    markUnsaved();
+  }
+}
+
+function markUnsaved() {
+  elements.btnSaveDates?.classList.add('unsaved');
+  let banner = document.getElementById('unsaved-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'unsaved-banner';
+    banner.className = 'unsaved-banner';
+    banner.innerHTML = '<span class="unsaved-dot"></span> Modifications non enregistrées';
+    elements.stepDatesTimeline.parentElement.insertBefore(banner, elements.stepDatesTimeline);
+  }
+  banner.classList.add('show');
+}
+
+function clearUnsaved() {
+  elements.btnSaveDates?.classList.remove('unsaved');
+  const banner = document.getElementById('unsaved-banner');
+  if (banner) banner.remove();
+}
+
+async function handleSaveStepDates() {
+  const allInputs = elements.stepDatesTimeline.querySelectorAll('.step-date-input');
+  const entries = [];
+
+  // Validate chronological order
+  let prevDate = null;
+  for (const input of allInputs) {
+    const val = input.dataset.value;
+    if (val) {
+      if (prevDate && val < prevDate) {
+        showToast('Les dates doivent être chronologiques', 'error');
+        input.focus();
+        return;
+      }
+      prevDate = val;
+    }
+  }
+
+  // Récupérer les stepDates existantes pour ne jamais perdre une date
+  const existingStepDates = await storage.getStepDates();
+  const existingByStatut = {};
+  for (const sd of existingStepDates) {
+    existingByStatut[(sd.statut || '').toLowerCase()] = sd;
+  }
+
+  // Collect toutes les entrées
+  for (const input of allInputs) {
+    const statut = input.dataset.statut;
+    const isoVal = input.dataset.value;
+    const autoVal = input.dataset.auto;
+    const existing = existingByStatut[statut];
+
+    if (isoVal && (!autoVal || isoVal !== autoVal)) {
+      // Nouvelle valeur ou valeur modifiée
+      entries.push({
+        statut,
+        date_statut: isoVal,
+        manual: true,
+        timestamp: new Date().toISOString()
+      });
+    } else if (!isoVal && existing) {
+      // Champ vidé mais date existante → garder l'ancienne (pas de suppression)
+      entries.push(existing);
+      showToast('Une date déjà enregistrée ne peut pas être supprimée', 'error');
+      return;
+    }
+  }
+
+  await storage.saveStepDates(entries);
+
+  // Also add manual entries to history for display
+  for (const entry of entries) {
+    await storage.addToHistory(entry);
+  }
+
+  // Sync to Supabase via service worker
+  try {
+    await chrome.runtime.sendMessage({ type: 'SYNC_STEP_DATES' });
+  } catch (e) {
+    console.warn('[Options] Erreur sync step dates:', e);
+  }
+
+  await loadStepDates();
   await loadHistory();
-  showToast('Historique effacé', 'success');
+  clearUnsaved();
+  showToast('Dates enregistrées et synchronisées', 'success');
+}
+
+async function handlePullStepDates() {
+  try {
+    elements.btnPullDates.disabled = true;
+    elements.btnPullDates.textContent = 'Chargement...';
+
+    const result = await chrome.runtime.sendMessage({ type: 'PULL_STEP_DATES' });
+
+    if (result?.error) {
+      showToast(result.error, 'error');
+      return;
+    }
+
+    if (result?.count > 0) {
+      await loadStepDates();
+      await loadHistory();
+      showToast(`${result.count} date(s) récupérée(s) depuis la base`, 'success');
+    } else {
+      showToast('Aucune donnée trouvée dans la base', 'info');
+    }
+  } catch (e) {
+    showToast('Erreur de connexion', 'error');
+  } finally {
+    elements.btnPullDates.disabled = false;
+    elements.btnPullDates.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      Récupérer`;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -627,4 +940,29 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/** Formate une date YYYY-MM-DD en dd/mm/yyyy */
+function formatDateFR(dateStr) {
+  if (!dateStr) return '';
+  const d = toDateStr(dateStr);
+  if (!d || d.length < 10) return '';
+  return d.substring(8, 10) + '/' + d.substring(5, 7) + '/' + d.substring(0, 4);
+}
+
+/** Normalise une date en YYYY-MM-DD (compatible input type="date") */
+function toDateStr(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr);
+  // Déjà au bon format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // ISO timestamp → extraire la date
+  const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  // Tenter un parse
+  try {
+    const d = new Date(s);
+    if (!isNaN(d)) return d.toISOString().substring(0, 10);
+  } catch { /* ignore */ }
+  return '';
 }

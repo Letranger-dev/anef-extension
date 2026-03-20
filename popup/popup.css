@@ -491,18 +491,28 @@ body {
 }
 
 /* Status Date */
-.status-date {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--slate-500);
-  padding-top: 14px;
+.status-dates {
+  padding-top: 12px;
   border-top: 1px solid var(--slate-100);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.status-date svg {
-  opacity: 0.6;
+.status-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.status-date-label {
+  color: var(--slate-500);
+}
+
+.status-date-value {
+  color: var(--slate-700);
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -635,6 +645,78 @@ body {
   color: var(--warning-color, #e67e22);
   font-size: 0.85em;
 }
+
+/* ─── Step dates alert ─────────────────────────────────────── */
+
+.step-dates-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.step-dates-alert:hover {
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  border-color: #d97706;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
+.step-dates-alert.hidden { display: none; }
+
+.step-dates-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.step-dates-alert-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+.step-dates-alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.step-dates-alert-text strong {
+  font-size: 12px;
+  color: #92400e;
+}
+
+.step-dates-alert-sub {
+  font-size: 10px;
+  color: #a16207;
+  line-height: 1.3;
+}
+
+.step-dates-alert-arrow {
+  font-size: 16px;
+  color: #92400e;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── Auto-check banner ────────────────────────────────────── */
 
 .auto-check-banner {
   display: flex;

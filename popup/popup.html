@@ -170,14 +170,30 @@
           </div>
         </div>
 
-        <!-- Date -->
-        <div class="status-date">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span id="status-date">—</span>
+        <!-- Dates -->
+        <div class="status-dates">
+          <div class="status-date-row">
+            <span class="status-date-label">📅 Statut depuis</span>
+            <span class="status-date-value" id="status-date">—</span>
+          </div>
+          <div class="status-date-row">
+            <span class="status-date-label">🔄 Dernière MAJ</span>
+            <span class="status-date-value" id="status-last-check">—</span>
+          </div>
         </div>
       </div>
+
+      <!-- Alerte dates manquantes -->
+      <a href="#" id="step-dates-alert" class="step-dates-alert hidden">
+        <div class="step-dates-alert-content">
+          <span class="step-dates-alert-pulse"></span>
+          <span class="step-dates-alert-text">
+            <strong>Historique incomplet</strong>
+            <span class="step-dates-alert-sub">Renseignez vos dates d'étapes passées pour enrichir les statistiques</span>
+          </span>
+        </div>
+        <span class="step-dates-alert-arrow">→</span>
+      </a>
 
       <!-- Boutons d'action -->
       <div class="actions">

@@ -162,12 +162,310 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   Step Dates Timeline
+   ═══════════════════════════════════════════════════════════════ */
+
+.step-dates-section {
+  margin-bottom: 24px;
+}
+
+.step-dates-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.step-dates-hint {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin: 4px 0 16px;
+}
+
+.step-dates-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.step-dates-timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--gray-200);
+  border-radius: 1px;
+}
+
+.step-date-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.step-date-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.step-date-item.auto {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.step-date-item.filled {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+
+.step-date-item.current {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.step-date-item.current .step-date-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+.step-date-item.current .step-date-label {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.step-date-item.current::after {
+  content: 'En cours';
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #f59e0b;
+  padding: 1px 8px;
+  border-radius: 4px;
+}
+
+.step-date-item.future {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.step-date-item.future .step-date-dot {
+  background: var(--gray-200);
+  border-style: dashed;
+}
+
+.step-date-dot {
+  position: absolute;
+  left: -20px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gray-300);
+  border: 2px solid var(--white);
+  z-index: 1;
+}
+
+.step-date-item.auto .step-date-dot {
+  background: #22c55e;
+}
+
+.step-date-item.filled .step-date-dot {
+  background: var(--primary);
+}
+
+.step-date-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.step-date-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-date-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.step-date-etape {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.step-date-field {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.step-date-input {
+  width: 110px;
+  padding: 6px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--gray-900);
+  background: var(--white);
+  text-align: center;
+  letter-spacing: 0.3px;
+  transition: border-color 0.2s;
+}
+
+.step-date-input::placeholder {
+  color: var(--gray-400);
+  font-size: 12px;
+}
+
+.step-date-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.step-date-input:disabled {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+  font-weight: 600;
+  cursor: default;
+  opacity: 1;
+}
+
+.step-date-picker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.step-date-info code {
+  font-size: 10px;
+  color: var(--gray-400);
+  background: var(--gray-100);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.step-date-edit-btn {
+  background: none;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.step-date-edit-btn:hover {
+  background: #eff6ff;
+  border-color: var(--primary);
+}
+
+/* ─── Unsaved state ──────────────────────────────────────── */
+
+.btn.unsaved {
+  background: #f59e0b !important;
+  border-color: #d97706 !important;
+  color: #fff !important;
+  animation: pulse-save 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+}
+
+@keyframes pulse-save {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+.unsaved-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.unsaved-banner.show {
+  display: flex;
+}
+
+.unsaved-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-save 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.step-date-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.step-date-badge.auto {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.step-date-badge.manual {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    History List
    ═══════════════════════════════════════════════════════════════ */
 
 .history-list {
-  max-height: 500px;
+  max-height: 350px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
 }
 
 .last-check-banner {

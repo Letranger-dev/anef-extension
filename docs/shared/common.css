@@ -817,6 +817,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .mouvement-notif.mouvement-primary { border-left-color: var(--primary); }
 .mouvement-notif.mouvement-green   { border-left-color: var(--green); }
 .mouvement-notif.mouvement-violet  { border-left-color: var(--violet); }
+.mouvement-notif.mouvement-warning { border-left-color: var(--orange); }
 
 .mouvement-notif-count {
   font-weight: 700;
@@ -824,6 +825,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .mouvement-primary .mouvement-notif-count { color: var(--primary-light); }
 .mouvement-green .mouvement-notif-count   { color: var(--green); }
 .mouvement-violet .mouvement-notif-count  { color: var(--violet); }
+.mouvement-warning .mouvement-notif-count { color: var(--orange); }
 
 .mouvement-notif-text {
   font-size: 0.85rem;
@@ -2276,7 +2278,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   font-weight: 600;
 }
 .mouv-date-input {
-  background: var(--card-bg);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
