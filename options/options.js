@@ -157,17 +157,30 @@ async function loadHistory() {
   let history = await storage.getHistory();
   const lastCheck = await storage.getLastCheck();
 
-  // Dédupliquer : une seule entrée par statut (garder la plus ancienne date)
+  // Dédupliquer : une seule entrée par statut
+  // stepDates (rectifications) ont priorité sur l'historique
+  const stepDatesForHistory = await storage.getStepDates();
+  const sdMap = {};
+  for (const sd of stepDatesForHistory) {
+    sdMap[(sd.statut || '').toLowerCase()] = (sd.date_statut || '').substring(0, 10);
+  }
+
   const byStatut = {};
   for (const h of history) {
     const key = (h.statut || '').toLowerCase();
-    const date = (h.date_statut || '').substring(0, 10);
-    if (!byStatut[key] || (date && (!byStatut[key].date_statut || date < byStatut[key].date_statut.substring(0, 10)))) {
-      byStatut[key] = { ...h, statut: key };
+    const sdDate = sdMap[key];
+    if (sdDate) {
+      // stepDates a priorité → utiliser sa date
+      byStatut[key] = { ...h, statut: key, date_statut: sdDate };
+    } else {
+      const date = (h.date_statut || '').substring(0, 10);
+      if (!byStatut[key] || (date && (!byStatut[key].date_statut || date < byStatut[key].date_statut.substring(0, 10)))) {
+        byStatut[key] = { ...h, statut: key };
+      }
     }
   }
   const deduped = Object.values(byStatut);
-  if (deduped.length < history.length) {
+  if (deduped.length < history.length || stepDatesForHistory.length) {
     await storage.set({ history: deduped });
     history = deduped;
   }
