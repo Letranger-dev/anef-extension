@@ -438,6 +438,8 @@
     }
 
     var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+    var sansEntretienCard = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
+    var sansEntretienBadgeCard = sansEntretienCard ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
 
     var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
@@ -458,7 +460,7 @@
       '</div>' +
       '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + '</div>' +
+        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + sansEntretienBadgeCard + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +

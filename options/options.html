@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-FR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,15 +62,35 @@
           <div id="check-log-list" class="check-log-list"></div>
         </div>
 
+        <!-- Timeline des étapes (saisie manuelle) -->
+        <div id="step-dates-section" class="step-dates-section hidden">
+          <div class="section-header">
+            <h2>Mes dates d'étapes</h2>
+            <div class="step-dates-actions">
+              <button id="btn-pull-dates" class="btn btn-secondary btn-sm" title="Récupérer depuis la base de données">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Récupérer
+              </button>
+              <button id="btn-save-dates" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Enregistrer
+              </button>
+            </div>
+          </div>
+          <p class="step-dates-hint">Renseignez les dates de vos changements d'étape pour enrichir les statistiques communautaires.</p>
+          <div id="step-dates-timeline" class="step-dates-timeline"></div>
+        </div>
+
         <div class="section-header">
           <h2>Historique des statuts</h2>
-          <button id="btn-clear-history" class="btn btn-danger btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            Effacer
-          </button>
         </div>
 
         <div id="history-list" class="history-list">

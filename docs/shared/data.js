@@ -153,9 +153,12 @@
     }
     map.forEach(function(snaps) {
       snaps.sort(function(a, b) {
-        var dateA = a.created_at || '';
-        var dateB = b.created_at || '';
-        return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
+        // Trier par date_statut (chronologie réelle), fallback created_at
+        var dateA = a.date_statut || a.created_at || '';
+        var dateB = b.date_statut || b.created_at || '';
+        if (dateA !== dateB) return dateA < dateB ? -1 : 1;
+        // Si même date_statut, trier par etape
+        return (a.etape || 0) - (b.etape || 0);
       });
     });
     return map;

@@ -983,7 +983,7 @@
     var day = d.getDay();
     var diff = d.getDate() - day + (day === 0 ? -6 : 1);
     var monday = new Date(d.getFullYear(), d.getMonth(), diff);
-    return String(monday.getDate()).padStart(2, '0') + '/' + String(monday.getMonth() + 1).padStart(2, '0');
+    return String(monday.getDate()).padStart(2, '0') + '/' + String(monday.getMonth() + 1).padStart(2, '0') + '/' + String(monday.getFullYear()).slice(-2);
   }
 
   function getMonthLabel(date) {
@@ -1103,7 +1103,6 @@
       });
     }
 
-    refreshMouvChart();
   }
 
   function refreshMouvChart() {

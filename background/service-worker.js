@@ -11,7 +11,7 @@
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
-import { sendAnonymousStats } from '../lib/anonymous-stats.js';
+import { sendAnonymousStats, sendManualStepDates, fetchDossierSnapshots } from '../lib/anonymous-stats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -220,6 +220,82 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Infos auto-check pour l'UI
     case 'GET_AUTO_CHECK_INFO':
       getAutoCheckInfo().then(sendResponse);
+      return true;
+
+    // Synchroniser les dates manuelles vers Supabase
+    case 'SYNC_STEP_DATES':
+      (async () => {
+        try {
+          const stepDates = await storage.getStepDates();
+          const apiData = await storage.getApiData();
+          if (stepDates.length && apiData) {
+            await sendManualStepDates(stepDates, apiData);
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: 'Pas de données' });
+          }
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+      })();
+      return true;
+
+    // Récupérer les snapshots depuis Supabase → stepDates locales
+    case 'PULL_STEP_DATES':
+      (async () => {
+        try {
+          const apiData = await storage.getApiData();
+          if (!apiData?.dossierId) {
+            sendResponse({ error: 'Aucun dossier connu' });
+            return;
+          }
+          const snapshots = await fetchDossierSnapshots(apiData);
+          if (!snapshots.length) {
+            sendResponse({ count: 0 });
+            return;
+          }
+
+          // Reconstruire stepDates depuis la base (source = manual)
+          const pulledStepDates = [];
+          for (const snap of snapshots) {
+            if (snap.date_statut && snap.source === 'manual') {
+              pulledStepDates.push({
+                statut: snap.statut.toLowerCase(),
+                date_statut: snap.date_statut,
+                manual: true,
+                timestamp: snap.checked_at || new Date().toISOString()
+              });
+            }
+          }
+
+          // Merger : la base fait autorité pour les manuels
+          const existing = await storage.getStepDates();
+          const mergedMap = {};
+          for (const sd of existing) {
+            mergedMap[(sd.statut || '').toLowerCase()] = sd;
+          }
+          for (const sd of pulledStepDates) {
+            mergedMap[sd.statut] = sd; // la base écrase le local
+          }
+          await storage.saveStepDates(Object.values(mergedMap));
+
+          // Ajouter à l'historique si absent
+          for (const snap of snapshots) {
+            if (snap.date_statut) {
+              await storage.addToHistory({
+                statut: snap.statut.toLowerCase(),
+                date_statut: snap.date_statut,
+                manual: snap.source === 'manual',
+                timestamp: snap.checked_at || new Date().toISOString()
+              });
+            }
+          }
+
+          sendResponse({ count: pulledStepDates.length });
+        } catch (e) {
+          sendResponse({ error: e.message });
+        }
+      })();
       return true;
 
     default:
