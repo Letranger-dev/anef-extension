@@ -5,8 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Accueil</title>
-  <meta name="description" content="Statistiques anonymes sur les délais de naturalisation française - données communautaires ANEF">
+  <title>ANEF Stats — Suivi naturalisation française en temps réel</title>
+  <meta name="description" content="Suivez les délais de naturalisation française en temps réel grâce aux données anonymes de la communauté. Statistiques par préfecture, étapes SDANF/SCEC, durées moyennes et mouvements quotidiens.">
+  <meta name="keywords" content="naturalisation française, ANEF, délais naturalisation, SDANF, SCEC, suivi dossier, préfecture, décret naturalisation">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ANEF Stats — Suivi naturalisation française en temps réel">
+  <meta property="og:description" content="Statistiques communautaires sur les délais de naturalisation française. Données anonymes par préfecture, étapes et durées.">
+  <meta property="og:url" content="https://letranger-dev.github.io/anef-extension/">
+  <meta property="og:locale" content="fr_FR">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ANEF Stats — Suivi naturalisation française">
+  <meta name="twitter:description" content="Statistiques communautaires sur les délais de naturalisation française en temps réel.">
+  <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/">
   <link rel="stylesheet" href="shared/common.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -36,6 +46,20 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "ANEF Status Tracker",
+    "description": "Statistiques communautaires sur les délais de naturalisation française. Suivez en temps réel l'avancement des dossiers par préfecture, les étapes SDANF et SCEC, et les durées moyennes de traitement.",
+    "url": "https://letranger-dev.github.io/anef-extension/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Chrome",
+    "inLanguage": "fr",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "author": { "@type": "Person", "name": "Letranger-dev" }
+  }
+  </script>
 </head>
 <body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
 
@@ -84,6 +108,16 @@
       </a>
     </div>
   </nav>
+
+  <!-- SEO fallback for search engines -->
+  <noscript>
+    <div style="max-width:800px;margin:2rem auto;padding:1rem;color:#e2e8f0">
+      <h2>Statistiques de naturalisation française — ANEF Status Tracker</h2>
+      <p>ANEF Status Tracker collecte des données anonymes auprès de sa communauté d'utilisateurs pour fournir des statistiques en temps réel sur les délais de naturalisation française.</p>
+      <p>Consultez les durées moyennes par préfecture, suivez les étapes du processus (instruction, entretien d'assimilation, décision préfecture, contrôle SDANF, vérification SCEC, décret) et visualisez les mouvements quotidiens dans le pipeline.</p>
+      <p>L'extension Chrome est disponible gratuitement sur le Chrome Web Store.</p>
+    </div>
+  </noscript>
 
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
