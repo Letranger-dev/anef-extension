@@ -255,6 +255,8 @@
       var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
       var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+      var sansEntretien = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
+      var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
         '<div class="dossier-row-main">' +
@@ -264,7 +266,7 @@
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
-            triBadge +
+            triBadge + sansEntretienBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span>' + daysAtStatus + ' au statut</span>' +

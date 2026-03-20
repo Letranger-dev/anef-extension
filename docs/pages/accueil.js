@@ -457,9 +457,14 @@
 
   var entretienState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false };
 
-  /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later) */
+  /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later), excluding sans-entretien */
   function isEntretienPassed(s) {
-    return s.rang >= 702;
+    return s.rang >= 702 && !isDecisionSansEntretien(s);
+  }
+
+  /** Dossier en phase décision (étape 8) sans être passé par l'entretien (étape 7) */
+  function isDecisionSansEntretien(s) {
+    return s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
   }
 
   function renderEntretienPipeline(summaries) {
@@ -516,7 +521,9 @@
     if (entretienState.filter === 'passed') {
       data = data.filter(function(s) { return isEntretienPassed(s); });
     } else if (entretienState.filter === 'pending') {
-      data = data.filter(function(s) { return !isEntretienPassed(s); });
+      data = data.filter(function(s) { return !isEntretienPassed(s) && !isDecisionSansEntretien(s); });
+    } else if (entretienState.filter === 'sans-entretien') {
+      data = data.filter(function(s) { return isDecisionSansEntretien(s); });
     }
     if (entretienState.statut) {
       var filterStatutE = entretienState.statut.toLowerCase();
@@ -561,7 +568,8 @@
     // KPIs
     var total = data.length;
     var passed = data.filter(function(s) { return isEntretienPassed(s); }).length;
-    var pending = total - passed;
+    var sansEntretienCount = data.filter(function(s) { return isDecisionSansEntretien(s); }).length;
+    var pending = total - passed - sansEntretienCount;
     var daysArr = data.filter(function(s) { return s.daysSinceDeposit != null; }).map(function(s) { return s.daysSinceDeposit; });
     var avg = daysArr.length ? Math.round(daysArr.reduce(function(a, b) { return a + b; }, 0) / daysArr.length) : 0;
 
@@ -569,6 +577,7 @@
       '<span class="kpi-bar-item"><strong>' + total + '</strong> total</span>' +
       '<span class="kpi-bar-item"><strong class="green">' + passed + '</strong> entretien passé</span>' +
       '<span class="kpi-bar-item"><strong class="orange">' + pending + '</strong> en attente</span>' +
+      (sansEntretienCount ? '<span class="kpi-bar-item"><strong style="color:#ef4444">' + sansEntretienCount + '</strong> décision sans entretien</span>' : '') +
       '<span class="kpi-bar-item"><strong>' + U.formatDuration(avg) + '</strong> durée moy.</span>';
 
     // Pagination
@@ -589,8 +598,18 @@
       var s = pageData[i];
       var color = C.STEP_COLORS[s.currentStep];
       var passed_flag = isEntretienPassed(s);
-      var badgeClass = passed_flag ? 'badge-entretien-oui' : 'badge-entretien-non';
-      var badgeText = passed_flag ? 'Entretien pass\u00e9' : 'En attente';
+      var sansEntretien = isDecisionSansEntretien(s);
+      var badgeClass, badgeText;
+      if (sansEntretien) {
+        badgeClass = 'badge-decision-sans-entretien';
+        badgeText = '\u26A0 D\u00e9cision sans entretien';
+      } else if (passed_flag) {
+        badgeClass = 'badge-entretien-oui';
+        badgeText = 'Entretien pass\u00e9';
+      } else {
+        badgeClass = 'badge-entretien-non';
+        badgeText = 'En attente';
+      }
       var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
       // Last checked by extension
@@ -617,6 +636,12 @@
         changeHtml = '<span style="font-size:0.7rem;color:var(--text-dim)">Aucun changement de statut d\u00e9tect\u00e9</span>';
       }
 
+      var sansEntretienHtml = '';
+      if (sansEntretien) {
+        sansEntretienHtml = '<div class="dossier-row-meta"><span style="font-size:0.72rem;color:#ef4444">' +
+          '\u26A0 Dossier en phase d\u00e9cision sans \u00eatre pass\u00e9 par l\u2019entretien \u2014 ajournement ou classement anticip\u00e9 probable</span></div>';
+      }
+
       html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
@@ -627,6 +652,7 @@
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
             ' <span class="statut-code">(' + U.escapeHtml((s.statut || '').toUpperCase()) + ')</span>' +
           '</div>' +
+          sansEntretienHtml +
           '<div class="dossier-row-meta">' +
             '<span>' + daysLabel + ' depuis le d\u00e9p\u00f4t</span>' +
             (s.dateEntretien ? '<span>Entretien: ' + U.formatDateFr(s.dateEntretien) + '</span>' : '') +
