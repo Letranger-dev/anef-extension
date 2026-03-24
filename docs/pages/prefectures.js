@@ -384,9 +384,14 @@
     for (var d = 0; d < dossierKeys.length; d++) {
       var snaps = byDossier[dossierKeys[d]];
       snaps.sort(function(a, b) {
+        var dateDiff = new Date(a.date_statut || 0) - new Date(b.date_statut || 0);
+        if (dateDiff !== 0) return dateDiff;
         var stepDiff = Number(a.etape) - Number(b.etape);
         if (stepDiff !== 0) return stepDiff;
-        return new Date(a.date_statut || 0) - new Date(b.date_statut || 0);
+        // Même étape + même date → trier par rang (sous-statut)
+        var rangA = (C.STATUTS[(a.statut || '').toLowerCase()] || {}).rang || (a.etape * 100);
+        var rangB = (C.STATUTS[(b.statut || '').toLowerCase()] || {}).rang || (b.etape * 100);
+        return rangA - rangB;
       });
 
       for (var j = 0; j < snaps.length; j++) {
@@ -396,8 +401,15 @@
 
         // Time spent AT this step:
         // - If there's a next snapshot: time until next step
-        // - If it's the last (current) step: time until today
-        var endDate = (j + 1 < snaps.length) ? snaps[j + 1].date_statut : today;
+        // - If it's the last (current) step: time until today (sauf dossiers terminés)
+        var endDate;
+        if (j + 1 < snaps.length) {
+          endDate = snaps[j + 1].date_statut;
+        } else {
+          // Dernier snapshot — figer si dossier terminé
+          var isTerminated = C.isFinished({ etape: cur.etape, statut: cur.statut });
+          endDate = isTerminated ? cur.date_statut : today;
+        }
         if (!endDate) continue;
         var days = U.daysDiff(cur.date_statut, endDate);
         if (days === null || days < 0) continue;
@@ -552,9 +564,14 @@
         }
       } else {
         if (snap.date_statut) {
-          var today = new Date(); today.setHours(0, 0, 0, 0);
-          var days = U.daysDiff(snap.date_statut, today);
-          durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+          var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut });
+          if (isTerminated) {
+            durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
+          } else {
+            var today = new Date(); today.setHours(0, 0, 0, 0);
+            var days = U.daysDiff(snap.date_statut, today);
+            durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+          }
         }
       }
 

@@ -2200,6 +2200,25 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   border-radius: 4px;
 }
 
+.badge-finished-ok {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16,185,129,0.12);
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+.badge-finished-ko {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ef4444;
+  background: rgba(239,68,68,0.12);
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+
 /* ─── Mouvement section header (collapsible) ──────────────── */
 
 .mouv-section-header {

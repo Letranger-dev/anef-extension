@@ -251,12 +251,19 @@
     for (var i = 0; i < pageData.length; i++) {
       var s = pageData[i];
       var color = C.getStepColor(s.currentStep);
-      var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
-      var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+      var daysAtStatus, totalDuration;
+      if (s.isFinished) {
+        daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
+        totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+      } else {
+        daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+        totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+      }
 
       var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
       var sansEntretien = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
       var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
+      var finishedBadge = s.isFinished ? (C.isPositiveStatus(s.statut) || s.currentStep === 11 ? ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>' : ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>') : '';
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
         '<div class="dossier-row-main">' +
@@ -266,10 +273,10 @@
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
-            triBadge + sansEntretienBadge +
+            triBadge + sansEntretienBadge + finishedBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
-            '<span>' + daysAtStatus + ' au statut</span>' +
+            '<span>' + (s.isFinished ? daysAtStatus : daysAtStatus + ' au statut') + '</span>' +
             '<span>' + totalDuration + ' total</span>' +
             (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
             (s.hasComplement ? '<span style="color:var(--orange)">Complément</span>' : '') +
@@ -331,13 +338,18 @@
           durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
         }
       } else {
-        var today = new Date(); today.setHours(0, 0, 0, 0);
-        var days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
-        if (!days && snap.created_at) {
-          days = U.daysDiff(snap.created_at, today);
-        }
-        if (days !== null) {
-          durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+        var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut });
+        if (isTerminated) {
+          durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
+        } else {
+          var today = new Date(); today.setHours(0, 0, 0, 0);
+          var days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
+          if (!days && snap.created_at) {
+            days = U.daysDiff(snap.created_at, today);
+          }
+          if (days !== null) {
+            durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+          }
         }
       }
 
@@ -382,17 +394,24 @@
       miniTimeline += '<span class="step-dot' + (st === s.currentStep ? ' current' : '') + '" style="background:' + C.STEP_COLORS[st] + '" title="' + st + '. ' + C.PHASE_NAMES[st] + '">' + st + '</span>';
     }
 
-    var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
-    var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+    var daysAtStatus, totalDuration, durationLabel;
+    if (s.isFinished) {
+      daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
+      durationLabel = 'Finalis\u00e9 le';
+    } else {
+      daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+      durationLabel = 'Au statut actuel';
+    }
+    totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
-    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Préfecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Pr\u00e9fecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
     if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
     if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
-    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">D\u00e9cret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
-    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
-    var checkedHtml = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">Vérifié le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">Compl\u00e9ment demand\u00e9</span>' : '';
+    var checkedHtml = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
 
     // Status history timeline
     var snaps = state.grouped.get(s.fullHash) || [];
@@ -403,8 +422,8 @@
         '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
-        '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
-        '<div class="duration-item"><span class="duration-label">Depuis le dépôt</span><span class="duration-value">' + totalDuration + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">' + durationLabel + '</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">Depuis le d\u00e9p\u00f4t</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
@@ -695,7 +714,8 @@
     var statsDiv = document.getElementById('histogram-stats');
 
     var filtered = applyHistogramFilters(allSummaries);
-    var days = filtered.filter(function(s) { return s.daysSinceDeposit != null; }).map(function(s) { return s.daysSinceDeposit; });
+    // Exclure les dossiers terminés (durée figée, pas comparable aux dossiers en cours)
+    var days = filtered.filter(function(s) { return s.daysSinceDeposit != null && !s.isFinished; }).map(function(s) { return s.daysSinceDeposit; });
 
     if (!days.length) {
       canvas.style.display = 'none';

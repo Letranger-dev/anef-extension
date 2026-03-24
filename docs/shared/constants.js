@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.20.0';
+  var SITE_VERSION = '1.21.0';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -340,6 +340,23 @@
     return code.indexOf('negative') !== -1 || code.indexOf('irrecevabilite') !== -1 || code.indexOf('css_') !== -1;
   }
 
+  /**
+   * Dossier terminé : inséré dans le décret (étape ≥ 11) ou décision négative.
+   * Exception : RAPO (recours administratif) = dossier encore actif.
+   * Accepte un summary {currentStep, statut} ou un snapshot {etape, statut}.
+   */
+  function isFinished(s) {
+    if (!s) return false;
+    var step = s.currentStep || s.etape || 0;
+    if (step >= 11) {
+      var statut = String(s.statut || '').toLowerCase();
+      // RAPO = recours en cours, pas terminé
+      if (statut === 'demande_en_cours_rapo') return false;
+      return true;
+    }
+    return isNegativeStatus(s.statut);
+  }
+
   function getStepColor(etape) {
     // Support rang values > 12 by extracting major step
     var step = etape > 12 ? Math.floor(etape / 100) : etape;
@@ -405,6 +422,7 @@
     STATUTS: STATUTS,
     isPositiveStatus: isPositiveStatus,
     isNegativeStatus: isNegativeStatus,
+    isFinished: isFinished,
     getStepColor: getStepColor,
     formatSubStep: formatSubStep,
     rangToStep: rangToStep,

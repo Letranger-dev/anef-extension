@@ -46,7 +46,7 @@
       renderTimeline(summaries);
 
       var transitions = buildTransitions(snapshots, grouped);
-      renderMouvements(transitions);
+      renderMouvements(transitions, grouped);
       renderMouvementsChart(transitions);
 
       renderSdanfWait(summaries);
@@ -69,16 +69,16 @@
     var nbPref = Object.keys(prefSet).length;
     U.setText('kpi-dossiers-sub', nbPref + ' préfecture' + (nbPref > 1 ? 's' : ''));
 
-    // Duree moyenne depuis le depot
-    var withDeposit = summaries.filter(function(s) { return s.daysSinceDeposit != null; });
-    if (withDeposit.length > 0) {
+    // Duree moyenne depuis le depot (dossiers en cours uniquement)
+    var activeDossiers = summaries.filter(function(s) { return s.daysSinceDeposit != null && !s.isFinished; });
+    if (activeDossiers.length > 0) {
       var totalDays = 0;
-      for (var i = 0; i < withDeposit.length; i++) {
-        totalDays += withDeposit[i].daysSinceDeposit;
+      for (var i = 0; i < activeDossiers.length; i++) {
+        totalDays += activeDossiers[i].daysSinceDeposit;
       }
-      var avgDays = Math.round(totalDays / withDeposit.length);
+      var avgDays = Math.round(totalDays / activeDossiers.length);
       U.setText('kpi-avg-days', U.formatDuration(avgDays));
-      U.setText('kpi-avg-sub', 'depuis le dépôt (' + summaries.length + ' dossiers)');
+      U.setText('kpi-avg-sub', 'depuis le dépôt (' + activeDossiers.length + ' dossiers)');
     }
 
     // Derniere mise a jour
@@ -722,11 +722,11 @@
 
   // ─── Mouvements du jour ────────────────────────────────
 
-  var mouvementsState = { period: 0, transitions: [] };
+  var mouvementsState = { period: 0, transitions: [], grouped: null };
   var SDANF_STATUTS = { 'controle_a_affecter': true, 'controle_a_effectuer': true };
   var SCEC_STATUTS = { 'controle_en_attente_pec': true, 'controle_pec_a_faire': true };
 
-  function computeDailyMovements(transitions, periodDays) {
+  function computeDailyMovements(transitions, periodDays, grouped) {
     var now = new Date();
     var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var cutoff;
@@ -738,33 +738,65 @@
 
     var caaToCAE = 0, sdanfToSCEC = 0, arrivedStep9 = 0, arrivedDecret = 0;
 
-    for (var i = 0; i < transitions.length; i++) {
-      var t = transitions[i];
-      if (new Date(t.created_at) < cutoff) continue;
+    // Comptage basé sur les snapshots groupés — fiable car indépendant de l'ordre des transitions
+    // On cherche le premier snapshot de chaque catégorie et on vérifie son created_at
+    if (grouped) {
+      grouped.forEach(function(snaps) {
+        var statuts = [];
+        for (var i = 0; i < snaps.length; i++) {
+          statuts.push({ s: (snaps[i].statut || '').toLowerCase(), etape: snaps[i].etape, created: snaps[i].created_at, source: snaps[i].source });
+        }
 
-      // Affectation SDANF : CAA → CAE
-      if (t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer') {
-        caaToCAE++;
-      }
-      // Passage vers SCEC : arrivée à un statut SCEC depuis n'importe quel autre statut
-      if (t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut]) {
-        sdanfToSCEC++;
-      }
-      // Arrivée étape 9 SDANF : changement d'étape vers un sous-statut SDANF uniquement
-      if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut]) {
-        arrivedStep9++;
-      }
-      // Inséré dans le décret (étape 11)
-      if (t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11) {
-        arrivedDecret++;
-      }
+        // Arrivée étape 9 : premier snapshot à étape 9 (SDANF) quand il y avait une étape différente avant
+        var hadNon9 = false;
+        for (var j = 0; j < statuts.length; j++) {
+          if (statuts[j].etape !== 9) { hadNon9 = true; continue; }
+          if (hadNon9 && SDANF_STATUTS[statuts[j].s] && statuts[j].source !== 'manual' && new Date(statuts[j].created) >= cutoff) {
+            arrivedStep9++;
+          }
+          break;
+        }
+
+        // Pris en charge SDANF (CAA→CAE) : premier snapshot CAE quand le précédent est CAA
+        for (var k = 0; k < statuts.length; k++) {
+          if (statuts[k].s === 'controle_a_effectuer') {
+            if (k > 0 && statuts[k - 1].s === 'controle_a_affecter' && statuts[k].source !== 'manual' && new Date(statuts[k].created) >= cutoff) {
+              caaToCAE++;
+            }
+            break;
+          }
+        }
+
+        // Transféré au SCEC : premier snapshot SCEC détecté dans la période
+        // (soit transition depuis SDANF, soit première observation déjà au SCEC)
+        for (var m = 0; m < statuts.length; m++) {
+          if (SCEC_STATUTS[statuts[m].s]) {
+            var prevNotSCEC = m === 0 || !SCEC_STATUTS[statuts[m - 1].s];
+            if (prevNotSCEC && statuts[m].source !== 'manual' && new Date(statuts[m].created) >= cutoff) {
+              sdanfToSCEC++;
+            }
+            break;
+          }
+        }
+
+        // Inséré dans le décret : premier snapshot à étape 11
+        for (var n = 0; n < statuts.length; n++) {
+          if (statuts[n].etape === 11) {
+            if (statuts[n].source !== 'manual' && new Date(statuts[n].created) >= cutoff) {
+              arrivedDecret++;
+            }
+            break;
+          }
+        }
+      });
     }
 
     return { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9, arrivedDecret: arrivedDecret };
   }
 
-  function renderMouvements(transitions) {
+  function renderMouvements(transitions, grouped) {
     mouvementsState.transitions = transitions;
+    mouvementsState.grouped = grouped || null;
 
     // Vérifier si au moins une période a des mouvements
     var section = document.getElementById('mouvements-section');
@@ -775,7 +807,7 @@
     ];
     var hasAny = false;
     for (var p = 0; p < periods.length; p++) {
-      var m = computeDailyMovements(transitions, periods[p].value);
+      var m = computeDailyMovements(transitions, periods[p].value, mouvementsState.grouped);
       if (m.caaToCAE || m.sdanfToSCEC || m.arrivedStep9 || m.arrivedDecret) { hasAny = true; break; }
     }
     if (!hasAny) {
@@ -786,10 +818,10 @@
 
     // Sélectionner la première période qui a des données
     if (mouvementsState.period === 0) {
-      var todayM = computeDailyMovements(transitions, 0);
+      var todayM = computeDailyMovements(transitions, 0, mouvementsState.grouped);
       if (!todayM.caaToCAE && !todayM.sdanfToSCEC && !todayM.arrivedStep9 && !todayM.arrivedDecret) {
         for (var q = 0; q < periods.length; q++) {
-          var qm = computeDailyMovements(transitions, periods[q].value);
+          var qm = computeDailyMovements(transitions, periods[q].value, mouvementsState.grouped);
           if (qm.caaToCAE || qm.sdanfToSCEC || qm.arrivedStep9 || qm.arrivedDecret) {
             mouvementsState.period = periods[q].value;
             break;
@@ -827,7 +859,7 @@
   function renderMouvementsCards() {
     var grid = document.getElementById('mouvements-grid');
     var section = document.getElementById('mouvements-section');
-    var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period);
+    var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period, mouvementsState.grouped);
 
     var notifs = [
       { count: m.arrivedStep9, color: 'violet', type: 'arrivedStep9', text: function(n) { return 'dossier' + (n > 1 ? 's' : '') + ' pass\u00e9' + (n > 1 ? 's' : '') + ' \u00e0 l\u2019\u00e9tape SDANF'; } },
@@ -863,20 +895,96 @@
     }
   }
 
+  /** Construit un objet transition-like depuis un snapshot et son précédent */
+  function snapshotToTransition(snap, prevSnap, hash) {
+    var toStatut = (snap.statut || '').toLowerCase();
+    var fromStatut = prevSnap ? (prevSnap.statut || '').toLowerCase() : '';
+    var toInfo = C.STATUTS[toStatut];
+    var fromInfo = prevSnap ? C.STATUTS[fromStatut] : null;
+    var duration = (prevSnap && prevSnap.date_statut && snap.date_statut) ? U.daysDiff(prevSnap.date_statut, snap.date_statut) : null;
+    var type = prevSnap ? (snap.etape === prevSnap.etape ? 'status_change' : 'step_change') : 'step_change';
+    return {
+      type: type,
+      hash: hash.substring(0, 6),
+      fromStep: prevSnap ? prevSnap.etape : null,
+      toStep: snap.etape,
+      fromStatut: fromStatut,
+      toStatut: toStatut,
+      fromSousEtape: fromInfo ? C.formatSubStep(fromInfo.rang) : (prevSnap ? String(prevSnap.etape) : ''),
+      toSousEtape: toInfo ? C.formatSubStep(toInfo.rang) : String(snap.etape),
+      fromExplication: fromInfo ? fromInfo.explication : '',
+      toExplication: toInfo ? toInfo.explication : '',
+      created_at: snap.created_at,
+      date_statut: snap.date_statut,
+      daysForTransition: duration,
+      source: snap.source || 'auto'
+    };
+  }
+
   function getMovementTransitions(type) {
     var now = new Date();
     var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var periodDays = mouvementsState.period;
     var cutoff = periodDays === 0 ? startOfToday : new Date(startOfToday.getTime() - periodDays * 86400000);
+    var grouped = mouvementsState.grouped;
+    var results = [];
 
-    return mouvementsState.transitions.filter(function(t) {
-      if (new Date(t.created_at) < cutoff) return false;
-      if (type === 'arrivedStep9') return t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut];
-      if (type === 'caaToCAE') return t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer';
-      if (type === 'sdanfToSCEC') return t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut];
-      if (type === 'arrivedDecret') return t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11;
-      return false;
+    if (!grouped) return results;
+
+    grouped.forEach(function(snaps, hash) {
+      var statuts = [];
+      for (var i = 0; i < snaps.length; i++) {
+        statuts.push((snaps[i].statut || '').toLowerCase());
+      }
+
+      if (type === 'arrivedStep9') {
+        var hadNon9 = false;
+        for (var j = 0; j < snaps.length; j++) {
+          if (snaps[j].etape !== 9) { hadNon9 = true; continue; }
+          if (hadNon9 && SDANF_STATUTS[statuts[j]] && snaps[j].source !== 'manual' && new Date(snaps[j].created_at) >= cutoff) {
+            results.push(snapshotToTransition(snaps[j], j > 0 ? snaps[j - 1] : null, hash));
+          }
+          break;
+        }
+      }
+
+      if (type === 'caaToCAE') {
+        for (var k = 0; k < snaps.length; k++) {
+          if (statuts[k] === 'controle_a_effectuer') {
+            if (k > 0 && statuts[k - 1] === 'controle_a_affecter' && snaps[k].source !== 'manual' && new Date(snaps[k].created_at) >= cutoff) {
+              results.push(snapshotToTransition(snaps[k], snaps[k - 1], hash));
+            }
+            break;
+          }
+        }
+      }
+
+      if (type === 'sdanfToSCEC') {
+        for (var m = 0; m < snaps.length; m++) {
+          if (SCEC_STATUTS[statuts[m]]) {
+            var prevNotSCEC = m === 0 || !SCEC_STATUTS[statuts[m - 1]];
+            if (prevNotSCEC && snaps[m].source !== 'manual' && new Date(snaps[m].created_at) >= cutoff) {
+              results.push(snapshotToTransition(snaps[m], m > 0 ? snaps[m - 1] : null, hash));
+            }
+            break;
+          }
+        }
+      }
+
+      if (type === 'arrivedDecret') {
+        for (var n = 0; n < snaps.length; n++) {
+          if (snaps[n].etape === 11) {
+            if (snaps[n].source !== 'manual' && new Date(snaps[n].created_at) >= cutoff) {
+              results.push(snapshotToTransition(snaps[n], n > 0 ? snaps[n - 1] : null, hash));
+            }
+            break;
+          }
+        }
+      }
     });
+
+    results.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+    return results;
   }
 
   var MOVEMENT_TITLES = {
@@ -898,12 +1006,17 @@
       var color = C.STEP_COLORS[t.toStep] || C.STEP_COLORS[0];
       var badge = ACTIVITY_BADGE[t.type];
 
-      var desc = (t.fromSousEtape || '?') + ' \u2192 ' + (t.toSousEtape || '?');
-      var detail = '';
-      if (t.fromExplication || t.toExplication) {
-        detail = (t.fromExplication || '') + ' \u2192 ' + (t.toExplication || '');
+      var desc, detail, codeDetail;
+      if (t.fromSousEtape) {
+        desc = t.fromSousEtape + ' \u2192 ' + (t.toSousEtape || '?');
+        detail = (t.fromExplication || t.toExplication) ? (t.fromExplication || '') + ' \u2192 ' + (t.toExplication || '') : '';
+        codeDetail = U.escapeHtml((t.fromStatut || '').toUpperCase()) + ' <span class="statut-code-arrow">\u2192</span> ' + U.escapeHtml((t.toStatut || '').toUpperCase());
+      } else {
+        // Première observation — pas de "from"
+        desc = '\u2192 ' + (t.toSousEtape || '?');
+        detail = t.toExplication || '';
+        codeDetail = U.escapeHtml((t.toStatut || '').toUpperCase());
       }
-      var codeDetail = U.escapeHtml((t.fromStatut || '').toUpperCase()) + ' <span class="statut-code-arrow">\u2192</span> ' + U.escapeHtml((t.toStatut || '').toUpperCase());
       var durHtml = '';
       if (t.daysForTransition !== null) {
         durHtml = '<span class="history-duration">' + U.formatDuration(t.daysForTransition) + '</span>';
@@ -1189,7 +1302,8 @@
           created_at: cur.created_at,
           date_statut: cur.date_statut || null,
           statut: cur.statut,
-          daysForTransition: duration
+          daysForTransition: duration,
+          source: cur.source || 'auto'
         });
       }
       if (snaps.length > 0) {
@@ -1208,13 +1322,20 @@
           created_at: snaps[0].created_at,
           date_statut: snaps[0].date_statut || null,
           statut: snaps[0].statut,
-          daysForTransition: null
+          daysForTransition: null,
+          source: snaps[0].source || 'auto'
         });
       }
     });
 
     transitions.sort(function(a, b) {
-      return new Date(b.created_at) - new Date(a.created_at);
+      var diff = new Date(b.created_at) - new Date(a.created_at);
+      if (diff !== 0) return diff;
+      // Même created_at (ex: rectification manuelle) → trier par date_statut DESC
+      var dsA = a.date_statut || '', dsB = b.date_statut || '';
+      if (dsA !== dsB) return dsA < dsB ? 1 : -1;
+      // Même date_statut → trier par étape DESC
+      return (b.toStep || 0) - (a.toStep || 0);
     });
     return transitions;
   }
@@ -1394,7 +1515,13 @@
     items.push('<span class="detail-badge" style="background:' + color + '">' + U.escapeHtml(s.sousEtape + '/12 \u2014 ' + s.explication) + '</span>');
 
     if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
-    if (s.dateStatut) items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
+    if (s.dateStatut) {
+      if (s.isFinished) {
+        items.push('<div class="detail-row"><span class="detail-label">Finalis\u00e9 le</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
+      } else {
+        items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
+      }
+    }
     if (s.daysSinceDeposit != null) items.push('<div class="detail-row"><span class="detail-label">Dur\u00e9e totale</span><span>' + U.formatDuration(s.daysSinceDeposit) + '</span></div>');
     if (s.dateEntretien) items.push('<div class="detail-row"><span class="detail-label">Entretien</span><span>' + U.formatDateFr(s.dateEntretien) + '</span></div>');
     if (s.lieuEntretien) items.push('<div class="detail-row"><span class="detail-label">Lieu</span><span>' + U.escapeHtml(s.lieuEntretien) + '</span></div>');
@@ -1412,7 +1539,16 @@
     var summary = findSummary(hash);
     var history = activityState.transitions
       .filter(function(t) { return t.hash === hash; })
-      .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+      .sort(function(a, b) {
+        // Trier par date_statut ASC (chronologie réelle du dossier)
+        var dsA = a.date_statut || '', dsB = b.date_statut || '';
+        if (dsA !== dsB) return dsA < dsB ? -1 : 1;
+        // Même date_statut → trier par étape ASC
+        var stepDiff = (a.toStep || 0) - (b.toStep || 0);
+        if (stepDiff !== 0) return stepDiff;
+        // Fallback : created_at ASC
+        return new Date(a.created_at) - new Date(b.created_at);
+      });
 
     // Build timeline HTML
     var timelineHtml = '';
@@ -1425,20 +1561,26 @@
       // Durée passée sur ce statut
       var thisDateStatut = t.date_statut;
       var nextDateStatut = (i + 1 < history.length) ? history[i + 1].date_statut : null;
+      var isCurrentStatus = (i === history.length - 1);
+      var dossierFinished = summary && summary.isFinished;
       var timeOnStatus = null;
       if (thisDateStatut && nextDateStatut) {
         timeOnStatus = U.daysDiff(thisDateStatut, nextDateStatut);
       } else if (thisDateStatut && !nextDateStatut) {
-        // Dernier statut (en cours) : date_statut → aujourd'hui
-        timeOnStatus = U.daysDiff(thisDateStatut, now);
+        if (dossierFinished) {
+          // Dossier terminé : ne pas compter vers aujourd'hui
+          timeOnStatus = null;
+        } else {
+          // Dernier statut (en cours) : date_statut → aujourd'hui
+          timeOnStatus = U.daysDiff(thisDateStatut, now);
+        }
       }
-      if (!timeOnStatus) {
+      if (timeOnStatus === null && !isCurrentStatus) {
         // Fallback sur created_at (date de vérification Supabase)
         var thisDate = t.created_at;
         var nextDate = (i + 1 < history.length) ? history[i + 1].created_at : now;
         timeOnStatus = U.daysDiff(thisDate, nextDate);
       }
-      var isCurrentStatus = (i === history.length - 1);
 
       var desc;
       if (t.type === 'first_seen') {
@@ -1466,7 +1608,10 @@
 
       // Badge "temps passé sur ce statut" + date du statut
       var timeOnHtml = '';
-      if (timeOnStatus !== null) {
+      if (isCurrentStatus && dossierFinished && thisDateStatut) {
+        // Dossier terminé — afficher la date de fin sans compteur
+        timeOnHtml = '<div class="history-time-on-status current">\u2705 Termin\u00e9 \u2014 ' + U.formatDateFr(thisDateStatut) + '</div>';
+      } else if (timeOnStatus !== null) {
         var cssClass = isCurrentStatus ? 'history-time-on-status current' : 'history-time-on-status';
         var prefix = isCurrentStatus ? '\u23f3 ' : '\u23f1 ';
         var dateStatutStr = thisDateStatut ? ' \u2014 ' + U.formatDateFr(thisDateStatut) : '';

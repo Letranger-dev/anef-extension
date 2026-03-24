@@ -151,15 +151,42 @@
       if (!map.has(s.dossier_hash)) map.set(s.dossier_hash, []);
       map.get(s.dossier_hash).push(s);
     }
-    map.forEach(function(snaps) {
+    map.forEach(function(snaps, hash) {
+      // Normaliser les statuts en minuscules pour éviter les doublons auto/manual
+      for (var j = 0; j < snaps.length; j++) {
+        if (snaps[j].statut) snaps[j].statut = snaps[j].statut.toLowerCase();
+      }
       snaps.sort(function(a, b) {
         // Trier par date_statut (chronologie réelle), fallback created_at
         var dateA = a.date_statut || a.created_at || '';
         var dateB = b.date_statut || b.created_at || '';
         if (dateA !== dateB) return dateA < dateB ? -1 : 1;
         // Si même date_statut, trier par etape
-        return (a.etape || 0) - (b.etape || 0);
+        var stepDiff = (a.etape || 0) - (b.etape || 0);
+        if (stepDiff !== 0) return stepDiff;
+        // Si même étape, trier par rang (sous-statut) pour distinguer 9.1/9.2/9.3 etc.
+        var STATUTS = ANEF.constants.STATUTS;
+        var rangA = (STATUTS[a.statut] || {}).rang || (a.etape * 100);
+        var rangB = (STATUTS[b.statut] || {}).rang || (b.etape * 100);
+        if (rangA !== rangB) return rangA - rangB;
+        // Dernier recours : created_at
+        var caA = a.created_at || '', caB = b.created_at || '';
+        return caA < caB ? -1 : caA > caB ? 1 : 0;
       });
+      // Dédupliquer : même étape + même statut → garder le manual (date rectifiée) sinon le dernier
+      var deduped = [snaps[0]];
+      for (var k = 1; k < snaps.length; k++) {
+        var prev = deduped[deduped.length - 1];
+        var cur = snaps[k];
+        if (cur.etape === prev.etape && cur.statut === prev.statut) {
+          // Garder la version manual si elle existe, sinon la plus récente
+          if (cur.source === 'manual') { deduped[deduped.length - 1] = cur; }
+          // sinon on garde prev (déjà en place)
+        } else {
+          deduped.push(cur);
+        }
+      }
+      map.set(hash, deduped);
     });
     return map;
   }
@@ -173,8 +200,11 @@
 
     grouped.forEach(function(snaps, hash) {
       var latest = snaps[snaps.length - 1];
-      var daysAtStatus = latest.date_statut ? ANEF.utils.daysDiff(latest.date_statut, today) : null;
-      var daysSinceDeposit = latest.date_depot ? ANEF.utils.daysDiff(latest.date_depot, today) : null;
+      var finished = ANEF.constants.isFinished({ etape: latest.etape, statut: latest.statut });
+      // Dossiers terminés : figer la durée à la date du dernier statut (pas today)
+      var endDate = finished && latest.date_statut ? new Date(latest.date_statut + 'T00:00:00') : today;
+      var daysAtStatus = latest.date_statut ? ANEF.utils.daysDiff(latest.date_statut, endDate) : null;
+      var daysSinceDeposit = latest.date_depot ? ANEF.utils.daysDiff(latest.date_depot, endDate) : null;
 
       var stepSet = {};
       for (var i = 0; i < snaps.length; i++) stepSet[snaps[i].etape] = true;
@@ -252,7 +282,8 @@
         lieuEntretien: lieuEntretien,
         lastChecked: lastChecked,
         previousStatut: previousStatut,
-        previousDateStatut: previousDateStatut
+        previousDateStatut: previousDateStatut,
+        isFinished: finished
       });
     });
 
@@ -373,7 +404,8 @@
       }
       var p = byPref[s.prefecture];
       p.dossiers++;
-      if (s.daysSinceDeposit != null) p.days.push(s.daysSinceDeposit);
+      // Exclure les dossiers terminés des moyennes de durée
+      if (s.daysSinceDeposit != null && !s.isFinished) p.days.push(s.daysSinceDeposit);
       p.steps.push(s.currentStep);
       if (s.hasComplement) p.complement++;
       if (isPositive(s.statut)) p.favorable++;
