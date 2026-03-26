@@ -615,9 +615,11 @@
           '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
-        (infoHtml ? '<div class="dossier-detail-info">' + infoHtml + '</div>' : '') +
-        '<div class="detail-section-label">Historique des statuts</div>' +
-        '<div class="modal-history-list" style="padding:0.5rem 0">' + timelineHtml + '</div>' +
+        '<div class="modal-history-list" style="padding:0.5rem 1rem">' +
+          (infoHtml ? '<div class="dossier-detail-info">' + infoHtml + '</div>' : '') +
+          '<div class="detail-section-label">Historique des statuts</div>' +
+          timelineHtml +
+        '</div>' +
       '</div>';
 
     modal.querySelector('.history-close').addEventListener('click', function() {

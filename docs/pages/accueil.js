@@ -127,67 +127,39 @@
       byStep[step][statutKey].push(s);
     }
 
-    // Short readable labels for timeline bubbles (keys = STATUTS dictionary keys)
+    // Short readable labels
     var SHORT_LABELS = {
-      // Étape 1
-      'draft': 'Brouillon',
-      // Étape 2
-      'dossier_depose': 'Déposé',
-      // Étape 3
-      'verification_formelle_a_traiter': 'Reçu, tri',
-      'verification_formelle_en_cours': 'Tri en cours',
-      'verification_formelle_mise_en_demeure': 'Mise en demeure',
-      'css_mise_en_demeure_a_affecter': 'CSS en cours',
-      'css_mise_en_demeure_a_rediger': 'CSS rédaction',
-      // Étape 4
+      'draft': 'Brouillon', 'dossier_depose': 'D\u00e9pos\u00e9',
+      'verification_formelle_a_traiter': 'Re\u00e7u, tri', 'verification_formelle_en_cours': 'Tri en cours',
+      'verification_formelle_mise_en_demeure': 'Mise en demeure', 'css_mise_en_demeure_a_affecter': 'CSS en cours',
+      'css_mise_en_demeure_a_rediger': 'CSS r\u00e9daction',
       'instruction_a_affecter': 'Recevable',
-      // Étape 5
       'instruction_recepisse_completude_a_envoyer': 'Dossier complet',
-      'instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter': 'Complément reçu',
-      // Étape 6
-      'instruction_date_ea_a_fixer': 'Enquêtes',
-      'ea_demande_report_ea': 'Report entretien',
-      // Étape 7
-      'ea_en_attente_ea': 'Convocation',
-      'ea_crea_a_valider': 'Compte-rendu',
-      // Étape 8
-      'prop_decision_pref_a_effectuer': 'Avis préfectoral',
-      'prop_decision_pref_en_attente_retour_hierarchique': 'Valid. hiérarch.',
-      'prop_decision_pref_prop_a_editer': 'Rédaction déc.',
-      'prop_decision_pref_en_attente_retour_signataire': 'Signature préfet',
-      // Étape 9
-      'controle_a_affecter': 'SDANF attente',
-      'controle_a_effectuer': 'SDANF contrôle',
-      'controle_en_attente_pec': 'SCEC transmis',
-      'controle_pec_a_faire': 'SCEC vérif.',
-      // Étape 10
+      'instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter': 'Compl\u00e9ment re\u00e7u',
+      'instruction_date_ea_a_fixer': 'Enqu\u00eates', 'ea_demande_report_ea': 'Report entretien',
+      'ea_en_attente_ea': 'Convocation', 'ea_crea_a_valider': 'Compte-rendu',
+      'prop_decision_pref_a_effectuer': 'Avis pr\u00e9fectoral',
+      'prop_decision_pref_en_attente_retour_hierarchique': 'Valid. hi\u00e9rarch.',
+      'prop_decision_pref_prop_a_editer': 'R\u00e9daction d\u00e9c.',
+      'prop_decision_pref_en_attente_retour_signataire': 'Signature pr\u00e9fet',
+      'controle_a_affecter': 'SDANF attente', 'controle_a_effectuer': 'SDANF contr\u00f4le',
+      'controle_en_attente_pec': 'SCEC transmis', 'controle_pec_a_faire': 'SCEC v\u00e9rif.',
       'controle_transmise_pour_decret': 'Avis favorable',
-      'controle_en_attente_retour_hierarchique': 'Valid. hiérarch.',
-      'controle_decision_a_editer': 'Décision édition',
+      'controle_en_attente_retour_hierarchique': 'Valid. hi\u00e9rarch.',
+      'controle_decision_a_editer': 'D\u00e9cision \u00e9dition',
       'controle_en_attente_signature': 'Attente signature',
-      'transmis_a_ac': 'Transmis AC',
-      'a_verifier_avant_insertion_decret': 'Vérifications',
-      'prete_pour_insertion_decret': 'Prêt insertion',
-      'decret_en_preparation': 'Prép. décret',
-      'decret_a_qualifier': 'Qualif. décret',
-      'decret_en_validation': 'Valid. décret',
-      // Étape 11
-      'inseree_dans_decret': 'Décret signé',
-      'decret_envoye_prefecture': 'Envoyé préf.',
+      'transmis_a_ac': 'Transmis AC', 'a_verifier_avant_insertion_decret': 'V\u00e9rifications',
+      'prete_pour_insertion_decret': 'Pr\u00eat insertion',
+      'decret_en_preparation': 'Pr\u00e9p. d\u00e9cret', 'decret_a_qualifier': 'Qualif. d\u00e9cret',
+      'decret_en_validation': 'Valid. d\u00e9cret',
+      'inseree_dans_decret': 'D\u00e9cret sign\u00e9', 'decret_envoye_prefecture': 'Envoy\u00e9 pr\u00e9f.',
       'notification_envoyee': 'Notification',
-      // Étape 12
-      'decret_naturalisation_publie': 'Publié JO',
-      'decret_naturalisation_publie_jo': 'Publié JO',
-      'decret_publie': 'Publié',
-      'demande_traitee': 'Traitée',
-      'decision_negative_en_delais_recours': 'Défavorable',
-      'decision_notifiee': 'Déc. notifiée',
-      'demande_en_cours_rapo': 'Recours RAPO',
-      'controle_demande_notifiee': 'Ctrl notifié',
-      'irrecevabilite_manifeste': 'Irrecevable',
-      'irrecevabilite_manifeste_en_delais_recours': 'Irrec. recours',
-      'css_en_delais_recours': 'CSS recours',
-      'css_notifie': 'CSS notifié'
+      'decret_naturalisation_publie': 'Publi\u00e9 JO', 'decret_naturalisation_publie_jo': 'Publi\u00e9 JO',
+      'decret_publie': 'Publi\u00e9', 'demande_traitee': 'Trait\u00e9e',
+      'decision_negative_en_delais_recours': 'D\u00e9favorable', 'decision_notifiee': 'D\u00e9c. notifi\u00e9e',
+      'demande_en_cours_rapo': 'Recours RAPO', 'controle_demande_notifiee': 'Ctrl notifi\u00e9',
+      'irrecevabilite_manifeste': 'Irrecevable', 'irrecevabilite_manifeste_en_delais_recours': 'Irrec. recours',
+      'css_en_delais_recours': 'CSS recours', 'css_notifie': 'CSS notifi\u00e9'
     };
     function shortLabel(statutCode) {
       if (SHORT_LABELS[statutCode]) return SHORT_LABELS[statutCode];
@@ -197,6 +169,9 @@
       if (exp.length > 16) exp = exp.substring(0, 14) + '\u2026';
       return exp;
     }
+
+    // Store grouped data for click handlers
+    var timelineData = byStep;
 
     var html = '<div class="global-timeline">';
     for (var step = 1; step <= 12; step++) {
@@ -220,7 +195,10 @@
           var label = shortLabel(sk2);
           var fullExp = STATUTS[sk2] ? STATUTS[sk2].explication : sk2;
           var tooltip = count + ' dossier' + (count > 1 ? 's' : '') + ' \u2014 ' + fullExp;
-          bubbleHtml += '<span class="station-sub-bubble" tabindex="0" style="background:' + color + '" title="' + U.escapeHtml(tooltip) + '"><span class="station-sub-label">' + U.escapeHtml(label) + '</span><span class="station-sub-count">' + count + '</span></span>';
+          bubbleHtml += '<span class="station-sub-bubble" tabindex="0" data-step="' + step + '" data-statut="' + U.escapeHtml(sk2) + '" style="background:' + color + '" title="' + U.escapeHtml(tooltip) + '">' +
+            '<span class="station-sub-label">' + U.escapeHtml(label) + '</span>' +
+            '<span class="station-sub-count">' + count + '</span>' +
+            '</span>';
         }
         bubbleHtml += '</div>';
       }
@@ -234,6 +212,76 @@
     }
     html += '</div>';
     wrapper.innerHTML = html;
+
+    // Click handler on sub-bubbles → open dossier list modal
+    wrapper.addEventListener('click', function(e) {
+      var bubble = e.target.closest('.station-sub-bubble');
+      if (!bubble) return;
+      var step = parseInt(bubble.dataset.step, 10);
+      var statut = bubble.dataset.statut;
+      var dossiers = (timelineData[step] && timelineData[step][statut]) || [];
+      if (dossiers.length === 0) return;
+      var color = C.STEP_COLORS[step];
+      var label = shortLabel(statut);
+      var fullExp = STATUTS[statut] ? STATUTS[statut].explication : statut;
+
+      // Build dossier list HTML
+      var listHtml = '';
+      for (var d = 0; d < dossiers.length; d++) {
+        var s = dossiers[d];
+        var dColor = C.getStepColor(s.currentStep);
+        var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
+        listHtml += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(s.hash) + '">' +
+          '<span class="activity-dot" style="background:' + dColor + ';flex-shrink:0"></span>' +
+          '<div class="mouvement-dossier-content">' +
+            '<div class="mouvement-dossier-top">' +
+              '<span class="activity-hash">#' + U.escapeHtml(s.hash) + '</span>' +
+              '<span class="detail-badge" style="background:' + dColor + ';font-size:0.7rem;padding:0.1rem 0.4rem">' + U.escapeHtml(s.sousEtape) + '</span>' +
+            '</div>' +
+            '<div class="mouvement-dossier-desc">' + U.escapeHtml(s.explication) + '</div>' +
+            '<div class="mouvement-dossier-detail">' + daysLabel + ' depuis le d\u00e9p\u00f4t' +
+              (s.prefecture ? ' \u2014 ' + U.escapeHtml(s.prefecture) : '') +
+            '</div>' +
+          '</div>' +
+          '<span class="mouvement-chevron">\u203a</span>' +
+        '</div>';
+      }
+
+      var modal = document.getElementById('timeline-list-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'timeline-list-modal';
+        modal.className = 'history-modal-overlay';
+        modal.addEventListener('click', function(ev) {
+          if (ev.target === modal) modal.classList.remove('open');
+        });
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML =
+        '<div class="history-modal">' +
+          '<div class="history-modal-header">' +
+            '<h3>' + U.escapeHtml(label) + ' \u2014 ' + dossiers.length + ' dossier' + (dossiers.length > 1 ? 's' : '') + '</h3>' +
+            '<button class="history-close" title="Fermer">\u00d7</button>' +
+          '</div>' +
+          '<div class="modal-history-list mouvement-dossier-list">' + listHtml + '</div>' +
+        '</div>';
+
+      modal.querySelector('.history-close').addEventListener('click', function() {
+        modal.classList.remove('open');
+      });
+
+      var items = modal.querySelectorAll('.mouvement-dossier-item');
+      for (var j = 0; j < items.length; j++) {
+        items[j].addEventListener('click', function(ev) {
+          var hash = ev.currentTarget.getAttribute('data-hash');
+          modal.classList.remove('open');
+          showDossierHistory(hash, { timelineBubble: { step: step, statut: statut, label: label, dossiers: dossiers } });
+        });
+      }
+
+      modal.classList.add('open');
+    });
   }
 
   // ─── File d'attente SDANF ────────────────────────────────
@@ -1645,7 +1693,7 @@
       document.body.appendChild(modal);
     }
 
-    var backBtnHtml = backTo && backTo.movementType
+    var backBtnHtml = (backTo && (backTo.movementType || backTo.decret || backTo.timelineBubble))
       ? '<button class="history-back" title="Retour">\u2190</button>'
       : '';
 
@@ -1659,9 +1707,11 @@
           '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
-        infoHtml +
-        historyLabel +
-        '<div class="modal-history-list">' + timelineHtml + '</div>' +
+        '<div class="modal-history-list">' +
+          infoHtml +
+          historyLabel +
+          timelineHtml +
+        '</div>' +
       '</div>';
 
     modal.querySelector('.history-close').addEventListener('click', function() {
@@ -1672,7 +1722,16 @@
     if (backBtn && backTo) {
       backBtn.addEventListener('click', function() {
         modal.classList.remove('open');
-        showMovementDossiers(backTo.movementType);
+        if (backTo.decret) {
+          showDecretDossiers(backTo.decret.num, backTo.decret.dossiers);
+        } else if (backTo.movementType) {
+          showMovementDossiers(backTo.movementType);
+        } else if (backTo.timelineBubble) {
+          // Re-trigger the timeline bubble click to reopen its modal
+          var tb = backTo.timelineBubble;
+          var bubble = wrapper.querySelector('.station-sub-bubble[data-step="' + tb.step + '"][data-statut="' + tb.statut + '"]');
+          if (bubble) bubble.click();
+        }
       });
     }
 
@@ -1734,7 +1793,7 @@
       items[j].addEventListener('click', function(e) {
         var hash = e.currentTarget.getAttribute('data-hash');
         modal.classList.remove('open');
-        showDossierHistory(hash);
+        showDossierHistory(hash, { decret: { num: decretNum, dossiers: dossiers } });
       });
     }
 
