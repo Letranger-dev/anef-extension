@@ -68,6 +68,33 @@ const logger = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// Nettoyage des fenêtres orphelines (veille / redémarrage)
+// ─────────────────────────────────────────────────────────────
+
+const REFRESH_WINDOW_KEY = '_refreshWindowId';
+
+async function cleanupOrphanedWindow() {
+  try {
+    // 1. Fermer la fenêtre dont l'ID est sauvegardé
+    const data = await chrome.storage.local.get(REFRESH_WINDOW_KEY);
+    const savedWindowId = data[REFRESH_WINDOW_KEY];
+    if (savedWindowId) {
+      try {
+        await chrome.windows.remove(savedWindowId);
+        logger.info('🗑️ Fenêtre orpheline fermée:', savedWindowId);
+      } catch {
+        // Fenêtre déjà fermée, ok
+      }
+      await chrome.storage.local.remove(REFRESH_WINDOW_KEY);
+    }
+
+  } catch {}
+}
+
+// Nettoyage immédiat au chargement du service worker
+cleanupOrphanedWindow();
+
+// ─────────────────────────────────────────────────────────────
 // Gestionnaire de messages
 // ─────────────────────────────────────────────────────────────
 
@@ -616,6 +643,9 @@ async function backgroundRefresh() {
   let loginCompleted = false;
   let lastUrl = '';
 
+  // Nettoyer toute fenêtre orpheline d'un refresh précédent
+  await cleanupOrphanedWindow();
+
   // Reset le signal de completion du script injecté
   fetchCompleteSignal = null;
 
@@ -643,6 +673,9 @@ async function backgroundRefresh() {
       windowId = newWindow.id;
       tabId = newWindow.tabs[0].id;
       useWindow = true;
+
+      // Persister l'ID pour nettoyage après veille/redémarrage
+      await chrome.storage.local.set({ [REFRESH_WINDOW_KEY]: windowId });
 
       // Naviguer vers l'URL après que la fenêtre soit minimisée
       await chrome.tabs.update(tabId, { url: MON_COMPTE_URL });
@@ -860,6 +893,7 @@ async function backgroundRefresh() {
         await chrome.windows.remove(windowId);
         logger.info('🗑️ Fenêtre fermée');
       } catch {}
+      await chrome.storage.local.remove(REFRESH_WINDOW_KEY).catch(() => {});
     } else if (tabId) {
       try {
         await chrome.tabs.remove(tabId);
@@ -911,6 +945,7 @@ async function backgroundRefresh() {
 
     if (useWindow && windowId) {
       try { await chrome.windows.remove(windowId); } catch {}
+      await chrome.storage.local.remove(REFRESH_WINDOW_KEY).catch(() => {});
     } else if (tabId) {
       try { await chrome.tabs.remove(tabId); } catch {}
     }
@@ -1232,6 +1267,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.runtime.onStartup.addListener(async () => {
   logger.info('🚀 Extension démarrée');
+
+  // Nettoyer les fenêtres orphelines (veille, redémarrage, crash)
+  await cleanupOrphanedWindow();
 
   const lastStatus = await storage.getLastStatus();
   if (lastStatus?.statut) {
