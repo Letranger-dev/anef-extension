@@ -13,29 +13,39 @@
   var allSummaries = [];
 
   // ─── Refresh countdown timer ───
-  var CRON_INTERVAL = 2 * 3600000;  // 2h in ms
-  var CRON_MINUTE = 15;             // runs at :15
-  var CIRC = 213.63;                // 2 * PI * 34 (SVG radius)
+  // Cron slots: peak 9-16 UTC every hour, off-peak 4, 17, 20 UTC
+  var CRON_HOURS = [4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20];
+  var CRON_MINUTE = 15;
+  var BUILD_BUFFER = 180000;  // ~3 min build+deploy
+  var CIRC = 213.63;          // 2 * PI * 34 (SVG radius)
   var _timerInterval = null;
 
-  /** Find the previous and next cron slots (every even UTC hour at :15 + ~3 min build) */
+  /** Find the previous and next cron slots from the schedule */
   function getCronSlots() {
     var now = new Date();
-    var h = now.getUTCHours();
-    var m = now.getUTCMinutes();
-    // Next even-hour :15 slot
-    var nextH = (h % 2 === 0 && m < CRON_MINUTE) ? h : h + (2 - h % 2);
-    var next = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-      nextH, CRON_MINUTE, 0, 0
-    ));
-    if (next <= now) next = new Date(next.getTime() + CRON_INTERVAL);
-    // Previous slot = next - 2h
-    var prev = new Date(next.getTime() - CRON_INTERVAL);
-    // Add ~3 min build time
+    var nowMs = now.getTime();
+    var todayBase = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+    // Build all slots for yesterday, today, tomorrow
+    var slots = [];
+    for (var d = -1; d <= 1; d++) {
+      var dayMs = todayBase + d * 86400000;
+      for (var i = 0; i < CRON_HOURS.length; i++) {
+        slots.push(dayMs + CRON_HOURS[i] * 3600000 + CRON_MINUTE * 60000 + BUILD_BUFFER);
+      }
+    }
+
+    // Find next slot after now, and prev slot before now
+    var next = null, prev = null;
+    for (var j = 0; j < slots.length; j++) {
+      if (slots[j] > nowMs && !next) next = slots[j];
+      if (slots[j] <= nowMs) prev = slots[j];
+    }
+
     return {
-      prev: new Date(prev.getTime() + 180000),
-      next: new Date(next.getTime() + 180000)
+      prev: new Date(prev || slots[0]),
+      next: new Date(next || slots[slots.length - 1]),
+      interval: (next || 0) - (prev || 0)
     };
   }
 
@@ -58,7 +68,8 @@
 
       // Progress: 0 (just after prev cron) → 1 (next cron imminent)
       var elapsed = now - slots.prev.getTime();
-      var progress = Math.max(0, Math.min(1, elapsed / CRON_INTERVAL));
+      var interval = slots.interval || 3600000;
+      var progress = Math.max(0, Math.min(1, elapsed / interval));
       arc.style.strokeDashoffset = CIRC * progress;
 
       // Color thresholds
@@ -71,8 +82,9 @@
       text.style.color = color;
       ring.setAttribute('class', 'timer-ring' + (cls ? ' ' + cls : ''));
 
-      // Countdown text (cap at 2h for display — the 3 min build buffer is internal)
-      var displayMin = Math.min(remainMin, 120);
+      // Countdown text (cap at interval for display — the 3 min build buffer is internal)
+      var maxDisplay = Math.ceil(interval / 60000);
+      var displayMin = Math.min(remainMin, maxDisplay);
       if (displayMin >= 60) {
         var rh = Math.floor(displayMin / 60);
         var rm = displayMin % 60;

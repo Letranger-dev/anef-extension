@@ -2,7 +2,8 @@ name: Refresh Stats Data
 
 on:
   schedule:
-    - cron: '15 */2 * * *'  # Every 2 hours at :15
+    - cron: '15 9-16 * * *'    # Peak: every hour 9-16 UTC (11h-18h Paris)
+    - cron: '15 4,17,20 * * *'  # Off-peak: 06h, 19h, 22h Paris
   workflow_dispatch:
 
 permissions:
