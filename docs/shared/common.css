@@ -225,6 +225,87 @@ html { scroll-behavior: smooth; }
 
 .kpi-sub { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.25rem; }
 
+/* ─── Refresh countdown timer ─── */
+.kpi-timer-card { display: flex; flex-direction: column; align-items: center; }
+.kpi-timer {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0.3rem 0 0.15rem;
+}
+.timer-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.3));
+  transition: filter 0.5s;
+}
+.timer-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3.5;
+  opacity: 0.5;
+}
+.timer-ring-arc {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.8s;
+}
+.timer-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--green);
+  transition: color 0.8s;
+  letter-spacing: -0.02em;
+}
+.timer-ring.warn  { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.35)); }
+.timer-ring.urgent { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4)); }
+.timer-detail { font-size: 0.68rem; opacity: 0.6; margin-top: 0.15rem; }
+
+/* Tooltip on timer card */
+.kpi-timer-card { position: relative; }
+.kpi-timer-card .timer-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  width: max-content;
+  max-width: 260px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 50;
+  pointer-events: none;
+}
+.kpi-timer-card .timer-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--primary);
+}
+@media (hover: hover) {
+  .kpi-timer-card:hover .timer-tooltip { display: block; }
+}
+@media (hover: none) {
+  .kpi-timer-card .timer-tooltip { display: none !important; }
+}
+
 .kpi-bar {
   display: flex;
   flex-wrap: wrap;
