@@ -129,9 +129,13 @@ anef-extension/
 │   ├── dossiers.html       # Repartition des dossiers
 │   ├── delais.html         # Estimateur de delais
 │   ├── prefectures.html    # Comparaison par prefecture
-│   ├── tendances.html      # Tendances temporelles
-│   ├── parcours.html       # Analyse de parcours
-│   └── shared/             # JS/CSS partages entre les pages
+│   ├── guide.html          # Guide du processus
+│   ├── feedback.html       # Contact
+│   ├── shared/             # JS/CSS partages entre les pages
+│   └── data/               # Donnees statiques (genere par CI)
+├── scripts/
+│   ├── fetch-snapshots.js  # Fetch Supabase → JSON statique
+│   └── monitor-egress.sql  # Monitoring bande passante
 └── assets/
     └── icon-*.png          # Icônes de l'extension
 ```

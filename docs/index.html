@@ -141,10 +141,19 @@
           <div class="kpi-value orange" id="kpi-avg-days">&mdash;</div>
           <div class="kpi-sub" id="kpi-avg-sub">depuis le dépôt</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Dernière mise à jour</div>
-          <div class="kpi-value green" id="kpi-updated" style="font-size:1.1rem">&mdash;</div>
-          <div class="kpi-sub">de la base de données</div>
+        <div class="kpi-card kpi-timer-card">
+          <div class="timer-tooltip">Les statistiques sont actualisées automatiquement toutes les 2 heures à partir des données anonymes envoyées par les utilisateurs de l'extension.</div>
+          <div class="kpi-label">Actualisation auto</div>
+          <div class="kpi-timer" id="kpi-timer">
+            <svg class="timer-ring" viewBox="0 0 80 80">
+              <circle class="timer-ring-bg" cx="40" cy="40" r="34" />
+              <circle class="timer-ring-arc" id="timer-arc" cx="40" cy="40" r="34"
+                stroke-dasharray="213.63" stroke-dashoffset="0" />
+            </svg>
+            <div class="timer-text" id="timer-text">&mdash;</div>
+          </div>
+          <div class="kpi-sub" id="kpi-updated-sub">de la base de données</div>
+          <div class="kpi-sub timer-detail" id="kpi-timer-detail"></div>
         </div>
         <div class="kpi-card" id="kpi-decret-card" style="cursor:pointer;display:none">
           <div class="kpi-label">Dernier décret</div>

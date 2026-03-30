@@ -12,6 +12,97 @@
 
   var allSummaries = [];
 
+  // ─── Refresh countdown timer ───
+  var CRON_INTERVAL = 2 * 3600000;  // 2h in ms
+  var CRON_MINUTE = 15;             // runs at :15
+  var CIRC = 213.63;                // 2 * PI * 34 (SVG radius)
+  var _timerInterval = null;
+
+  /** Find the previous and next cron slots (every even UTC hour at :15 + ~3 min build) */
+  function getCronSlots() {
+    var now = new Date();
+    var h = now.getUTCHours();
+    var m = now.getUTCMinutes();
+    // Next even-hour :15 slot
+    var nextH = (h % 2 === 0 && m < CRON_MINUTE) ? h : h + (2 - h % 2);
+    var next = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+      nextH, CRON_MINUTE, 0, 0
+    ));
+    if (next <= now) next = new Date(next.getTime() + CRON_INTERVAL);
+    // Previous slot = next - 2h
+    var prev = new Date(next.getTime() - CRON_INTERVAL);
+    // Add ~3 min build time
+    return {
+      prev: new Date(prev.getTime() + 180000),
+      next: new Date(next.getTime() + 180000)
+    };
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function timeFr(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+  function startRefreshTimer(lastUpdated) {
+    var arc = document.getElementById('timer-arc');
+    var text = document.getElementById('timer-text');
+    var sub = document.getElementById('kpi-updated-sub');
+    var detail = document.getElementById('kpi-timer-detail');
+    var ring = document.querySelector('.timer-ring');
+    if (!arc || !text) return;
+
+    function tick() {
+      var now = Date.now();
+      var slots = getCronSlots();
+      var remaining = Math.max(0, slots.next - now);
+      var remainMin = Math.ceil(remaining / 60000);
+
+      // Progress: 0 (just after prev cron) → 1 (next cron imminent)
+      var elapsed = now - slots.prev.getTime();
+      var progress = Math.max(0, Math.min(1, elapsed / CRON_INTERVAL));
+      arc.style.strokeDashoffset = CIRC * progress;
+
+      // Color thresholds
+      var color, cls;
+      if (remainMin > 60) { color = 'var(--green)'; cls = ''; }
+      else if (remainMin > 20) { color = 'var(--orange)'; cls = 'warn'; }
+      else { color = 'var(--red)'; cls = 'urgent'; }
+
+      arc.style.stroke = color;
+      text.style.color = color;
+      ring.setAttribute('class', 'timer-ring' + (cls ? ' ' + cls : ''));
+
+      // Countdown text (cap at 2h for display — the 3 min build buffer is internal)
+      var displayMin = Math.min(remainMin, 120);
+      if (displayMin >= 60) {
+        var rh = Math.floor(displayMin / 60);
+        var rm = displayMin % 60;
+        text.textContent = rh + 'h' + (rm > 0 ? String(rm).padStart(2, '0') : '');
+      } else {
+        text.textContent = displayMin + 'min';
+      }
+
+      // Sub: "Mis à jour il y a Xm"
+      var lastDate = new Date(lastUpdated);
+      var ageMin = Math.floor((now - lastDate.getTime()) / 60000);
+      if (ageMin < 1) sub.textContent = "Mis à jour à l'instant";
+      else if (ageMin < 60) sub.textContent = 'Mis à jour il y a ' + ageMin + ' min';
+      else {
+        var ah = Math.floor(ageMin / 60);
+        var am = ageMin % 60;
+        sub.textContent = 'Mis à jour il y a ' + ah + 'h' + (am > 0 ? String(am).padStart(2, '0') : '');
+      }
+
+      // Detail: "10:18 → prochain ≈ 12:18"
+      if (detail) {
+        detail.textContent = timeFr(slots.prev) + ' \u2192 prochain \u2248 ' + timeFr(slots.next);
+      }
+    }
+
+    tick();
+    if (_timerInterval) clearInterval(_timerInterval);
+    _timerInterval = setInterval(tick, 30000); // update every 30s
+  }
+
   function ageColor(days) {
     if (days == null) return 'var(--text-dim)';
     if (days < 180) return 'var(--green)';
@@ -81,13 +172,14 @@
       U.setText('kpi-avg-sub', 'depuis le dépôt (' + activeDossiers.length + ' dossiers)');
     }
 
-    // Derniere mise a jour
+    // Countdown refresh timer
     if (snapshots.length > 0) {
-      var latest = snapshots[0].created_at;
+      var latest = snapshots[0].checked_at || snapshots[0].created_at;
       for (var k = 1; k < snapshots.length; k++) {
-        if (snapshots[k].created_at > latest) latest = snapshots[k].created_at;
+        var ts = snapshots[k].checked_at || snapshots[k].created_at;
+        if (ts > latest) latest = ts;
       }
-      U.setText('kpi-updated', U.formatDateTimeFr(latest));
+      startRefreshTimer(latest);
     }
 
     // Dernier décret
