@@ -12,107 +12,61 @@
 
   var allSummaries = [];
 
-  // ─── Refresh countdown timer ───
-  // Cron slots: peak 9-16 UTC every hour, off-peak 4, 17, 20 UTC
-  var CRON_HOURS = [4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20];
-  var CRON_MINUTE = 15;
-  var BUILD_BUFFER = 180000;  // ~3 min build+deploy
-  var CIRC = 213.63;          // 2 * PI * 34 (SVG radius)
-  var _timerInterval = null;
+  // ─── Data freshness indicator ───
+  // Uses the Last-Modified header of snapshots.json (deployed by GitHub Actions)
+  // as the single source of truth for when data was last refreshed.
+  var _freshnessInterval = null;
 
-  /** Find the previous and next cron slots from the schedule */
-  function getCronSlots() {
-    var now = new Date();
-    var nowMs = now.getTime();
-    var todayBase = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-
-    // Build all slots for yesterday, today, tomorrow
-    var slots = [];
-    for (var d = -1; d <= 1; d++) {
-      var dayMs = todayBase + d * 86400000;
-      for (var i = 0; i < CRON_HOURS.length; i++) {
-        slots.push(dayMs + CRON_HOURS[i] * 3600000 + CRON_MINUTE * 60000 + BUILD_BUFFER);
-      }
-    }
-
-    // Find next slot after now, and prev slot before now
-    var next = null, prev = null;
-    for (var j = 0; j < slots.length; j++) {
-      if (slots[j] > nowMs && !next) next = slots[j];
-      if (slots[j] <= nowMs) prev = slots[j];
-    }
-
-    return {
-      prev: new Date(prev || slots[0]),
-      next: new Date(next || slots[slots.length - 1]),
-      interval: (next || 0) - (prev || 0)
-    };
-  }
-
-  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-  function timeFr(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
-
-  function startRefreshTimer(lastUpdated) {
-    var arc = document.getElementById('timer-arc');
-    var text = document.getElementById('timer-text');
+  function startFreshnessIndicator(fallbackTimestamp) {
+    var dot = document.getElementById('freshness-dot');
+    var text = document.getElementById('freshness-text');
     var sub = document.getElementById('kpi-updated-sub');
-    var detail = document.getElementById('kpi-timer-detail');
-    var ring = document.querySelector('.timer-ring');
-    if (!arc || !text) return;
+    if (!dot || !text) return;
 
-    function tick() {
-      var now = Date.now();
-      var slots = getCronSlots();
-      var remaining = Math.max(0, slots.next - now);
-      var remainMin = Math.ceil(remaining / 60000);
+    // HEAD request on snapshots.json to get the real deploy time
+    fetch('./data/snapshots.json', { method: 'HEAD' })
+      .then(function(r) {
+        var lm = r.ok && r.headers.get('last-modified');
+        return lm ? new Date(lm).getTime() : null;
+      })
+      .catch(function() { return null; })
+      .then(function(deployedAt) {
+        var updatedAt = deployedAt || new Date(fallbackTimestamp).getTime();
 
-      // Progress: 0 (just after prev cron) → 1 (next cron imminent)
-      var elapsed = now - slots.prev.getTime();
-      var interval = slots.interval || 3600000;
-      var progress = Math.max(0, Math.min(1, elapsed / interval));
-      arc.style.strokeDashoffset = CIRC * progress;
+        function tick() {
+          var ageMin = Math.floor((Date.now() - updatedAt) / 60000);
 
-      // Color thresholds
-      var color, cls;
-      if (remainMin > 60) { color = 'var(--green)'; cls = ''; }
-      else if (remainMin > 20) { color = 'var(--orange)'; cls = 'warn'; }
-      else { color = 'var(--red)'; cls = 'urgent'; }
+          // Freshness classes: green < 90min, orange < 150min, red >= 150min
+          var cls = ageMin < 90 ? '' : ageMin < 150 ? 'warn' : 'stale';
+          dot.className = 'freshness-dot' + (cls ? ' ' + cls : '');
+          text.className = 'freshness-text' + (cls ? ' ' + cls : '');
 
-      arc.style.stroke = color;
-      text.style.color = color;
-      ring.setAttribute('class', 'timer-ring' + (cls ? ' ' + cls : ''));
+          // Display age
+          if (ageMin < 1) {
+            text.textContent = "\u00e0 l'instant";
+          } else if (ageMin < 60) {
+            text.textContent = 'il y a ' + ageMin + ' min';
+          } else {
+            var h = Math.floor(ageMin / 60);
+            var m = ageMin % 60;
+            text.textContent = 'il y a ' + h + 'h' + (m > 0 ? String(m).padStart(2, '0') : '');
+          }
 
-      // Countdown text (cap at interval for display — the 3 min build buffer is internal)
-      var maxDisplay = Math.ceil(interval / 60000);
-      var displayMin = Math.min(remainMin, maxDisplay);
-      if (displayMin >= 60) {
-        var rh = Math.floor(displayMin / 60);
-        var rm = displayMin % 60;
-        text.textContent = rh + 'h' + (rm > 0 ? String(rm).padStart(2, '0') : '');
-      } else {
-        text.textContent = displayMin + 'min';
-      }
+          // Sub: exact time
+          var d = new Date(updatedAt);
+          sub.textContent = 'le ' + String(d.getDate()).padStart(2, '0') + '/'
+            + String(d.getMonth() + 1).padStart(2, '0') + ' \u00e0 '
+            + String(d.getHours()).padStart(2, '0') + ':'
+            + String(d.getMinutes()).padStart(2, '0');
+        }
 
-      // Sub: "Mis à jour il y a Xm"
-      var lastDate = new Date(lastUpdated);
-      var ageMin = Math.floor((now - lastDate.getTime()) / 60000);
-      if (ageMin < 1) sub.textContent = "Mis à jour à l'instant";
-      else if (ageMin < 60) sub.textContent = 'Mis à jour il y a ' + ageMin + ' min';
-      else {
-        var ah = Math.floor(ageMin / 60);
-        var am = ageMin % 60;
-        sub.textContent = 'Mis à jour il y a ' + ah + 'h' + (am > 0 ? String(am).padStart(2, '0') : '');
-      }
-
-      // Detail: "10:18 → prochain ≈ 12:18"
-      if (detail) {
-        detail.textContent = timeFr(slots.prev) + ' \u2192 prochain \u2248 ' + timeFr(slots.next);
-      }
-    }
-
-    tick();
-    if (_timerInterval) clearInterval(_timerInterval);
-    _timerInterval = setInterval(tick, 30000); // update every 30s
+        tick();
+        if (_freshnessInterval) clearInterval(_freshnessInterval);
+        _freshnessInterval = setInterval(tick, 30000);
+      })
+      .catch(function() {
+        text.textContent = 'indisponible';
+      });
   }
 
   function ageColor(days) {
@@ -184,14 +138,14 @@
       U.setText('kpi-avg-sub', 'depuis le dépôt (' + activeDossiers.length + ' dossiers)');
     }
 
-    // Countdown refresh timer
+    // Data freshness indicator
     if (snapshots.length > 0) {
       var latest = snapshots[0].checked_at || snapshots[0].created_at;
       for (var k = 1; k < snapshots.length; k++) {
         var ts = snapshots[k].checked_at || snapshots[k].created_at;
         if (ts > latest) latest = ts;
       }
-      startRefreshTimer(latest);
+      startFreshnessIndicator(latest);
     }
 
     // Dernier décret
