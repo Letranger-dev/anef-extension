@@ -36,6 +36,10 @@ docs/data/
 # SQL schemas & RPCs (never share)
 *.sql
 
+# Internal notes
+bugs/
+tests/
+
 # Extension packagée
 *.crx
 *.pem
