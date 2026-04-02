@@ -77,11 +77,10 @@ La confidentialite de vos donnees est notre priorite absolue. Voici les garantie
 - **Aucune donnee personnelle n'est collectee** : ni nom, ni email, ni numero de dossier en clair
 - **Hash SHA-256 irreversible** : votre numero de dossier est transforme en empreinte cryptographique a sens unique — il est mathematiquement impossible de retrouver le numero original
 - **Dates tronquees** : seul le jour est conserve (pas l'heure)
-- **Opt-out possible** : vous pouvez desactiver l'envoi dans les parametres de l'extension a tout moment
 - **Code source ouvert** : le code de collecte (`lib/anonymous-stats.js`) est entierement lisible et verifiable
 - **Aucun cookie, aucun tracking** : le site de stats n'utilise ni cookies ni outils d'analyse
 
-Les donnees collectees se limitent a : statut ANEF, etape, prefecture, type de demande, et dates (depot, statut, entretien). Rien de plus.
+Les donnees collectees sont : empreinte SHA-256 du dossier, statut, etape, phase, prefecture, code postal et ville du domicile, type de demande, presence d'un complement, dates (depot, statut, entretien), lieu d'entretien, numero de decret, version de l'extension et horodatage de verification. La liste complete est detaillee dans [PRIVACY.md](PRIVACY.md).
 
 ## Codes statut
 
