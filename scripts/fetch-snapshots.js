@@ -8,7 +8,7 @@
  * Used by GitHub Actions (refresh-data.yml + deploy-stats.yml) to generate
  * docs/data/snapshots.json so the site loads from GitHub Pages (0 Supabase egress).
  *
- * Usage: SUPABASE_URL=... SUPABASE_ANON_KEY=... node scripts/fetch-snapshots.js
+ * Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... node scripts/fetch-snapshots.js
  */
 'use strict';
 
@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 const PAGE_SIZE = 1000;
 const OUT_DIR = path.join(__dirname, '..', 'docs', 'data');
 const OUT_FILE = path.join(OUT_DIR, 'snapshots.json');
@@ -33,7 +33,7 @@ const COLUMNS = [
 const STALE_HOURS = 6;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY env vars');
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env vars');
   process.exit(1);
 }
 
