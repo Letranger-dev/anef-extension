@@ -11,6 +11,7 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { t, translatePage, getLocale } from '../lib/i18n-helper.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM
@@ -78,6 +79,8 @@ const elements = {
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  translatePage();
+  document.title = t('options_page_title');
   initTabs();
   initVersion();
 
@@ -191,7 +194,7 @@ async function loadHistory() {
     lastCheckHtml = `
       <div class="last-check-banner">
         <span class="last-check-icon">🔄</span>
-        <span>Dernière vérification : <strong>${formatDate(lastCheck, true)}</strong></span>
+        <span>${t('options_last_check_banner')}<strong>${formatDate(lastCheck, true)}</strong></span>
       </div>
     `;
   }
@@ -201,8 +204,8 @@ async function loadHistory() {
       ${lastCheckHtml}
       <div class="empty-state">
         <span class="empty-icon">📊</span>
-        <p>Aucun historique disponible</p>
-        <p class="empty-hint">Visitez le site ANEF pour enregistrer votre historique.</p>
+        <p>${t('options_no_history')}</p>
+        <p class="empty-hint">${t('options_no_history_hint')}</p>
       </div>
     `;
     return;
@@ -223,13 +226,13 @@ async function loadHistory() {
           <div class="history-phase">${info.phase}</div>
           <code class="history-code">${item.statut}</code>
           <div class="history-date">
-            ${item.date_statut ? `Depuis le ${statusDate} <span class="duration-badge">${duration}</span>` : 'Date inconnue'}
+            ${item.date_statut ? `${t('options_since', [statusDate])} <span class="duration-badge">${duration}</span>` : t('options_date_unknown')}
           </div>
         </div>
         <div class="history-step">
-          <span class="step-label">étape</span>
+          <span class="step-label">${t('options_step_label')}</span>
           <span class="step-number">${formatSubStep(info.rang)}</span>
-          <span class="step-total">sur 12</span>
+          <span class="step-total">${t('options_step_total')}</span>
         </div>
       </div>
     `;
@@ -286,16 +289,16 @@ async function loadStepDates() {
     const stepRang = getStatusExplanation(step.statut).rang;
     const isFuture = !isCurrent && stepRang > currentRang;
     const itemClass = (isCurrent ? 'current ' : '') + (isFuture ? 'future ' : '') + (isAuto ? 'auto' : (dateValue ? 'filled' : ''));
-    const etapeLabel = step.sub ? `Étape ${step.sub}` : `Étape ${step.etape}`;
+    const etapeLabel = step.sub ? t('options_step_sub', [step.sub]) : t('options_step_sub', [step.etape.toString()]);
     const disabled = (isAuto || isLocked || isFuture) ? 'disabled' : '';
 
     let badgeHtml = '';
     if (hasManualOverride) {
-      badgeHtml = '<span class="step-date-badge manual">Rectifié</span>';
+      badgeHtml = `<span class="step-date-badge manual">${t('options_badge_rectified')}</span>`;
     } else if (isAuto) {
-      badgeHtml = '<span class="step-date-badge auto">Auto</span>';
+      badgeHtml = `<span class="step-date-badge auto">${t('options_badge_auto')}</span>`;
     } else if (dateValue) {
-      badgeHtml = '<span class="step-date-badge manual">Manuel</span>';
+      badgeHtml = `<span class="step-date-badge manual">${t('options_badge_manual')}</span>`;
     }
 
     // Bouton modifier pour les auto non verrouillés et non futurs
@@ -400,15 +403,15 @@ async function loadStepDates() {
     if (autoVal && curVal && curVal !== autoVal) {
       item.classList.remove('auto');
       item.classList.add('filled');
-      if (badge) { badge.textContent = 'Rectifié'; badge.className = 'step-date-badge manual'; }
+      if (badge) { badge.textContent = t('options_badge_rectified'); badge.className = 'step-date-badge manual'; }
     } else if (autoVal && (!curVal || curVal === autoVal)) {
       item.classList.remove('filled');
       item.classList.add('auto');
-      if (badge) { badge.textContent = 'Auto'; badge.className = 'step-date-badge auto'; }
+      if (badge) { badge.textContent = t('options_badge_auto'); badge.className = 'step-date-badge auto'; }
     } else if (curVal) {
       item.classList.add('filled');
       if (!badge) {
-        input.closest('.step-date-field').insertAdjacentHTML('afterend', '<span class="step-date-badge manual">Manuel</span>');
+        input.closest('.step-date-field').insertAdjacentHTML('afterend', `<span class="step-date-badge manual">${t('options_badge_manual')}</span>`);
       }
     }
     markUnsaved();
@@ -422,7 +425,7 @@ function markUnsaved() {
     banner = document.createElement('div');
     banner.id = 'unsaved-banner';
     banner.className = 'unsaved-banner';
-    banner.innerHTML = '<span class="unsaved-dot"></span> Modifications non enregistrées';
+    banner.innerHTML = `<span class="unsaved-dot"></span> ${t('options_unsaved')}`;
     elements.stepDatesTimeline.parentElement.insertBefore(banner, elements.stepDatesTimeline);
   }
   banner.classList.add('show');
@@ -444,7 +447,7 @@ async function handleSaveStepDates() {
     const val = input.dataset.value;
     if (val) {
       if (prevDate && val < prevDate) {
-        showToast('Les dates doivent être chronologiques', 'error');
+        showToast(t('options_dates_chronological'), 'error');
         input.focus();
         return;
       }
@@ -477,7 +480,7 @@ async function handleSaveStepDates() {
     } else if (!isoVal && existing) {
       // Champ vidé mais date existante → garder l'ancienne (pas de suppression)
       entries.push(existing);
-      showToast('Une date déjà enregistrée ne peut pas être supprimée', 'error');
+      showToast(t('options_date_cannot_delete'), 'error');
       return;
     }
   }
@@ -499,13 +502,13 @@ async function handleSaveStepDates() {
   await loadStepDates();
   await loadHistory();
   clearUnsaved();
-  showToast('Dates enregistrées et synchronisées', 'success');
+  showToast(t('options_dates_saved'), 'success');
 }
 
 async function handlePullStepDates() {
   try {
     elements.btnPullDates.disabled = true;
-    elements.btnPullDates.textContent = 'Chargement...';
+    elements.btnPullDates.textContent = t('options_loading');
 
     const result = await chrome.runtime.sendMessage({ type: 'PULL_STEP_DATES' });
 
@@ -517,12 +520,12 @@ async function handlePullStepDates() {
     if (result?.count > 0) {
       await loadStepDates();
       await loadHistory();
-      showToast(`${result.count} date(s) récupérée(s) depuis la base`, 'success');
+      showToast(t('options_dates_pulled', [result.count.toString()]), 'success');
     } else {
-      showToast('Aucune donnée trouvée dans la base', 'info');
+      showToast(t('options_no_data_found'), 'info');
     }
   } catch (e) {
-    showToast('Erreur de connexion', 'error');
+    showToast(t('options_connection_error'), 'error');
   } finally {
     elements.btnPullDates.disabled = false;
     elements.btnPullDates.innerHTML = `
@@ -531,7 +534,7 @@ async function handlePullStepDates() {
         <polyline points="7 10 12 15 17 10"></polyline>
         <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
-      Récupérer`;
+      ${t('options_pull_dates')}`;
   }
 }
 
@@ -565,11 +568,11 @@ async function handleSaveSettings() {
   }
 
   await loadAutoCheckStatus();
-  showToast('Paramètres sauvegardés', 'success');
+  showToast(t('options_settings_saved'), 'success');
 }
 
 async function handleResetSettings() {
-  if (!confirm('Réinitialiser les paramètres par défaut ?')) return;
+  if (!confirm(t('options_confirm_reset'))) return;
 
   // Préserver le jitter unique de cette installation
   const currentSettings = await storage.getSettings();
@@ -585,7 +588,7 @@ async function handleResetSettings() {
   } catch (e) { /* ignore */ }
   await loadAutoCheckStatus();
 
-  showToast('Paramètres réinitialisés', 'success');
+  showToast(t('options_settings_reset'), 'success');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -598,7 +601,7 @@ async function loadCredentialStatus() {
   if (hasCredentials) {
     elements.credentialIndicator?.classList.add('active');
     if (elements.credentialStatusText) {
-      elements.credentialStatusText.textContent = 'Identifiants enregistrés';
+      elements.credentialStatusText.textContent = t('options_credentials_saved');
     }
     const creds = await storage.getCredentials();
     if (creds?.username && elements.settingUsername) {
@@ -609,7 +612,7 @@ async function loadCredentialStatus() {
   } else {
     elements.credentialIndicator?.classList.remove('active');
     if (elements.credentialStatusText) {
-      elements.credentialStatusText.textContent = 'Aucun identifiant enregistré';
+      elements.credentialStatusText.textContent = t('options_no_credentials_saved');
     }
   }
 }
@@ -647,7 +650,7 @@ async function handleSaveCredentials() {
   }
 
   if (!username || !password) {
-    showToast('Veuillez remplir tous les champs', 'error');
+    showToast(t('options_fill_all_fields'), 'error');
     return;
   }
 
@@ -662,14 +665,14 @@ async function handleSaveCredentials() {
     } catch (e) { /* ignore */ }
     await loadAutoCheckStatus();
 
-    showToast('Identifiants enregistrés', 'success');
+    showToast(t('options_credentials_saved'), 'success');
   } catch (error) {
-    showToast('Erreur lors de la sauvegarde', 'error');
+    showToast(t('options_save_error'), 'error');
   }
 }
 
 async function handleClearCredentials() {
-  if (!confirm('Supprimer vos identifiants ?')) return;
+  if (!confirm(t('options_confirm_delete_creds'))) return;
 
   try {
     await storage.clearCredentials();
@@ -691,9 +694,9 @@ async function handleClearCredentials() {
       await loadAutoCheckStatus();
     }
 
-    showToast('Identifiants supprimés', 'success');
+    showToast(t('options_credentials_deleted'), 'success');
   } catch (error) {
-    showToast('Erreur lors de la suppression', 'error');
+    showToast(t('options_delete_error'), 'error');
   }
 }
 
@@ -721,7 +724,7 @@ async function loadAutoCheckStatus() {
       if (passwordExpired) {
         elements.autoCheckSuspended.classList.remove('hidden');
         const suspendedText = elements.autoCheckSuspended.querySelector('.auto-check-suspended-text, span');
-        if (suspendedText) suspendedText.textContent = 'Mot de passe ANEF expiré — renouveler sur le portail';
+        if (suspendedText) suspendedText.textContent = t('options_password_expired_msg');
       } else {
         elements.autoCheckSuspended.classList.add('hidden');
       }
@@ -736,12 +739,12 @@ async function loadAutoCheckStatus() {
 
         if (passwordExpired) {
           elements.autoCheckDot.className = 'auto-check-dot error';
-          elements.autoCheckStatusText.textContent = 'Mot de passe expiré';
+          elements.autoCheckStatusText.textContent = t('options_password_expired_short');
         } else if (consecutiveFailures > 0 && nextAlarm) {
           elements.autoCheckDot.className = 'auto-check-dot warning';
           const nextDate = new Date(nextAlarm);
           const diffMin = Math.round((nextDate - Date.now()) / 60000);
-          elements.autoCheckStatusText.textContent = `${consecutiveFailures} échec(s) · prochaine tentative dans ~${diffMin} min`;
+          elements.autoCheckStatusText.textContent = t('options_failures_next', [consecutiveFailures.toString(), diffMin.toString()]);
         } else if (nextAlarm) {
           elements.autoCheckDot.className = 'auto-check-dot active';
           const nextDate = new Date(nextAlarm);
@@ -749,17 +752,17 @@ async function loadAutoCheckStatus() {
           const diffMin = Math.round((nextDate - now) / 60000);
 
           if (diffMin <= 0) {
-            elements.autoCheckStatusText.textContent = 'Prochaine vérification imminente';
+            elements.autoCheckStatusText.textContent = t('options_next_check_imminent');
           } else if (diffMin < 60) {
-            elements.autoCheckStatusText.textContent = `Prochaine vérification dans ~${diffMin} min`;
+            elements.autoCheckStatusText.textContent = t('options_next_check_min', [diffMin.toString()]);
           } else {
             const hours = Math.floor(diffMin / 60);
             const mins = diffMin % 60;
-            elements.autoCheckStatusText.textContent = `Prochaine vérification dans ~${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
+            elements.autoCheckStatusText.textContent = t('options_next_check_hours', [hours.toString(), mins > 0 ? mins.toString().padStart(2, '0') : '']);
           }
         } else {
           elements.autoCheckDot.className = 'auto-check-dot';
-          elements.autoCheckStatusText.textContent = 'En attente de programmation';
+          elements.autoCheckStatusText.textContent = t('options_waiting_schedule');
         }
       }
     }
@@ -779,9 +782,9 @@ async function handleResumeAutoCheck() {
     }
     await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
     await loadAutoCheckStatus();
-    showToast('Vérification automatique réactivée', 'success');
+    showToast(t('options_autocheck_reactivated'), 'success');
   } catch (e) {
-    showToast('Erreur lors de la réactivation', 'error');
+    showToast(t('options_reactivation_error'), 'error');
   }
 }
 
@@ -805,13 +808,13 @@ async function loadCheckLog() {
 
     elements.checkLogSection?.classList.remove('hidden');
 
-    const typeLabels = { auto: 'Auto', manual: 'Manuel', retry: 'Retry' };
+    const typeLabels = { auto: t('options_badge_auto'), manual: t('options_badge_manual'), retry: 'Retry' };
     const typeClasses = { auto: 'badge-auto', manual: 'badge-manual', retry: 'badge-retry' };
 
     elements.checkLogList.innerHTML = todayEntries
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
       .map(entry => {
-        const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(entry.timestamp).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
         const badge = `<span class="check-log-badge ${typeClasses[entry.type] || ''}">${typeLabels[entry.type] || entry.type}</span>`;
         const icon = entry.success ? '<span class="check-log-icon success">✓</span>' : '<span class="check-log-icon error">✗</span>';
         const duration = entry.duration != null ? `<span class="check-log-duration">${entry.duration}s</span>` : '';
@@ -840,9 +843,9 @@ async function handleExport() {
     a.click();
 
     URL.revokeObjectURL(url);
-    showToast('Export réussi', 'success');
+    showToast(t('options_export_success'), 'success');
   } catch (error) {
-    showToast('Erreur lors de l\'export', 'error');
+    showToast(t('options_export_error'), 'error');
   }
 }
 
@@ -852,7 +855,7 @@ async function handleImport(event) {
 
   try {
     const data = JSON.parse(await file.text());
-    if (!data.exportDate) throw new Error('Fichier invalide');
+    if (!data.exportDate) throw new Error(t('options_invalid_file'));
 
     await storage.importData(data);
     await loadHistory();
@@ -864,16 +867,16 @@ async function handleImport(event) {
     } catch (e) { /* ignore */ }
     await loadAutoCheckStatus();
 
-    showToast('Import réussi', 'success');
+    showToast(t('options_import_success'), 'success');
   } catch (error) {
-    showToast('Erreur lors de l\'import', 'error');
+    showToast(t('options_import_error'), 'error');
   }
 
   event.target.value = '';
 }
 
 async function handleClearAll() {
-  if (!confirm('Supprimer toutes les données (historique, paramètres) ?\nVos identifiants de connexion seront conservés.\nCette action est irréversible.')) return;
+  if (!confirm(t('options_confirm_delete_all'))) return;
 
   await storage.clearExceptCredentials();
   await loadHistory();
@@ -886,7 +889,7 @@ async function handleClearAll() {
   await loadAutoCheckStatus();
   await loadCheckLog();
 
-  showToast('Données supprimées (identifiants conservés)', 'success');
+  showToast(t('options_data_deleted'), 'success');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -901,7 +904,7 @@ async function loadLogs() {
       elements.logsContainer.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">📋</span>
-          <p>Aucun log disponible</p>
+          <p>${t('options_no_logs')}</p>
         </div>
       `;
       return;
@@ -923,7 +926,7 @@ async function loadLogs() {
     elements.logsContainer.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">❌</span>
-        <p>Erreur de chargement</p>
+        <p>${t('options_log_error')}</p>
       </div>
     `;
   }
@@ -933,7 +936,7 @@ async function handleClearLogs() {
   try {
     await chrome.runtime.sendMessage({ type: 'CLEAR_LOGS' });
     await loadLogs();
-    showToast('Logs effacés', 'success');
+    showToast(t('options_logs_cleared'), 'success');
   } catch (error) {
     showToast('Erreur', 'error');
   }

@@ -9,24 +9,15 @@
 
 import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
 import { downloadLogs } from '../lib/logger.js';
+import { t, translatePage, getLocale } from '../lib/i18n-helper.js';
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
 // ─────────────────────────────────────────────────────────────
 
-const QUOTES = [
-  { text: "La patience est la clé du bien-être.", author: "Mohammed ﷺ" },
-  { text: "Tout vient à point à qui sait attendre.", author: "Proverbe français" },
-  { text: "La patience est amère, mais son fruit est doux.", author: "Jean-Jacques Rousseau" },
-  { text: "Adoptez le rythme de la nature : son secret est la patience.", author: "Ralph Waldo Emerson" },
-  { text: "La patience est l'art d'espérer.", author: "Luc de Clapiers" },
-  { text: "Ce qui est différé n'est pas perdu.", author: "Proverbe italien" },
-  { text: "Les grandes œuvres naissent de la patience.", author: "Gustave Flaubert" },
-  { text: "La patience et le temps font plus que force ni que rage.", author: "Jean de La Fontaine" },
-  { text: "Qui va lentement va sûrement.", author: "Proverbe latin" },
-  { text: "La persévérance vient à bout de tout.", author: "Proverbe français" },
-  { text: "Un voyage de mille lieues commence par un premier pas.", author: "Lao Tseu" },
-  { text: "L'attente est déjà la moitié du bonheur.", author: "Proverbe chinois" }
-];
+const QUOTES = Array.from({ length: 12 }, (_, i) => ({
+  text: t(`quote_${i + 1}_text`),
+  author: t(`quote_${i + 1}_author`)
+}));
 
 let quoteInterval = null;
 let currentQuoteIndex = 0;
@@ -157,6 +148,7 @@ function initializeElements() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initializeElements();
+  translatePage();
 
   // Afficher la version
   const manifest = chrome.runtime.getManifest();
@@ -300,7 +292,7 @@ function displayStatus(statusData, apiData, lastCheck) {
   // Icône et phase
   if (elements.statusIcon) elements.statusIcon.textContent = statusInfo.icon || '📋';
   if (elements.statusPhase) elements.statusPhase.textContent = statusInfo.phase;
-  if (elements.statusStep) elements.statusStep.textContent = `Étape ${formatSubStep(statusInfo.rang)}/12`;
+  if (elements.statusStep) elements.statusStep.textContent = t('popup_step_format', [formatSubStep(statusInfo.rang)]);
 
   // Code et description
   if (elements.statusCode) elements.statusCode.textContent = statut;
@@ -328,7 +320,7 @@ function displayStatus(statusData, apiData, lastCheck) {
       if (earliestDate) {
         const days = daysSince(earliestDate);
         const duration = formatDuration(days);
-        elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
+        elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? t('time_today') : t('time_ago', [duration])})`;
       } else {
         elements.statusDate.textContent = '—';
       }
@@ -392,11 +384,11 @@ function displayTemporalStats(statusData, apiData) {
     if (isPast) {
       const days = daysSince(dateEntretien);
       elements.statEntretienValue.textContent = days === 0
-        ? "Aujourd'hui"
-        : `Il y a ${formatDuration(days)}`;
+        ? t('interview_today')
+        : t('interview_ago', [formatDuration(days)]);
     } else {
       const days = Math.ceil((entretienDateObj - now) / 86400000);
-      elements.statEntretienValue.textContent = `Dans ${formatDuration(days)}`;
+      elements.statEntretienValue.textContent = t('time_in', [formatDuration(days)]);
     }
     elements.statEntretienDate.textContent = formatDate(dateEntretien, true);
     elements.statEntretien.classList.remove('hidden');
@@ -491,7 +483,7 @@ function displayLastCheck(lastCheck, lastCheckAttempt) {
       elements.lastCheckDate.textContent = formatDateShort(lastCheck) + ' ';
       const span = document.createElement('span');
       span.className = 'last-check-attempt';
-      span.textContent = '(tentative ' + formatDateShort(lastCheckAttempt.timestamp) + ')';
+      span.textContent = '(' + t('popup_attempt', [formatDateShort(lastCheckAttempt.timestamp)]) + ')';
       elements.lastCheckDate.appendChild(span);
     } else {
       elements.lastCheckDate.textContent = formatDateShort(lastCheck);
@@ -499,10 +491,10 @@ function displayLastCheck(lastCheck, lastCheckAttempt) {
   } else if (lastCheckAttempt) {
     const span = document.createElement('span');
     span.className = 'last-check-attempt';
-    span.textContent = 'Tentative ' + formatDateShort(lastCheckAttempt.timestamp);
+    span.textContent = t('popup_attempt_prefix', [formatDateShort(lastCheckAttempt.timestamp)]);
     elements.lastCheckDate.appendChild(span);
   } else {
-    elements.lastCheckDate.textContent = 'Jamais';
+    elements.lastCheckDate.textContent = t('popup_never');
   }
 }
 
@@ -527,25 +519,25 @@ async function loadAutoCheckNext() {
 
     if (info.passwordExpired) {
       container.classList.add('warning');
-      text.textContent = 'Mot de passe ANEF expiré · renouveler sur le portail';
+      text.textContent = t('popup_password_expired_banner');
     } else if (!info.hasCredentials) {
       container.classList.add('warning');
-      text.textContent = 'Vérification auto activée · identifiants requis';
+      text.textContent = t('popup_autocheck_creds_required');
     } else if (info.nextAlarm) {
       const diffMin = Math.round((info.nextAlarm - Date.now()) / 60000);
       let delai;
       if (diffMin <= 0) {
-        delai = 'imminente';
+        delai = t('popup_autocheck_imminent');
       } else if (diffMin < 60) {
-        delai = `dans ~${diffMin} min`;
+        delai = t('popup_autocheck_minutes', [diffMin.toString()]);
       } else {
         const hours = Math.floor(diffMin / 60);
         const mins = diffMin % 60;
-        delai = `dans ~${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
+        delai = t('popup_autocheck_hours', [hours.toString(), mins > 0 ? mins.toString().padStart(2, '0') : '']);
       }
-      text.textContent = `Vérification auto activée · prochaine ${delai}`;
+      text.textContent = t('popup_autocheck_next', [delai]);
     } else {
-      text.textContent = 'Vérification auto activée';
+      text.textContent = t('popup_autocheck_enabled');
     }
   } catch (e) {
     console.warn('[Popup] Erreur chargement auto-check info:', e);
@@ -575,24 +567,24 @@ function updateLoadingStep(step) {
   switch (step) {
     case 1:
       stepOpen?.classList.add('active');
-      if (loadingMessage) loadingMessage.textContent = 'Ouverture de la page ANEF...';
+      if (loadingMessage) loadingMessage.textContent = t('popup_loading_step1');
       break;
     case 2:
       stepOpen?.classList.add('done');
       stepLoad?.classList.add('active');
-      if (loadingMessage) loadingMessage.textContent = 'Chargement de la page...';
+      if (loadingMessage) loadingMessage.textContent = t('popup_loading_step2');
       break;
     case 3:
       stepOpen?.classList.add('done');
       stepLoad?.classList.add('done');
       stepData?.classList.add('active');
-      if (loadingMessage) loadingMessage.textContent = 'Récupération des données...';
+      if (loadingMessage) loadingMessage.textContent = t('popup_loading_step3');
       break;
     case 4:
       stepOpen?.classList.add('done');
       stepLoad?.classList.add('done');
       stepData?.classList.add('done');
-      if (loadingMessage) loadingMessage.textContent = 'Terminé !';
+      if (loadingMessage) loadingMessage.textContent = t('popup_loading_step4');
       break;
   }
 }
@@ -707,10 +699,10 @@ async function downloadStatusImage() {
     // Date et heure
     const now = new Date();
     const dateStr = formatDate(now);
-    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
+    const timeStr = now.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
     ctx.font = '11px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.fillText(`${dateStr} à ${timeStr}`, 20, 42);
+    ctx.fillText(`${dateStr} ${t('canvas_date_at')} ${timeStr}`, 20, 42);
 
     // Carte principale
     const cardY = 68;
@@ -744,7 +736,7 @@ async function downloadStatusImage() {
     ctx.fill();
     ctx.fillStyle = bleuFrance;
     ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`Étape ${formatSubStep(statusInfo.rang)}/12`, 46, cardY + 48);
+    ctx.fillText(t('popup_step_format', [formatSubStep(statusInfo.rang)]), 46, cardY + 48);
 
     // Badge code statut
     ctx.font = '11px Monaco, Consolas, monospace';
@@ -782,9 +774,9 @@ async function downloadStatusImage() {
     // Labels progression
     ctx.fillStyle = '#94a3b8';
     ctx.font = '9px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Dépôt', 36, progressY + 20);
+    ctx.fillText(t('popup_progress_start'), 36, progressY + 20);
     ctx.textAlign = 'right';
-    ctx.fillText('Décret', 36 + progressWidth, progressY + 20);
+    ctx.fillText(t('popup_progress_end'), 36 + progressWidth, progressY + 20);
     ctx.textAlign = 'left';
 
     // Section stats
@@ -802,25 +794,25 @@ async function downloadStatusImage() {
     const startX = (width - totalStatsWidth) / 2;
 
     if (apiData?.dateDepot) {
-      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, 'DÉPÔT', formatDuration(daysSince(apiData.dateDepot)), bleuFrance);
+      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, t('canvas_depot'), formatDuration(daysSince(apiData.dateDepot)), bleuFrance);
       statIndex++;
     }
 
     if (apiData?.dateEntretien) {
       const entretienDate = new Date(apiData.dateEntretien);
       const isPast = entretienDate < new Date();
-      const label = isPast ? 'ENTRETIEN' : 'ENTRETIEN PRÉVU';
+      const label = isPast ? t('canvas_entretien') : t('canvas_entretien_planned');
       const dateFormatted = formatDate(apiData.dateEntretien, true);
       const entretienDays = daysSince(apiData.dateEntretien);
       const duration = isPast
-        ? (entretienDays === 0 ? "Aujourd'hui" : `Il y a ${formatDuration(entretienDays)}`)
-        : `Dans ${formatDuration(Math.ceil((entretienDate - new Date()) / 86400000))}`;
+        ? (entretienDays === 0 ? t('interview_today') : t('interview_ago', [formatDuration(entretienDays)]))
+        : t('time_in', [formatDuration(Math.ceil((entretienDate - new Date()) / 86400000))]);
       drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, label, `${dateFormatted} (${duration})`, bleuFrance);
       statIndex++;
     }
 
     if (lastStatus.date_statut) {
-      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, 'DERNIÈRE MAJ', formatDuration(daysSince(lastStatus.date_statut)), bleuFrance);
+      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, t('canvas_last_update'), formatDuration(daysSince(lastStatus.date_statut)), bleuFrance);
     }
 
     // Footer tricolore

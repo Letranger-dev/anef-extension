@@ -55,7 +55,7 @@
   if (window.__ANEF_EXTENSION_INJECTED__) return;
   window.__ANEF_EXTENSION_INJECTED__ = true;
 
-  logger.info('Content Script chargé');
+  logger.info('Content Script loaded');
 
   // ─────────────────────────────────────────────────────────────
   // Injection du script d'interception
@@ -67,10 +67,10 @@
     // Passer l'URL locale de forge.js (le script injecté n'a pas accès à chrome.runtime)
     script.dataset.forgeUrl = chrome.runtime.getURL('lib/forge.min.js');
     script.onload = function() {
-      logger.info('✅ Script d\'interception injecté');
+      logger.info('✅ Interception script injected');
       this.remove();
     };
-    script.onerror = () => logger.error('Erreur injection script');
+    script.onerror = () => logger.error('Script injection error');
 
     (document.documentElement || document.head || document.body).appendChild(script);
   }
@@ -91,13 +91,13 @@
     const { type, data } = event.detail || {};
 
     if (!type || !ALLOWED_MESSAGE_TYPES.includes(type)) {
-      logger.warn('Type de message non autorisé ignoré:', type);
+      logger.warn('Unauthorized message type ignored:', type);
       return;
     }
 
     if (data) {
       safeSendMessage({ type, data })
-        .then(() => logger.info('📤 Données envoyées:', type));
+        .then(() => logger.info('📤 Data sent:', type));
     }
   });
 
@@ -119,7 +119,7 @@
 
       // Lancer la connexion automatique
       case 'DO_AUTO_LOGIN':
-        logger.info('🔐 Auto-login demandé');
+        logger.info('🔐 Auto-login requested');
         injectAutoLoginScript();
         setTimeout(() => {
           window.postMessage({
@@ -133,7 +133,7 @@
 
       // Déclencher la récupération des données
       case 'TRIGGER_DATA_FETCH':
-        logger.info('📥 Demande de récupération des données');
+        logger.info('📥 Data fetch requested');
         triggerDataFetch();
         sendResponse({ triggered: true });
         return true;
@@ -164,10 +164,10 @@
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('content/auto-login.js');
     script.onload = function() {
-      logger.info('✅ Script auto-login injecté');
+      logger.info('✅ Auto-login script injected');
       this.remove();
     };
-    script.onerror = () => logger.error('Erreur injection auto-login');
+    script.onerror = () => logger.error('Auto-login injection error');
 
     (document.documentElement || document.head || document.body).appendChild(script);
   }
@@ -178,7 +178,7 @@
     if (event.data?.source !== 'ANEF_AUTO_LOGIN') return;
 
     const { type, data } = event.data;
-    logger.info('📥 Résultat auto-login:', type);
+    logger.info('📥 Auto-login result:', type);
 
     safeSendMessage({ type, data });
   });
@@ -218,7 +218,7 @@
       if (location.href !== lastUrl) {
         const previousUrl = lastUrl;
         lastUrl = location.href;
-        logger.info('📍 Navigation détectée:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
+        logger.info('📍 Navigation detected:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
         safeSendMessage({ type: 'PAGE_CHANGED', url: lastUrl });
 
         // Si on arrive sur mon-compte après une connexion, relancer le script d'injection
@@ -229,7 +229,7 @@
         const isOnMonCompte = lastUrl.includes('mon-compte');
 
         if (isOnMonCompte && (wasOnLogin || !injectedScriptTriggered)) {
-          logger.info('🔄 Relance du script d\'interception après navigation');
+          logger.info('🔄 Re-launching interception script after navigation');
           injectedScriptTriggered = true;
           setTimeout(() => {
             triggerDataFetch();
@@ -279,7 +279,7 @@
                           referrer.includes('connexion');
 
     if (cameFromLogin) {
-      logger.info('🏠 Page d\'accueil après login, redirection vers mon-compte...');
+      logger.info('🏠 Homepage after login, redirecting to mon-compte...');
       window.location.href = 'https://administration-etrangers-en-france.interieur.gouv.fr/particuliers/#/espace-personnel/mon-compte';
     }
   }
@@ -297,7 +297,7 @@
       window.addEventListener('load', notifyReady);
     }
 
-    logger.info('Content Script initialisé');
+    logger.info('Content Script initialized');
   }
 
   if (document.readyState === 'loading') {

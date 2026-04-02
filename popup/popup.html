@@ -14,7 +14,7 @@
         <h1>ANEF Status <span id="version" class="version">v1.0</span></h1>
       </div>
       <div class="header-actions">
-        <button id="btn-settings" class="btn-icon" title="Paramètres">
+        <button id="btn-settings" class="btn-icon" title="Paramètres" data-i18n-title="popup_settings_title">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -29,13 +29,13 @@
         <div class="card-icon-wrapper maintenance">
           <span class="card-icon">🔧</span>
         </div>
-        <h2>Site en maintenance</h2>
-        <p>Le site ANEF est actuellement en maintenance. Veuillez réessayer plus tard.</p>
+        <h2 data-i18n="popup_maintenance_title">Site en maintenance</h2>
+        <p data-i18n="popup_maintenance_desc">Le site ANEF est actuellement en maintenance. Veuillez réessayer plus tard.</p>
         <button id="btn-retry" class="btn btn-primary">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          <span>Réessayer</span>
+          <span data-i18n="popup_retry">Réessayer</span>
         </button>
       </div>
     </div>
@@ -46,10 +46,10 @@
         <div class="card-icon-wrapper warning">
           <span class="card-icon">🔑</span>
         </div>
-        <h2>Mot de passe expir&eacute;</h2>
-        <p>Votre mot de passe ANEF a expir&eacute;. Connectez-vous sur le portail ANEF pour le renouveler, puis relancez une v&eacute;rification.</p>
+        <h2 data-i18n="popup_password_expired_title">Mot de passe expir&eacute;</h2>
+        <p data-i18n="popup_password_expired_desc">Votre mot de passe ANEF a expir&eacute;. Connectez-vous sur le portail ANEF pour le renouveler, puis relancez une v&eacute;rification.</p>
         <button id="btn-renew-password" class="btn btn-primary">
-          <span>Renouveler sur ANEF</span>
+          <span data-i18n="popup_renew_password">Renouveler sur ANEF</span>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
           </svg>
@@ -63,13 +63,13 @@
         <div class="card-icon-wrapper warning">
           <span class="card-icon">🔒</span>
         </div>
-        <h2>Session expirée</h2>
-        <p>Votre session ANEF a expiré. Reconnectez-vous pour actualiser votre statut.</p>
-        <p class="hint-text">
+        <h2 data-i18n="popup_session_expired_title">Session expirée</h2>
+        <p data-i18n="popup_session_expired_desc">Votre session ANEF a expiré. Reconnectez-vous pour actualiser votre statut.</p>
+        <p class="hint-text" data-i18n-html="popup_login_hint">
           <a href="#" id="link-save-credentials" class="link-settings">Enregistrez vos identifiants</a> pour une connexion automatique.
         </p>
         <button id="btn-login" class="btn btn-primary">
-          <span>Se connecter à ANEF</span>
+          <span data-i18n="popup_login">Se connecter à ANEF</span>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
           </svg>
@@ -83,10 +83,10 @@
         <div class="card-icon-wrapper info">
           <span class="card-icon">📊</span>
         </div>
-        <h2>Aucune donnée</h2>
-        <p>Visitez votre espace ANEF pour récupérer votre statut.</p>
+        <h2 data-i18n="popup_no_data_title">Aucune donnée</h2>
+        <p data-i18n="popup_no_data_desc">Visitez votre espace ANEF pour récupérer votre statut.</p>
         <button id="btn-check" class="btn btn-primary">
-          <span>Vérifier mon statut</span>
+          <span data-i18n="popup_check_status">Vérifier mon statut</span>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
@@ -98,23 +98,23 @@
     <div id="view-loading" class="view hidden">
       <div class="card card-loading">
         <div class="spinner"></div>
-        <h2 id="loading-title">Actualisation...</h2>
-        <p id="loading-message">Ouverture de la page ANEF...</p>
+        <h2 id="loading-title" data-i18n="popup_loading_title">Actualisation...</h2>
+        <p id="loading-message" data-i18n="popup_loading_message">Ouverture de la page ANEF...</p>
         <div class="loading-steps">
           <div class="loading-step" id="step-open">
             <span class="step-icon">1</span>
-            <span class="step-text">Ouverture page</span>
+            <span class="step-text" data-i18n="popup_step_open">Ouverture page</span>
           </div>
           <div class="loading-step" id="step-load">
             <span class="step-icon">2</span>
-            <span class="step-text">Chargement</span>
+            <span class="step-text" data-i18n="popup_step_load">Chargement</span>
           </div>
           <div class="loading-step" id="step-data">
             <span class="step-icon">3</span>
-            <span class="step-text">Récupération</span>
+            <span class="step-text" data-i18n="popup_step_data">Récupération</span>
           </div>
         </div>
-        <p class="loading-hint">Cette opération peut prendre jusqu'à 45 secondes</p>
+        <p class="loading-hint" data-i18n="popup_loading_hint">Cette opération peut prendre jusqu'à 45 secondes</p>
 
         <!-- Citations sur la patience -->
         <div class="quote-container">
@@ -138,7 +138,7 @@
           </div>
           <div class="status-info">
             <span class="status-phase" id="status-phase">—</span>
-            <span class="status-step" id="status-step">Étape ?/12</span>
+            <span class="status-step" id="status-step" data-i18n="popup_step_default">Étape ?/12</span>
           </div>
         </div>
 
@@ -165,19 +165,19 @@
             <div class="progress-fill" id="progress-fill"></div>
           </div>
           <div class="progress-labels">
-            <span>Dépôt</span>
-            <span>Décret</span>
+            <span data-i18n="popup_progress_start">Dépôt</span>
+            <span data-i18n="popup_progress_end">Décret</span>
           </div>
         </div>
 
         <!-- Dates -->
         <div class="status-dates">
           <div class="status-date-row">
-            <span class="status-date-label">📅 Statut depuis</span>
+            <span class="status-date-label" data-i18n="popup_status_since">📅 Statut depuis</span>
             <span class="status-date-value" id="status-date">—</span>
           </div>
           <div class="status-date-row">
-            <span class="status-date-label">🔄 Dernière MAJ</span>
+            <span class="status-date-label" data-i18n="popup_last_update_label">🔄 Dernière MAJ</span>
             <span class="status-date-value" id="status-last-check">—</span>
           </div>
         </div>
@@ -188,8 +188,8 @@
         <div class="step-dates-alert-content">
           <span class="step-dates-alert-pulse"></span>
           <span class="step-dates-alert-text">
-            <strong>Historique incomplet</strong>
-            <span class="step-dates-alert-sub">Renseignez vos dates d'étapes passées pour enrichir les statistiques</span>
+            <strong data-i18n="popup_history_incomplete_title">Historique incomplet</strong>
+            <span class="step-dates-alert-sub" data-i18n="popup_history_incomplete_desc">Renseignez vos dates d'étapes passées pour enrichir les statistiques</span>
           </span>
         </div>
         <span class="step-dates-alert-arrow">→</span>
@@ -201,13 +201,13 @@
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          <span>Actualiser</span>
+          <span data-i18n="popup_refresh">Actualiser</span>
         </button>
-        <button id="btn-download" class="btn btn-secondary" title="Exporter le suivi en image">
+        <button id="btn-download" class="btn btn-secondary" title="Exporter le suivi en image" data-i18n-title="popup_share_title">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          <span>Partager</span>
+          <span data-i18n="popup_share">Partager</span>
         </button>
       </div>
 
@@ -216,19 +216,19 @@
         <div class="stats-cards">
           <div id="stat-depot" class="stat-card">
             <span class="stat-icon">📅</span>
-            <span class="stat-label">Dépôt</span>
+            <span class="stat-label" data-i18n="popup_stat_depot">Dépôt</span>
             <span class="stat-value" id="stat-depot-value">—</span>
             <span class="stat-date" id="stat-depot-date">—</span>
           </div>
           <div id="stat-entretien" class="stat-card">
             <span class="stat-icon">🗣️</span>
-            <span class="stat-label">Entretien</span>
+            <span class="stat-label" data-i18n="popup_stat_entretien">Entretien</span>
             <span class="stat-value" id="stat-entretien-value">—</span>
             <span class="stat-date" id="stat-entretien-date">—</span>
           </div>
           <div id="stat-statut-age" class="stat-card">
             <span class="stat-icon">⏱️</span>
-            <span class="stat-label">Dernière MAJ</span>
+            <span class="stat-label" data-i18n="popup_stat_last_update">Dernière MAJ</span>
             <span class="stat-value" id="stat-statut-age-value">—</span>
             <span class="stat-date" id="stat-statut-age-date">—</span>
           </div>
@@ -239,27 +239,27 @@
       <div id="details-section" class="details-section hidden">
         <div class="details-grid">
           <div id="detail-dossier-id" class="detail-chip hidden">
-            <span class="detail-chip-label">Dossier</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_dossier">Dossier</span>
             <span class="detail-chip-value" id="detail-dossier-id-value">—</span>
           </div>
           <div id="detail-numero-national" class="detail-chip hidden">
-            <span class="detail-chip-label">N° National</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_national">N° National</span>
             <span class="detail-chip-value" id="detail-numero-national-value">—</span>
           </div>
           <div id="detail-prefecture" class="detail-chip hidden">
-            <span class="detail-chip-label">Préfecture</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_prefecture">Préfecture</span>
             <span class="detail-chip-value" id="detail-prefecture-value">—</span>
           </div>
           <div id="detail-type-demande" class="detail-chip hidden">
-            <span class="detail-chip-label">Type</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_type">Type</span>
             <span class="detail-chip-value" id="detail-type-demande-value">—</span>
           </div>
           <div id="detail-entretien-lieu" class="detail-chip hidden">
-            <span class="detail-chip-label">Lieu</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_location">Lieu</span>
             <span class="detail-chip-value" id="detail-entretien-lieu-value">—</span>
           </div>
           <div id="detail-decret" class="detail-chip detail-chip-success detail-chip-wide hidden">
-            <span class="detail-chip-label">🎉 Décret</span>
+            <span class="detail-chip-label" data-i18n="popup_detail_decree">🎉 Décret</span>
             <span class="detail-chip-value" id="detail-decret-value">—</span>
           </div>
         </div>
@@ -267,7 +267,7 @@
 
       <!-- Dernière vérification -->
       <div class="last-check">
-        Dernière vérification : <span id="last-check-date">—</span>
+        <span data-i18n="popup_last_check">Dernière vérification :</span> <span id="last-check-date">—</span>
       </div>
     </div>
 
@@ -277,7 +277,7 @@
         <span class="auto-check-banner-dot" id="auto-check-dot"></span>
         <span class="auto-check-banner-text" id="auto-check-next-text">—</span>
       </div>
-      <a href="#" id="auto-check-settings-link" class="auto-check-banner-link" title="Modifier dans les paramètres">
+      <a href="#" id="auto-check-settings-link" class="auto-check-banner-link" title="Modifier dans les paramètres" data-i18n-title="popup_autocheck_settings">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -289,8 +289,8 @@
     <a id="link-stats" href="https://letranger-dev.github.io/anef-extension/" target="_blank" class="stats-banner">
       <span class="stats-banner-icon">📊</span>
       <span class="stats-banner-text">
-        <span class="stats-banner-title">Statistiques communautaires</span>
-        <span class="stats-banner-hint">Donnees 100% anonymes — Comparez votre progression</span>
+        <span class="stats-banner-title" data-i18n="popup_stats_link_title">Statistiques communautaires</span>
+        <span class="stats-banner-hint" data-i18n="popup_stats_link_desc">Donnees 100% anonymes — Comparez votre progression</span>
       </span>
       <svg class="stats-banner-arrow" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>

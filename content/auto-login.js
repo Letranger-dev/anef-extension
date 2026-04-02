@@ -75,7 +75,7 @@
   // ─────────────────────────────────────────────────────────────
 
   async function clickSeConnecter() {
-    log('📍 Page ANEF détectée');
+    log('📍 ANEF page detected');
 
     // Attendre que Angular charge
     await sleep(2000);
@@ -83,12 +83,12 @@
     const btn = await waitForElement('p-button.fullWidthButton button', 10000);
 
     if (!btn) {
-      log('❌ Bouton "Se connecter" non trouvé');
-      notifyExtension('NEED_CLICK_LOGIN', { error: 'Bouton non trouvé' });
+      log('❌ "Se connecter" button not found');
+      notifyExtension('NEED_CLICK_LOGIN', { error: 'Button not found' });
       return false;
     }
 
-    log('👆 Clic sur "Se connecter"');
+    log('👆 Clicking "Se connecter"');
     btn.click();
     notifyExtension('LOGIN_CLICKED', {});
 
@@ -100,7 +100,7 @@
   // ─────────────────────────────────────────────────────────────
 
   async function fillSSOForm(username, password) {
-    log('📍 Page SSO détectée');
+    log('📍 SSO page detected');
 
     const usernameInput = await waitForElement(
       "input[name='username'], input[type='email'], input[id='username']",
@@ -108,12 +108,12 @@
     );
 
     if (!usernameInput) {
-      log('❌ Champ identifiant non trouvé');
-      notifyExtension('LOGIN_FAILED', { error: 'Champ identifiant non trouvé' });
+      log('❌ Username field not found');
+      notifyExtension('LOGIN_FAILED', { error: 'Username field not found' });
       return false;
     }
 
-    log('📝 Saisie identifiant');
+    log('📝 Filling username');
     fillInput(usernameInput, username);
     await sleep(500);
 
@@ -122,12 +122,12 @@
     );
 
     if (!passwordInput) {
-      log('❌ Champ mot de passe non trouvé');
-      notifyExtension('LOGIN_FAILED', { error: 'Champ mot de passe non trouvé' });
+      log('❌ Password field not found');
+      notifyExtension('LOGIN_FAILED', { error: 'Password field not found' });
       return false;
     }
 
-    log('📝 Saisie mot de passe');
+    log('📝 Filling password');
     fillInput(passwordInput, password);
     await sleep(500);
 
@@ -136,12 +136,12 @@
     );
 
     if (!submitBtn) {
-      log('❌ Bouton de connexion non trouvé');
-      notifyExtension('LOGIN_FAILED', { error: 'Bouton submit non trouvé' });
+      log('❌ Submit button not found');
+      notifyExtension('LOGIN_FAILED', { error: 'Submit button not found' });
       return false;
     }
 
-    log('👆 Soumission du formulaire');
+    log('👆 Submitting form');
     submitBtn.click();
     notifyExtension('LOGIN_SUBMITTED', {});
 
@@ -153,11 +153,11 @@
   // ─────────────────────────────────────────────────────────────
 
   async function performAutoLogin(username, password) {
-    log('🚀 Démarrage connexion automatique');
+    log('🚀 Starting auto-login');
     log('📍 URL:', window.location.href);
 
     const pageType = detectPageType();
-    log('📄 Type de page:', pageType);
+    log('📄 Page type:', pageType);
 
     try {
       switch (pageType) {
@@ -170,21 +170,21 @@
           break;
 
         case 'LOGGED_IN':
-          log('✅ Déjà connecté');
+          log('✅ Already logged in');
           notifyExtension('LOGIN_SUCCESS', {});
           break;
 
         default:
-          log('⚠️ Page inconnue, tentative SSO');
+          log('⚠️ Unknown page, attempting SSO');
           const hasForm = document.querySelector("input[name='username'], input[type='email']");
           if (hasForm) {
             await fillSSOForm(username, password);
           } else {
-            notifyExtension('LOGIN_FAILED', { error: 'Page non reconnue' });
+            notifyExtension('LOGIN_FAILED', { error: 'Page not recognized' });
           }
       }
     } catch (error) {
-      log('❌ Erreur:', error.message);
+      log('❌ Error:', error.message);
       notifyExtension('LOGIN_FAILED', { error: error.message });
     }
   }
@@ -202,12 +202,12 @@
       if (username && password) {
         await performAutoLogin(username, password);
       } else {
-        log('❌ Identifiants manquants');
-        notifyExtension('LOGIN_FAILED', { error: 'Identifiants manquants' });
+        log('❌ Missing credentials');
+        notifyExtension('LOGIN_FAILED', { error: 'Missing credentials' });
       }
     }
   });
 
-  log('Script auto-login chargé');
+  log('Auto-login script loaded');
 
 })();

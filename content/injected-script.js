@@ -44,7 +44,7 @@
     }));
   }
 
-  log('Script d\'interception chargé');
+  log('Interception script loaded');
 
   // ─────────────────────────────────────────────────────────────
   // Configuration des API
@@ -93,7 +93,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
   function decryptStatus(encryptedData) {
     try {
       if (typeof forge === 'undefined') {
-        log('forge.js non disponible');
+        log('forge.js not available');
         return encryptedData;
       }
 
@@ -101,7 +101,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       if (!privateKey) {
         privateKey = forge.pki.privateKeyFromPem(PRIVATE_KEY.trim());
       }
-      if (!privateKey) throw new Error('Clé privée invalide');
+      if (!privateKey) throw new Error('Invalid private key');
 
       const decoded = forge.util.decode64(encryptedData);
       const buffer = forge.util.createBuffer(decoded, 'raw');
@@ -114,7 +114,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       return decrypted.split('#K#')[0] || decrypted;
 
     } catch (error) {
-      log('Erreur déchiffrement:', error.message);
+      log('Decryption error:', error.message);
       return encryptedData;
     }
   }
@@ -140,17 +140,17 @@ QJNdXtE3G7SjkDOn36yZSaXp
       }
 
       if (!FORGE_URL) {
-        reject(new Error('URL forge.js non disponible'));
+        reject(new Error('forge.js URL not available'));
         return;
       }
 
       const script = document.createElement('script');
       script.src = FORGE_URL;
       script.onload = () => {
-        log('✅ forge.js chargé (local)');
+        log('✅ forge.js loaded (local)');
         resolve();
       };
-      script.onerror = () => reject(new Error('Échec chargement forge.js'));
+      script.onerror = () => reject(new Error('Failed to load forge.js'));
       document.head.appendChild(script);
     });
   }
@@ -203,24 +203,24 @@ QJNdXtE3G7SjkDOn36yZSaXp
   async function fetchDossierData() {
     try {
       const startTime = Date.now();
-      log('📡 Appel API dossier-stepper...');
+      log('📡 Calling dossier-stepper API...');
 
       const response = await fetch(API.DOSSIER_STEPPER);
-      log('📡 API répondu en ' + (Date.now() - startTime) + 'ms');
+      log('📡 API responded in ' + (Date.now() - startTime) + 'ms');
       if (!response.ok) {
         // HTTP 502/503 = maintenance probable
         if (response.status === 502 || response.status === 503) {
-          log('🔧 API en maintenance (HTTP ' + response.status + ')');
+          log('🔧 API under maintenance (HTTP ' + response.status + ')');
           sendToExtension('MAINTENANCE', { inMaintenance: true });
           return null;
         }
-        throw new Error(`Erreur ${response.status}`);
+        throw new Error(`Error ${response.status}`);
       }
 
       const data = await response.json();
 
       if (!data?.dossier?.statut) {
-        log('Pas de statut dans la réponse');
+        log('No status in response');
         return null;
       }
 
@@ -245,7 +245,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       return { statut: decryptedStatus, date_statut: data.dossier.date_statut };
 
     } catch (error) {
-      log('Erreur récupération dossier:', error.message);
+      log('Error fetching dossier:', error.message);
       return null;
     }
   }
@@ -269,7 +269,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
   async function fetchDossierDetails(dossierId) {
     try {
-      log('📡 Appel API détails dossier...');
+      log('📡 Calling dossier details API...');
 
       const response = await fetch(API.DOSSIER_DETAILS + dossierId);
       if (!response.ok) return;
@@ -279,7 +279,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
       // Log diagnostic : clés de la réponse + recherche champ décret
       if (details) {
-        log('📋 Clés API détails: ' + Object.keys(details).join(', '));
+        log('📋 API details keys: ' + Object.keys(details).join(', '));
         // Recherche récursive de tout champ contenant "decret"
         var decretFields = [];
         (function findDecret(obj, path) {
@@ -294,7 +294,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
           }
         })(details, 'details');
         if (decretFields.length) {
-          log('📋 Champs décret trouvés: ' + decretFields.join(' | '));
+          log('📋 Decree fields found: ' + decretFields.join(' | '));
         }
       }
 
@@ -329,7 +329,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       });
 
     } catch (error) {
-      log('Erreur récupération détails:', error.message);
+      log('Error fetching details:', error.message);
     }
   }
 
@@ -339,12 +339,12 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
   async function waitForNationalityTab() {
     const MAX_WAIT = 30000;
-    log('⏳ Recherche onglet Nationalité...');
+    log('⏳ Looking for Nationality tab...');
 
     // Vérifier immédiatement
     const found = findNationalityTab();
     if (found) {
-      log('✅ Onglet Nationalité trouvé immédiatement');
+      log('✅ Nationality tab found immediately');
       return found;
     }
 
@@ -357,7 +357,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
         // Page d'erreur ou login
         if (document.querySelector('.error-page') || window.location.href.includes('connexion')) {
           observer.disconnect();
-          log('❌ Page d\'erreur ou de connexion détectée');
+          log('❌ Error or login page detected');
           resolve(null);
           return;
         }
@@ -375,7 +375,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
         const tab = findNationalityTab();
         if (tab) {
           observer.disconnect();
-          log('✅ Onglet Nationalité trouvé après ' + (Date.now() - startTime) + 'ms');
+          log('✅ Nationality tab found after ' + (Date.now() - startTime) + 'ms');
           resolve(tab);
         }
       });
@@ -394,7 +394,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
           const allTabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li');
           const allLinks = document.querySelectorAll('a');
           const tabTexts = Array.from(allTabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"');
-          log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's. DOM tabs: ' + allTabs.length + ' [' + tabTexts.join(', ') + ']. Total links: ' + allLinks.length + '. Body length: ' + (document.body?.innerHTML?.length || 0));
+          log('❌ Timeout: tab not found after ' + MAX_WAIT / 1000 + 's. DOM tabs: ' + allTabs.length + ' [' + tabTexts.join(', ') + ']. Total links: ' + allLinks.length + '. Body length: ' + (document.body?.innerHTML?.length || 0));
           resolve(null);
         }
       }, MAX_WAIT);
@@ -405,7 +405,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li');
     if (tabs.length > 0 && !findNationalityTab._logged) {
       findNationalityTab._logged = true;
-      log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
+      log('🔍 DOM tabs found: ' + tabs.length + ' — texts: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
     }
     return Array.from(tabs).find(
       el => el.textContent?.includes("Nationalité Française") ||
@@ -418,11 +418,11 @@ QJNdXtE3G7SjkDOn36yZSaXp
   /** Attend que le contenu de l'onglet soit chargé (MutationObserver) */
   async function waitForTabContent() {
     const MAX_WAIT = 3000;
-    log('⏳ Attente chargement contenu onglet...');
+    log('⏳ Waiting for tab content to load...');
 
     // Vérifier immédiatement
     if (isTabContentLoaded()) {
-      log('✅ Contenu onglet Nationalité déjà chargé');
+      log('✅ Nationality tab content already loaded');
       return;
     }
 
@@ -432,7 +432,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       const observer = new MutationObserver(() => {
         if (isTabContentLoaded()) {
           observer.disconnect();
-          log('✅ Contenu onglet chargé après ' + (Date.now() - startTime) + 'ms');
+          log('✅ Tab content loaded after ' + (Date.now() - startTime) + 'ms');
           resolve();
         }
       });
@@ -443,7 +443,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
       setTimeout(() => {
         observer.disconnect();
-        log('⚠️ Timeout attente contenu (' + MAX_WAIT + 'ms), on continue');
+        log('⚠️ Timeout waiting for content (' + MAX_WAIT + 'ms), continuing');
         resolve();
       }, MAX_WAIT);
     });
@@ -493,7 +493,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
       !!(document.querySelector('h1')?.textContent?.includes('503'));
 
     if (isMaintenance) {
-      log('🔧 Site en maintenance détecté');
+      log('🔧 Site maintenance detected');
       sendToExtension('MAINTENANCE', { inMaintenance: true });
       return true;
     }
@@ -510,19 +510,19 @@ QJNdXtE3G7SjkDOn36yZSaXp
   async function main() {
     // Éviter les exécutions simultanées
     if (isRunning) {
-      log('⏳ Déjà en cours d\'exécution');
+      log('⏳ Already running');
       return;
     }
 
     // Vérifier qu'on est sur une page appropriée (pas login)
     const currentUrl = window.location.href;
     if (currentUrl.includes('connexion-inscription')) {
-      log('📍 Page de connexion, attente navigation...');
+      log('📍 Login page, waiting for navigation...');
       return;
     }
 
     isRunning = true;
-    log('🚀 Démarrage...');
+    log('🚀 Starting...');
 
     if (checkMaintenance()) {
       sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
@@ -535,7 +535,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     const jwtErrorHandler = function(event) {
       if (event.message && event.message.includes('doesn\'t appear to be a JWT')) {
         jwtErrorDetected = true;
-        log('🔑 Erreur JWT détectée — session invalide ou mot de passe expiré');
+        log('🔑 JWT error detected — invalid session or expired password');
       }
     };
     window.addEventListener('error', jwtErrorHandler);
@@ -543,13 +543,13 @@ QJNdXtE3G7SjkDOn36yZSaXp
     try {
       await loadForge();
     } catch {
-      log('forge.js non disponible, déchiffrement désactivé');
+      log('forge.js not available, decryption disabled');
     }
 
     // Si l'erreur JWT est déjà arrivée (elle arrive très vite), sortir immédiatement
     if (jwtErrorDetected) {
       window.removeEventListener('error', jwtErrorHandler);
-      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
+      log('❌ Invalid ANEF session (expired JWT) — password needs renewal');
       sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
       sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
       isRunning = false;
@@ -561,7 +561,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
     // Vérifier si l'erreur JWT est arrivée pendant l'attente
     if (jwtErrorDetected) {
-      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
+      log('❌ Invalid ANEF session (expired JWT) — password needs renewal');
       sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
       sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
       isRunning = false;
@@ -571,23 +571,23 @@ QJNdXtE3G7SjkDOn36yZSaXp
     if (!tab) {
       // Revérifier la maintenance (la page a pu finir de charger entre-temps)
       checkMaintenance();
-      log('❌ Onglet Nationalité non trouvé après attente');
+      log('❌ Nationality tab not found after waiting');
       sendToExtension('FETCH_COMPLETE', { success: false, reason: 'no_nationality_tab' });
       isRunning = false;
       return;
     }
 
     if (!tab.classList.contains('active')) {
-      log('👆 Activation onglet Nationalité');
+      log('👆 Activating Nationality tab');
       tab.click();
       // Petit délai pour laisser Angular réagir au clic
       await new Promise(r => setTimeout(r, 500));
     }
 
-    log('📡 Lancement récupération données...');
+    log('📡 Starting data fetch...');
     const result = await fetchDossierData();
     if (result) {
-      log('✅ Données récupérées');
+      log('✅ Data retrieved');
       hasRun = true;
       sendToExtension('FETCH_COMPLETE', { success: true });
     } else {
@@ -608,7 +608,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     if (event.data?.source !== 'ANEF_EXTENSION') return;
 
     if (event.data.type === 'TRIGGER_DATA_FETCH') {
-      log('📥 Demande de récupération des données reçue');
+      log('📥 Data fetch request received');
       await main();
     }
   });
@@ -617,7 +617,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
   function startWhenReady() {
     // Ne démarrer que si on est sur mon-compte
     if (!window.location.href.includes('mon-compte')) {
-      log('📍 Pas sur mon-compte, attente navigation...');
+      log('📍 Not on mon-compte, waiting for navigation...');
       // Vérifier quand même la maintenance (le site peut avoir redirigé)
       setTimeout(() => {
         if (checkMaintenance()) {
@@ -629,7 +629,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
     // Vérifier immédiatement
     if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
-      log('✅ Angular détecté immédiatement');
+      log('✅ Angular detected immediately');
       main();
       return;
     }
@@ -641,7 +641,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     const observer = new MutationObserver(() => {
       if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
         observer.disconnect();
-        log('✅ Angular détecté (après ' + (Date.now() - startTime) + 'ms)');
+        log('✅ Angular detected (after ' + (Date.now() - startTime) + 'ms)');
         main();
       }
     });
@@ -662,7 +662,7 @@ QJNdXtE3G7SjkDOn36yZSaXp
     setTimeout(() => {
       observer.disconnect();
       if (!isRunning && !hasRun) {
-        log('⚠️ Timeout détection Angular, démarrage forcé');
+        log('⚠️ Angular detection timeout, forced start');
         main();
       }
     }, MAX_WAIT);

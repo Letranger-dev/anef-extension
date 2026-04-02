@@ -1,159 +1,159 @@
 {
   "extName": {
     "message": "ANEF Status Tracker",
-    "description": "Nom de l'extension"
+    "description": "Extension name"
   },
   "extDescription": {
-    "message": "Suivez votre statut de naturalisation ANEF en temps réel",
-    "description": "Description de l'extension"
+    "message": "Track your ANEF naturalization status in real time",
+    "description": "Extension description"
   },
 
   "popup_settings_title": {
-    "message": "Paramètres",
+    "message": "Settings",
     "description": "Popup settings button tooltip"
   },
   "popup_maintenance_title": {
-    "message": "Site en maintenance",
+    "message": "Site under maintenance",
     "description": "Popup maintenance screen title"
   },
   "popup_maintenance_desc": {
-    "message": "Le site ANEF est actuellement en maintenance. Veuillez réessayer plus tard.",
+    "message": "The ANEF site is currently under maintenance. Please try again later.",
     "description": "Popup maintenance screen description"
   },
   "popup_retry": {
-    "message": "Réessayer",
+    "message": "Retry",
     "description": "Popup retry button label"
   },
   "popup_password_expired_title": {
-    "message": "Mot de passe expiré",
+    "message": "Password expired",
     "description": "Popup password expired screen title"
   },
   "popup_password_expired_desc": {
-    "message": "Votre mot de passe ANEF a expiré. Connectez-vous sur le portail ANEF pour le renouveler, puis relancez une vérification.",
+    "message": "Your ANEF password has expired. Log in to the ANEF portal to renew it, then retry.",
     "description": "Popup password expired screen description"
   },
   "popup_renew_password": {
-    "message": "Renouveler sur ANEF",
+    "message": "Renew on ANEF",
     "description": "Popup renew password button label"
   },
   "popup_session_expired_title": {
-    "message": "Session expirée",
+    "message": "Session expired",
     "description": "Popup session expired screen title"
   },
   "popup_session_expired_desc": {
-    "message": "Votre session ANEF a expiré. Reconnectez-vous pour actualiser votre statut.",
+    "message": "Your ANEF session has expired. Log in again to refresh your status.",
     "description": "Popup session expired screen description"
   },
   "popup_save_credentials_link": {
-    "message": "Enregistrez vos identifiants",
+    "message": "Save your credentials",
     "description": "Popup link to save credentials"
   },
   "popup_login": {
-    "message": "Se connecter à ANEF",
+    "message": "Log in to ANEF",
     "description": "Popup login button label"
   },
   "popup_login_hint": {
-    "message": "pour une connexion automatique.",
+    "message": "for automatic login.",
     "description": "Popup login hint text after credentials link"
   },
   "popup_no_data_title": {
-    "message": "Aucune donnée",
+    "message": "No data",
     "description": "Popup no data screen title"
   },
   "popup_no_data_desc": {
-    "message": "Visitez votre espace ANEF pour récupérer votre statut.",
+    "message": "Visit your ANEF portal to retrieve your status.",
     "description": "Popup no data screen description"
   },
   "popup_check_status": {
-    "message": "Vérifier mon statut",
+    "message": "Check my status",
     "description": "Popup check status button label"
   },
   "popup_loading_title": {
-    "message": "Actualisation...",
+    "message": "Refreshing...",
     "description": "Popup loading screen title"
   },
   "popup_loading_message": {
-    "message": "Ouverture de la page ANEF...",
+    "message": "Opening the ANEF page...",
     "description": "Popup loading screen message"
   },
   "popup_step_open": {
-    "message": "Ouverture page",
+    "message": "Opening page",
     "description": "Popup loading step: opening page"
   },
   "popup_step_load": {
-    "message": "Chargement",
+    "message": "Loading",
     "description": "Popup loading step: loading"
   },
   "popup_step_data": {
-    "message": "Récupération",
+    "message": "Retrieving",
     "description": "Popup loading step: retrieving data"
   },
   "popup_loading_hint": {
-    "message": "Cette opération peut prendre jusqu'à 45 secondes",
+    "message": "This operation may take up to 45 seconds",
     "description": "Popup loading hint about duration"
   },
   "popup_step_default": {
-    "message": "Étape ?/12",
+    "message": "Step ?/12",
     "description": "Popup default step indicator when step is unknown"
   },
   "popup_progress_start": {
-    "message": "Dépôt",
+    "message": "Filing",
     "description": "Popup progress bar start label"
   },
   "popup_progress_end": {
-    "message": "Décret",
+    "message": "Decree",
     "description": "Popup progress bar end label"
   },
   "popup_status_since": {
-    "message": "Statut depuis",
+    "message": "Status since",
     "description": "Popup label before status date"
   },
   "popup_last_update_label": {
-    "message": "Dernière MAJ",
+    "message": "Last update",
     "description": "Popup last update label"
   },
   "popup_history_incomplete_title": {
-    "message": "Historique incomplet",
+    "message": "Incomplete history",
     "description": "Popup incomplete history banner title"
   },
   "popup_history_incomplete_desc": {
-    "message": "Renseignez vos dates d'étapes passées pour enrichir les statistiques",
+    "message": "Enter your past step dates to enrich statistics",
     "description": "Popup incomplete history banner description"
   },
   "popup_refresh": {
-    "message": "Actualiser",
+    "message": "Refresh",
     "description": "Popup refresh button label"
   },
   "popup_share_title": {
-    "message": "Exporter le suivi en image",
+    "message": "Export tracking as image",
     "description": "Popup share button tooltip"
   },
   "popup_share": {
-    "message": "Partager",
+    "message": "Share",
     "description": "Popup share button label"
   },
   "popup_stat_depot": {
-    "message": "Dépôt",
+    "message": "Filing",
     "description": "Popup stat label for filing date"
   },
   "popup_stat_entretien": {
-    "message": "Entretien",
+    "message": "Interview",
     "description": "Popup stat label for interview date"
   },
   "popup_stat_last_update": {
-    "message": "Dernière MAJ",
+    "message": "Last update",
     "description": "Popup stat label for last update"
   },
   "popup_detail_dossier": {
-    "message": "Dossier",
+    "message": "Case",
     "description": "Popup detail label for case number"
   },
   "popup_detail_national": {
-    "message": "N° National",
+    "message": "National No.",
     "description": "Popup detail label for national number"
   },
   "popup_detail_prefecture": {
-    "message": "Préfecture",
+    "message": "Prefecture",
     "description": "Popup detail label for prefecture"
   },
   "popup_detail_type": {
@@ -161,32 +161,32 @@
     "description": "Popup detail label for request type"
   },
   "popup_detail_location": {
-    "message": "Lieu",
+    "message": "Location",
     "description": "Popup detail label for location"
   },
   "popup_detail_decree": {
-    "message": "Décret",
+    "message": "Decree",
     "description": "Popup detail label for decree"
   },
   "popup_last_check": {
-    "message": "Dernière vérification :",
+    "message": "Last check:",
     "description": "Popup label for last check time"
   },
   "popup_autocheck_settings": {
-    "message": "Modifier dans les paramètres",
+    "message": "Edit in settings",
     "description": "Popup link to edit autocheck in settings"
   },
   "popup_stats_link_title": {
-    "message": "Statistiques communautaires",
+    "message": "Community statistics",
     "description": "Popup community stats link title"
   },
   "popup_stats_link_desc": {
-    "message": "Donnees 100% anonymes — Comparez votre progression",
+    "message": "100% anonymous data — Compare your progress",
     "description": "Popup community stats link description"
   },
 
   "popup_step_format": {
-    "message": "Étape $STEP$/12",
+    "message": "Step $STEP$/12",
     "description": "Popup step indicator with number",
     "placeholders": {
       "step": {
@@ -196,49 +196,49 @@
     }
   },
   "time_today": {
-    "message": "aujourd'hui",
+    "message": "today",
     "description": "Relative time: today"
   },
   "time_ago": {
-    "message": "il y a $DURATION$",
+    "message": "$DURATION$ ago",
     "description": "Relative time: ago",
     "placeholders": {
       "duration": {
         "content": "$1",
-        "example": "3 jours"
+        "example": "3 days"
       }
     }
   },
   "time_in": {
-    "message": "Dans $DURATION$",
+    "message": "In $DURATION$",
     "description": "Relative time: in future",
     "placeholders": {
       "duration": {
         "content": "$1",
-        "example": "5 jours"
+        "example": "5 days"
       }
     }
   },
   "interview_today": {
-    "message": "Aujourd'hui",
+    "message": "Today",
     "description": "Interview date: today"
   },
   "interview_ago": {
-    "message": "Il y a $DURATION$",
+    "message": "$DURATION$ ago",
     "description": "Interview date: ago",
     "placeholders": {
       "duration": {
         "content": "$1",
-        "example": "2 semaines"
+        "example": "2 weeks"
       }
     }
   },
   "popup_never": {
-    "message": "Jamais",
+    "message": "Never",
     "description": "Popup label when no check has been done"
   },
   "popup_attempt": {
-    "message": "tentative $NUM$",
+    "message": "attempt $NUM$",
     "description": "Popup attempt counter lowercase",
     "placeholders": {
       "num": {
@@ -248,7 +248,7 @@
     }
   },
   "popup_attempt_prefix": {
-    "message": "Tentative $NUM$",
+    "message": "Attempt $NUM$",
     "description": "Popup attempt counter capitalized",
     "placeholders": {
       "num": {
@@ -258,19 +258,19 @@
     }
   },
   "popup_password_expired_banner": {
-    "message": "Mot de passe ANEF expiré · renouveler sur le portail",
+    "message": "ANEF password expired · renew on the portal",
     "description": "Popup banner when password is expired"
   },
   "popup_autocheck_creds_required": {
-    "message": "Vérification auto activée · identifiants requis",
+    "message": "Auto-check enabled · credentials required",
     "description": "Popup banner when autocheck needs credentials"
   },
   "popup_autocheck_imminent": {
-    "message": "imminente",
+    "message": "imminent",
     "description": "Popup autocheck timing: imminent"
   },
   "popup_autocheck_minutes": {
-    "message": "dans ~$MINS$ min",
+    "message": "in ~$MINS$ min",
     "description": "Popup autocheck timing: minutes",
     "placeholders": {
       "mins": {
@@ -280,7 +280,7 @@
     }
   },
   "popup_autocheck_hours": {
-    "message": "dans ~$HOURS$h$MINS$",
+    "message": "in ~$HOURS$h$MINS$",
     "description": "Popup autocheck timing: hours and minutes",
     "placeholders": {
       "hours": {
@@ -294,74 +294,74 @@
     }
   },
   "popup_autocheck_next": {
-    "message": "Vérification auto activée · prochaine $TIMING$",
+    "message": "Auto-check enabled · next $TIMING$",
     "description": "Popup autocheck next timing",
     "placeholders": {
       "timing": {
         "content": "$1",
-        "example": "dans ~15 min"
+        "example": "in ~15 min"
       }
     }
   },
   "popup_autocheck_enabled": {
-    "message": "Vérification auto activée",
+    "message": "Auto-check enabled",
     "description": "Popup autocheck enabled label"
   },
   "popup_loading_step1": {
-    "message": "Ouverture de la page ANEF...",
+    "message": "Opening the ANEF page...",
     "description": "Popup loading step 1 text"
   },
   "popup_loading_step2": {
-    "message": "Chargement de la page...",
+    "message": "Loading the page...",
     "description": "Popup loading step 2 text"
   },
   "popup_loading_step3": {
-    "message": "Récupération des données...",
+    "message": "Retrieving data...",
     "description": "Popup loading step 3 text"
   },
   "popup_loading_step4": {
-    "message": "Terminé !",
+    "message": "Done!",
     "description": "Popup loading step 4 text"
   },
   "canvas_depot": {
-    "message": "DÉPÔT",
+    "message": "FILING",
     "description": "Canvas share image: filing label"
   },
   "canvas_entretien": {
-    "message": "ENTRETIEN",
+    "message": "INTERVIEW",
     "description": "Canvas share image: interview label"
   },
   "canvas_entretien_planned": {
-    "message": "ENTRETIEN PRÉVU",
+    "message": "PLANNED INTERVIEW",
     "description": "Canvas share image: planned interview label"
   },
   "canvas_last_update": {
-    "message": "DERNIÈRE MAJ",
+    "message": "LAST UPDATE",
     "description": "Canvas share image: last update label"
   },
   "canvas_date_at": {
-    "message": "à",
+    "message": "at",
     "description": "Date formatting separator between date and time"
   },
 
   "quote_1_text": {
-    "message": "La patience est la clé du bien-être.",
+    "message": "Patience is the key to well-being.",
     "description": "Loading quote 1 text"
   },
   "quote_1_author": {
-    "message": "Mohammed ﷺ",
+    "message": "Prophet Muhammad \uFDFA",
     "description": "Loading quote 1 author"
   },
   "quote_2_text": {
-    "message": "Tout vient à point à qui sait attendre.",
+    "message": "All things come to those who wait.",
     "description": "Loading quote 2 text"
   },
   "quote_2_author": {
-    "message": "Proverbe français",
+    "message": "French proverb",
     "description": "Loading quote 2 author"
   },
   "quote_3_text": {
-    "message": "La patience est amère, mais son fruit est doux.",
+    "message": "Patience is bitter, but its fruit is sweet.",
     "description": "Loading quote 3 text"
   },
   "quote_3_author": {
@@ -369,7 +369,7 @@
     "description": "Loading quote 3 author"
   },
   "quote_4_text": {
-    "message": "Adoptez le rythme de la nature : son secret est la patience.",
+    "message": "Adopt the pace of nature: her secret is patience.",
     "description": "Loading quote 4 text"
   },
   "quote_4_author": {
@@ -377,7 +377,7 @@
     "description": "Loading quote 4 author"
   },
   "quote_5_text": {
-    "message": "La patience est l'art d'espérer.",
+    "message": "Patience is the art of hoping.",
     "description": "Loading quote 5 text"
   },
   "quote_5_author": {
@@ -385,15 +385,15 @@
     "description": "Loading quote 5 author"
   },
   "quote_6_text": {
-    "message": "Ce qui est différé n'est pas perdu.",
+    "message": "What is deferred is not lost.",
     "description": "Loading quote 6 text"
   },
   "quote_6_author": {
-    "message": "Proverbe italien",
+    "message": "Italian proverb",
     "description": "Loading quote 6 author"
   },
   "quote_7_text": {
-    "message": "Les grandes œuvres naissent de la patience.",
+    "message": "Great works are born of patience.",
     "description": "Loading quote 7 text"
   },
   "quote_7_author": {
@@ -401,7 +401,7 @@
     "description": "Loading quote 7 author"
   },
   "quote_8_text": {
-    "message": "La patience et le temps font plus que force ni que rage.",
+    "message": "Patience and time do more than force and rage.",
     "description": "Loading quote 8 text"
   },
   "quote_8_author": {
@@ -409,52 +409,52 @@
     "description": "Loading quote 8 author"
   },
   "quote_9_text": {
-    "message": "Qui va lentement va sûrement.",
+    "message": "Slow and steady wins the race.",
     "description": "Loading quote 9 text"
   },
   "quote_9_author": {
-    "message": "Proverbe latin",
+    "message": "Latin proverb",
     "description": "Loading quote 9 author"
   },
   "quote_10_text": {
-    "message": "La persévérance vient à bout de tout.",
+    "message": "Perseverance conquers all things.",
     "description": "Loading quote 10 text"
   },
   "quote_10_author": {
-    "message": "Proverbe français",
+    "message": "French proverb",
     "description": "Loading quote 10 author"
   },
   "quote_11_text": {
-    "message": "Un voyage de mille lieues commence par un premier pas.",
+    "message": "A journey of a thousand miles begins with a single step.",
     "description": "Loading quote 11 text"
   },
   "quote_11_author": {
-    "message": "Lao Tseu",
+    "message": "Lao Tzu",
     "description": "Loading quote 11 author"
   },
   "quote_12_text": {
-    "message": "L'attente est déjà la moitié du bonheur.",
+    "message": "Waiting is already half of happiness.",
     "description": "Loading quote 12 text"
   },
   "quote_12_author": {
-    "message": "Proverbe chinois",
+    "message": "Chinese proverb",
     "description": "Loading quote 12 author"
   },
 
   "options_page_title": {
-    "message": "ANEF Status Tracker - Paramètres",
+    "message": "ANEF Status Tracker - Settings",
     "description": "Options page HTML title"
   },
   "options_subtitle": {
-    "message": "Paramètres et historique",
+    "message": "Settings and history",
     "description": "Options page subtitle"
   },
   "options_tab_history": {
-    "message": "Historique",
+    "message": "History",
     "description": "Options tab label: history"
   },
   "options_tab_settings": {
-    "message": "Paramètres",
+    "message": "Settings",
     "description": "Options tab label: settings"
   },
   "options_tab_export": {
@@ -466,87 +466,87 @@
     "description": "Options tab label: debug"
   },
   "options_check_log_title": {
-    "message": "Vérifications du jour",
+    "message": "Today's checks",
     "description": "Options section title: today's checks"
   },
   "options_step_dates_title": {
-    "message": "Mes dates d'étapes",
+    "message": "My step dates",
     "description": "Options section title: step dates"
   },
   "options_pull_dates": {
-    "message": "Récupérer",
+    "message": "Retrieve",
     "description": "Options button: pull dates from database"
   },
   "options_save_dates": {
-    "message": "Enregistrer",
+    "message": "Save",
     "description": "Options button: save step dates"
   },
   "options_step_dates_hint": {
-    "message": "Renseignez les dates de vos changements d'étape pour enrichir les statistiques communautaires.",
+    "message": "Enter the dates of your step changes to enrich community statistics.",
     "description": "Options step dates hint text"
   },
   "options_history_title": {
-    "message": "Historique des statuts",
+    "message": "Status history",
     "description": "Options section title: status history"
   },
   "options_no_history": {
-    "message": "Aucun historique disponible",
+    "message": "No history available",
     "description": "Options empty history message"
   },
   "options_no_history_hint": {
-    "message": "Visitez le site ANEF pour commencer à enregistrer votre historique.",
+    "message": "Visit the ANEF site to start recording your history.",
     "description": "Options empty history hint"
   },
   "options_settings_title": {
-    "message": "Paramètres",
+    "message": "Settings",
     "description": "Options section title: settings"
   },
   "options_auto_login_title": {
-    "message": "Connexion automatique",
+    "message": "Automatic login",
     "description": "Options auto-login section title"
   },
   "options_auto_login_desc": {
-    "message": "Enregistrez vos identifiants ANEF pour permettre l'actualisation automatique même si votre session a expiré.",
+    "message": "Save your ANEF credentials to enable automatic refresh even if your session has expired.",
     "description": "Options auto-login section description"
   },
   "options_username_label": {
-    "message": "Numéro étranger",
+    "message": "Foreign number",
     "description": "Options username field label"
   },
   "options_username_desc": {
-    "message": "Votre identifiant de connexion ANEF",
+    "message": "Your ANEF login ID",
     "description": "Options username field description"
   },
   "options_username_placeholder": {
-    "message": "Ex: 0123456789",
+    "message": "e.g. 0123456789",
     "description": "Options username field placeholder"
   },
   "options_password_label": {
-    "message": "Mot de passe",
+    "message": "Password",
     "description": "Options password field label"
   },
   "options_password_placeholder": {
-    "message": "••••••••",
+    "message": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
     "description": "Options password field placeholder"
   },
   "options_toggle_password": {
-    "message": "Afficher/Masquer",
+    "message": "Show/Hide",
     "description": "Options toggle password visibility button"
   },
   "options_no_credentials": {
-    "message": "Aucun identifiant enregistré",
+    "message": "No credentials saved",
     "description": "Options label when no credentials saved"
   },
   "options_save": {
-    "message": "Enregistrer",
+    "message": "Save",
     "description": "Options save button label"
   },
   "options_delete": {
-    "message": "Supprimer",
+    "message": "Delete",
     "description": "Options delete button label"
   },
   "options_credential_warning": {
-    "message": "Vos identifiants sont stockés localement sur votre appareil et ne sont jamais envoyés à des serveurs externes.",
+    "message": "Your credentials are stored locally on your device and are never sent to external servers.",
     "description": "Options credential security notice"
   },
   "options_notifications_title": {
@@ -554,170 +554,170 @@
     "description": "Options notifications section title"
   },
   "options_notifications_label": {
-    "message": "Activer les notifications",
+    "message": "Enable notifications",
     "description": "Options notifications toggle label"
   },
   "options_notifications_desc": {
-    "message": "Recevoir une notification lors d'un changement de statut",
+    "message": "Receive a notification when your status changes",
     "description": "Options notifications toggle description"
   },
   "options_autocheck_title": {
-    "message": "Vérification automatique",
+    "message": "Automatic check",
     "description": "Options autocheck section title"
   },
   "options_autocheck_label": {
-    "message": "Vérifier automatiquement",
+    "message": "Check automatically",
     "description": "Options autocheck toggle label"
   },
   "options_autocheck_desc": {
-    "message": "Vérifie votre statut ~3 fois par jour en arrière-plan",
+    "message": "Checks your status ~3 times a day in the background",
     "description": "Options autocheck toggle description"
   },
   "options_autocheck_no_creds": {
-    "message": "Des identifiants enregistrés sont nécessaires pour la vérification automatique.",
+    "message": "Saved credentials are required for automatic checking.",
     "description": "Options autocheck warning when no credentials"
   },
   "options_autocheck_password_expired": {
-    "message": "Mot de passe ANEF expiré",
+    "message": "ANEF password expired",
     "description": "Options autocheck password expired notice"
   },
   "options_autocheck_reset": {
-    "message": "Réinitialiser",
+    "message": "Reset",
     "description": "Options autocheck reset button label"
   },
   "options_stats_title": {
-    "message": "Statistiques communautaires",
+    "message": "Community statistics",
     "description": "Options community stats section title"
   },
   "options_stats_warning": {
-    "message": "Les statistiques anonymes sont partagées automatiquement pour alimenter les données communautaires. Données envoyées : étape, dates (jour uniquement), préfecture. Votre numéro de dossier est remplacé par un hash irréversible.",
+    "message": "Anonymous statistics are shared automatically to feed community data. Data sent: step, dates (day only), prefecture. Your case number is replaced with an irreversible hash.",
     "description": "Options community stats privacy notice"
   },
   "options_stats_link": {
-    "message": "Voir les statistiques",
+    "message": "View statistics",
     "description": "Options community stats link label"
   },
   "options_general_title": {
-    "message": "Général",
+    "message": "General",
     "description": "Options general section title"
   },
   "options_history_limit_label": {
-    "message": "Limite de l'historique",
+    "message": "History limit",
     "description": "Options history limit setting label"
   },
   "options_history_limit_desc": {
-    "message": "Nombre maximum d'entrées à conserver",
+    "message": "Maximum number of entries to keep",
     "description": "Options history limit setting description"
   },
   "options_entries_50": {
-    "message": "50 entrées",
+    "message": "50 entries",
     "description": "Options history limit option: 50"
   },
   "options_entries_100": {
-    "message": "100 entrées",
+    "message": "100 entries",
     "description": "Options history limit option: 100"
   },
   "options_entries_200": {
-    "message": "200 entrées",
+    "message": "200 entries",
     "description": "Options history limit option: 200"
   },
   "options_entries_500": {
-    "message": "500 entrées",
+    "message": "500 entries",
     "description": "Options history limit option: 500"
   },
   "options_save_settings": {
-    "message": "Sauvegarder",
+    "message": "Save",
     "description": "Options save settings button label"
   },
   "options_reset_settings": {
-    "message": "Réinitialiser",
+    "message": "Reset",
     "description": "Options reset settings button label"
   },
   "options_export_title": {
-    "message": "Exporter / Importer",
+    "message": "Export / Import",
     "description": "Options export section title"
   },
   "options_export_data_title": {
-    "message": "Exporter les données",
+    "message": "Export data",
     "description": "Options export data subsection title"
   },
   "options_export_data_desc": {
-    "message": "Téléchargez une sauvegarde de toutes vos données (historique, paramètres).",
+    "message": "Download a backup of all your data (history, settings).",
     "description": "Options export data description"
   },
   "options_export_json": {
-    "message": "Exporter (JSON)",
+    "message": "Export (JSON)",
     "description": "Options export JSON button label"
   },
   "options_import_title": {
-    "message": "Importer des données",
+    "message": "Import data",
     "description": "Options import data subsection title"
   },
   "options_import_desc": {
-    "message": "Restaurez vos données depuis un fichier de sauvegarde.",
+    "message": "Restore your data from a backup file.",
     "description": "Options import data description"
   },
   "options_import": {
-    "message": "Importer",
+    "message": "Import",
     "description": "Options import button label"
   },
   "options_danger_title": {
-    "message": "Zone de danger",
+    "message": "Danger zone",
     "description": "Options danger zone section title"
   },
   "options_danger_desc": {
-    "message": "Supprimer toutes les données de l'extension.",
+    "message": "Delete all extension data.",
     "description": "Options danger zone description"
   },
   "options_delete_all": {
-    "message": "Tout supprimer",
+    "message": "Delete all",
     "description": "Options delete all data button label"
   },
   "options_debug_title": {
-    "message": "Logs de debug",
+    "message": "Debug logs",
     "description": "Options debug section title"
   },
   "options_refresh_logs": {
-    "message": "Actualiser",
+    "message": "Refresh",
     "description": "Options refresh logs button label"
   },
   "options_clear_logs": {
-    "message": "Effacer",
+    "message": "Clear",
     "description": "Options clear logs button label"
   },
   "options_debug_info": {
-    "message": "Ces logs aident à diagnostiquer les problèmes de l'extension.",
+    "message": "These logs help diagnose extension issues.",
     "description": "Options debug info text"
   },
   "options_no_logs": {
-    "message": "Aucun log disponible",
+    "message": "No logs available",
     "description": "Options empty debug logs message"
   },
 
   "options_last_check_banner": {
-    "message": "Dernière vérification : ",
+    "message": "Last check: ",
     "description": "Options banner showing last check time"
   },
   "options_since": {
-    "message": "Depuis le $DATE$",
+    "message": "Since $DATE$",
     "description": "Options label: since date",
     "placeholders": {
       "date": {
         "content": "$1",
-        "example": "15/03/2026"
+        "example": "03/15/2026"
       }
     }
   },
   "options_date_unknown": {
-    "message": "Date inconnue",
+    "message": "Unknown date",
     "description": "Options label when date is unknown"
   },
   "options_step_label": {
-    "message": "étape",
+    "message": "step",
     "description": "Options step label lowercase"
   },
   "options_step_total": {
-    "message": "sur 12",
+    "message": "of 12",
     "description": "Options step total suffix"
   },
   "options_badge_auto": {
@@ -725,15 +725,15 @@
     "description": "Options history badge: automatic check"
   },
   "options_badge_manual": {
-    "message": "Manuel",
+    "message": "Manual",
     "description": "Options history badge: manual check"
   },
   "options_badge_rectified": {
-    "message": "Rectifié",
+    "message": "Corrected",
     "description": "Options history badge: corrected entry"
   },
   "options_step_sub": {
-    "message": "Étape $NUM$",
+    "message": "Step $NUM$",
     "description": "Options step label with number",
     "placeholders": {
       "num": {
@@ -743,23 +743,23 @@
     }
   },
   "options_dates_chronological": {
-    "message": "Les dates doivent être chronologiques",
+    "message": "Dates must be in chronological order",
     "description": "Options validation error: dates order"
   },
   "options_date_cannot_delete": {
-    "message": "Une date déjà enregistrée ne peut pas être supprimée",
+    "message": "A previously saved date cannot be deleted",
     "description": "Options validation error: cannot delete saved date"
   },
   "options_dates_saved": {
-    "message": "Dates enregistrées et synchronisées",
+    "message": "Dates saved and synced",
     "description": "Options success: dates saved"
   },
   "options_loading": {
-    "message": "Chargement...",
+    "message": "Loading...",
     "description": "Options generic loading message"
   },
   "options_dates_pulled": {
-    "message": "$COUNT$ date(s) récupérée(s) depuis la base",
+    "message": "$COUNT$ date(s) retrieved from database",
     "description": "Options success: dates pulled from database",
     "placeholders": {
       "count": {
@@ -769,63 +769,63 @@
     }
   },
   "options_no_data_found": {
-    "message": "Aucune donnée trouvée dans la base",
+    "message": "No data found in database",
     "description": "Options notice: no data found in database"
   },
   "options_connection_error": {
-    "message": "Erreur de connexion",
+    "message": "Connection error",
     "description": "Options error: connection failed"
   },
   "options_settings_saved": {
-    "message": "Paramètres sauvegardés",
+    "message": "Settings saved",
     "description": "Options success: settings saved"
   },
   "options_confirm_reset": {
-    "message": "Réinitialiser les paramètres par défaut ?",
+    "message": "Reset to default settings?",
     "description": "Options confirm dialog: reset settings"
   },
   "options_settings_reset": {
-    "message": "Paramètres réinitialisés",
+    "message": "Settings reset",
     "description": "Options success: settings reset"
   },
   "options_credentials_saved": {
-    "message": "Identifiants enregistrés",
+    "message": "Credentials saved",
     "description": "Options success: credentials saved"
   },
   "options_no_credentials_saved": {
-    "message": "Aucun identifiant enregistré",
+    "message": "No credentials saved",
     "description": "Options notice: no credentials saved"
   },
   "options_fill_all_fields": {
-    "message": "Veuillez remplir tous les champs",
+    "message": "Please fill in all fields",
     "description": "Options validation error: fill all fields"
   },
   "options_save_error": {
-    "message": "Erreur lors de la sauvegarde",
+    "message": "Error while saving",
     "description": "Options error: save failed"
   },
   "options_confirm_delete_creds": {
-    "message": "Supprimer vos identifiants ?",
+    "message": "Delete your credentials?",
     "description": "Options confirm dialog: delete credentials"
   },
   "options_credentials_deleted": {
-    "message": "Identifiants supprimés",
+    "message": "Credentials deleted",
     "description": "Options success: credentials deleted"
   },
   "options_delete_error": {
-    "message": "Erreur lors de la suppression",
+    "message": "Error while deleting",
     "description": "Options error: delete failed"
   },
   "options_password_expired_msg": {
-    "message": "Mot de passe ANEF expiré — renouveler sur le portail",
+    "message": "ANEF password expired \u2014 renew on the portal",
     "description": "Options password expired banner message"
   },
   "options_password_expired_short": {
-    "message": "Mot de passe expiré",
+    "message": "Password expired",
     "description": "Options password expired short label"
   },
   "options_failures_next": {
-    "message": "$COUNT$ échec(s) · prochaine tentative dans ~$MINS$ min",
+    "message": "$COUNT$ failure(s) \u00b7 next attempt in ~$MINS$ min",
     "description": "Options autocheck failures with next attempt time",
     "placeholders": {
       "count": {
@@ -839,11 +839,11 @@
     }
   },
   "options_next_check_imminent": {
-    "message": "Prochaine vérification imminente",
+    "message": "Next check imminent",
     "description": "Options autocheck next: imminent"
   },
   "options_next_check_minutes": {
-    "message": "Prochaine vérification dans ~$MINS$ min",
+    "message": "Next check in ~$MINS$ min",
     "description": "Options autocheck next: minutes",
     "placeholders": {
       "mins": {
@@ -853,7 +853,7 @@
     }
   },
   "options_next_check_hours": {
-    "message": "Prochaine vérification dans ~$HOURS$h$MINS$",
+    "message": "Next check in ~$HOURS$h$MINS$",
     "description": "Options autocheck next: hours and minutes",
     "placeholders": {
       "hours": {
@@ -867,72 +867,72 @@
     }
   },
   "options_waiting_schedule": {
-    "message": "En attente de programmation",
+    "message": "Waiting to be scheduled",
     "description": "Options autocheck: waiting to be scheduled"
   },
   "options_autocheck_reactivated": {
-    "message": "Vérification automatique réactivée",
+    "message": "Automatic check reactivated",
     "description": "Options success: autocheck reactivated"
   },
   "options_reactivation_error": {
-    "message": "Erreur lors de la réactivation",
+    "message": "Error while reactivating",
     "description": "Options error: reactivation failed"
   },
   "options_export_success": {
-    "message": "Export réussi",
+    "message": "Export successful",
     "description": "Options success: export completed"
   },
   "options_export_error": {
-    "message": "Erreur lors de l'export",
+    "message": "Error while exporting",
     "description": "Options error: export failed"
   },
   "options_invalid_file": {
-    "message": "Fichier invalide",
+    "message": "Invalid file",
     "description": "Options error: invalid import file"
   },
   "options_import_success": {
-    "message": "Import réussi",
+    "message": "Import successful",
     "description": "Options success: import completed"
   },
   "options_import_error": {
-    "message": "Erreur lors de l'import",
+    "message": "Error while importing",
     "description": "Options error: import failed"
   },
   "options_confirm_delete_all": {
-    "message": "Supprimer toutes les données (historique, paramètres) ?\nVos identifiants de connexion seront conservés.\nCette action est irréversible.",
+    "message": "Delete all data (history, settings)?\nYour login credentials will be kept.\nThis action is irreversible.",
     "description": "Options confirm dialog: delete all data"
   },
   "options_data_deleted": {
-    "message": "Données supprimées (identifiants conservés)",
+    "message": "Data deleted (credentials kept)",
     "description": "Options success: all data deleted"
   },
   "options_log_error": {
-    "message": "Erreur de chargement",
+    "message": "Loading error",
     "description": "Options error: log loading failed"
   },
   "options_logs_cleared": {
-    "message": "Logs effacés",
+    "message": "Logs cleared",
     "description": "Options success: logs cleared"
   },
   "options_unsaved": {
-    "message": "Modifications non enregistrées",
+    "message": "Unsaved changes",
     "description": "Options warning: unsaved changes"
   },
   "options_rectify_date": {
-    "message": "Rectifier la date",
+    "message": "Correct the date",
     "description": "Options button: correct a date"
   },
 
   "notification_status_change": {
-    "message": "Changement de statut ANEF !",
+    "message": "ANEF status change!",
     "description": "Notification title for status change"
   },
   "notification_congratulations": {
-    "message": "FÉLICITATIONS !",
+    "message": "CONGRATULATIONS!",
     "description": "Notification title for naturalization"
   },
   "notification_update": {
-    "message": "Mise à jour de votre dossier",
+    "message": "Update on your case",
     "description": "Notification title for case update"
   },
   "notification_body": {
@@ -941,21 +941,21 @@
     "placeholders": {
       "phase": {
         "content": "$1",
-        "example": "Contrôle SDANF"
+        "example": "SDANF Review"
       },
       "explication": {
         "content": "$2",
-        "example": "Contrôle ministériel en cours"
+        "example": "Ministerial review in progress"
       }
     }
   },
 
   "duration_today": {
-    "message": "aujourd'hui",
+    "message": "today",
     "description": "Duration formatting: today"
   },
   "duration_year_one": {
-    "message": "$COUNT$ an",
+    "message": "$COUNT$ year",
     "description": "Duration formatting: one year",
     "placeholders": {
       "count": {
@@ -965,7 +965,7 @@
     }
   },
   "duration_year_other": {
-    "message": "$COUNT$ ans",
+    "message": "$COUNT$ years",
     "description": "Duration formatting: multiple years",
     "placeholders": {
       "count": {
@@ -975,7 +975,7 @@
     }
   },
   "duration_month": {
-    "message": "$COUNT$ mois",
+    "message": "$COUNT$ month(s)",
     "description": "Duration formatting: months",
     "placeholders": {
       "count": {
@@ -985,7 +985,7 @@
     }
   },
   "duration_day_one": {
-    "message": "$COUNT$ jour",
+    "message": "$COUNT$ day",
     "description": "Duration formatting: one day",
     "placeholders": {
       "count": {
@@ -995,7 +995,7 @@
     }
   },
   "duration_day_other": {
-    "message": "$COUNT$ jours",
+    "message": "$COUNT$ days",
     "description": "Duration formatting: multiple days",
     "placeholders": {
       "count": {
@@ -1006,613 +1006,613 @@
   },
 
   "status_draft_phase": {
-    "message": "Brouillon",
+    "message": "Draft",
     "description": "Status phase for draft"
   },
   "status_draft_explication": {
-    "message": "Dossier en brouillon",
+    "message": "Case in draft",
     "description": "Status explanation for draft"
   },
   "status_draft_description": {
-    "message": "Votre dossier est en cours de préparation sur la plateforme ANEF. Complétez toutes les sections et joignez les pièces justificatives avant de soumettre.",
+    "message": "Your case is being prepared on the ANEF platform. Complete all sections and attach the required documents before submitting.",
     "description": "Status full description for draft"
   },
   "status_dossier_depose_phase": {
-    "message": "Dépôt",
+    "message": "Filing",
     "description": "Status phase for dossier_depose"
   },
   "status_dossier_depose_explication": {
-    "message": "Dossier déposé",
+    "message": "Case filed",
     "description": "Status explanation for dossier_depose"
   },
   "status_dossier_depose_description": {
-    "message": "Votre dossier a été soumis avec succès. Il est dans la file d'attente de la préfecture pour un premier examen de recevabilité.",
+    "message": "Your case has been successfully submitted. It is in the prefecture's queue for initial admissibility review.",
     "description": "Status full description for dossier_depose"
   },
   "status_verification_formelle_a_traiter_phase": {
-    "message": "Vérification formelle",
+    "message": "Formal verification",
     "description": "Status phase for verification_formelle_a_traiter"
   },
   "status_verification_formelle_a_traiter_explication": {
-    "message": "Dossier reçu, en tri",
+    "message": "Case received, being sorted",
     "description": "Status explanation for verification_formelle_a_traiter"
   },
   "status_verification_formelle_a_traiter_description": {
-    "message": "La préfecture a bien reçu votre demande. Elle est placée en file d'attente pour le premier tri administratif : vérification des pièces obligatoires et conditions de base.",
+    "message": "The prefecture has received your application. It has been placed in the queue for initial administrative sorting: verification of mandatory documents and basic conditions.",
     "description": "Status full description for verification_formelle_a_traiter"
   },
   "status_verification_formelle_en_cours_phase": {
-    "message": "Vérification formelle",
+    "message": "Formal verification",
     "description": "Status phase for verification_formelle_en_cours"
   },
   "status_verification_formelle_en_cours_explication": {
-    "message": "Tri en cours",
+    "message": "Sorting in progress",
     "description": "Status explanation for verification_formelle_en_cours"
   },
   "status_verification_formelle_en_cours_description": {
-    "message": "Un agent vérifie l'admissibilité formelle de votre dossier : présence des documents requis, validité des pièces, conditions légales. Des compléments peuvent être demandés.",
+    "message": "An officer is verifying the formal admissibility of your case: presence of required documents, validity of documents, legal conditions. Additional documents may be requested.",
     "description": "Status full description for verification_formelle_en_cours"
   },
   "status_verification_formelle_mise_en_demeure_phase": {
-    "message": "Vérification formelle",
+    "message": "Formal verification",
     "description": "Status phase for verification_formelle_mise_en_demeure"
   },
   "status_verification_formelle_mise_en_demeure_explication": {
-    "message": "Mise en demeure, pièces à fournir",
+    "message": "Formal notice, documents required",
     "description": "Status explanation for verification_formelle_mise_en_demeure"
   },
   "status_verification_formelle_mise_en_demeure_description": {
-    "message": "Des documents obligatoires sont manquants ou non conformes. Vous allez recevoir un courrier détaillant les pièces à fournir. Répondez dans le délai imparti pour éviter un classement sans suite.",
+    "message": "Mandatory documents are missing or non-compliant. You will receive a letter detailing the required documents. Respond within the given deadline to avoid case closure.",
     "description": "Status full description for verification_formelle_mise_en_demeure"
   },
   "status_css_mise_en_demeure_a_affecter_phase": {
-    "message": "Vérification formelle",
+    "message": "Formal verification",
     "description": "Status phase for css_mise_en_demeure_a_affecter"
   },
   "status_css_mise_en_demeure_a_affecter_explication": {
-    "message": "Classement sans suite en cours",
+    "message": "Case closure in progress",
     "description": "Status explanation for css_mise_en_demeure_a_affecter"
   },
   "status_css_mise_en_demeure_a_affecter_description": {
-    "message": "Suite à la mise en demeure restée sans réponse, un classement sans suite est en cours d'affectation à un agent. Fournissez les pièces manquantes au plus vite.",
+    "message": "Following the unanswered formal notice, a case closure is being assigned to an officer. Provide the missing documents as soon as possible.",
     "description": "Status full description for css_mise_en_demeure_a_affecter"
   },
   "status_css_mise_en_demeure_a_rediger_phase": {
-    "message": "Vérification formelle",
+    "message": "Formal verification",
     "description": "Status phase for css_mise_en_demeure_a_rediger"
   },
   "status_css_mise_en_demeure_a_rediger_explication": {
-    "message": "Classement sans suite en rédaction",
+    "message": "Case closure being drafted",
     "description": "Status explanation for css_mise_en_demeure_a_rediger"
   },
   "status_css_mise_en_demeure_a_rediger_description": {
-    "message": "Le classement sans suite de votre dossier est en cours de rédaction suite à l'absence de réponse à la mise en demeure. Contactez votre préfecture si vous avez transmis les pièces.",
+    "message": "The closure of your case is being drafted following the unanswered formal notice. Contact your prefecture if you have submitted the documents.",
     "description": "Status full description for css_mise_en_demeure_a_rediger"
   },
   "status_instruction_a_affecter_phase": {
-    "message": "Affectation",
+    "message": "Assignment",
     "description": "Status phase for instruction_a_affecter"
   },
   "status_instruction_a_affecter_explication": {
-    "message": "Dossier recevable, attente d'affectation",
+    "message": "Case admissible, awaiting assignment",
     "description": "Status explanation for instruction_a_affecter"
   },
   "status_instruction_a_affecter_description": {
-    "message": "Votre dossier a passé la vérification formelle avec succès ! Il est déclaré recevable et attend d'être attribué à un agent instructeur pour un examen approfondi. Vous recevrez un récépissé de dépôt.",
+    "message": "Your case has passed the formal verification! It is declared admissible and is waiting to be assigned to a reviewing officer for in-depth examination. You will receive an acknowledgment of receipt.",
     "description": "Status full description for instruction_a_affecter"
   },
   "status_instruction_recepisse_completude_a_envoyer_phase": {
-    "message": "Instruction",
+    "message": "Review",
     "description": "Status phase for instruction_recepisse_completude_a_envoyer"
   },
   "status_instruction_recepisse_completude_a_envoyer_explication": {
-    "message": "Dossier complet, examen approfondi",
+    "message": "Complete case, in-depth review",
     "description": "Status explanation for instruction_recepisse_completude_a_envoyer"
   },
   "status_instruction_recepisse_completude_a_envoyer_description": {
-    "message": "Un agent instructeur examine en détail votre dossier : situation personnelle, professionnelle, fiscale, assimilation. Le récépissé de complétude sera envoyé. Il peut vous convoquer pour l'entretien.",
+    "message": "A reviewing officer is examining your case in detail: personal, professional, tax situation, and assimilation. The completeness receipt will be sent. You may be summoned for an interview.",
     "description": "Status full description for instruction_recepisse_completude_a_envoyer"
   },
   "status_instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter_phase": {
-    "message": "Instruction",
+    "message": "Review",
     "description": "Status phase for instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter"
   },
   "status_instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter_explication": {
-    "message": "Compléments reçus, à vérifier",
+    "message": "Additional documents received, to be verified",
     "description": "Status explanation for instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter"
   },
   "status_instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter_description": {
-    "message": "Vous avez fourni des documents complémentaires suite à une demande de l'instructeur. L'agent vérifie leur conformité avant de poursuivre l'instruction de votre dossier.",
+    "message": "You have provided additional documents as requested by the reviewing officer. The officer is verifying their compliance before continuing the review of your case.",
     "description": "Status full description for instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter"
   },
   "status_instruction_date_ea_a_fixer_phase": {
-    "message": "Complétude & enquêtes",
+    "message": "Completeness & inquiries",
     "description": "Status phase for instruction_date_ea_a_fixer"
   },
   "status_instruction_date_ea_a_fixer_explication": {
-    "message": "Enquêtes administratives lancées",
+    "message": "Administrative inquiries launched",
     "description": "Status explanation for instruction_date_ea_a_fixer"
   },
   "status_instruction_date_ea_a_fixer_description": {
-    "message": "Votre dossier est officiellement complet ! Les enquêtes administratives obligatoires sont lancées (casier judiciaire, renseignements, fichiers). La date d'entretien d'assimilation sera fixée prochainement.",
+    "message": "Your case is officially complete! Mandatory administrative inquiries have been launched (criminal record, intelligence, databases). The assimilation interview date will be set soon.",
     "description": "Status full description for instruction_date_ea_a_fixer"
   },
   "status_ea_demande_report_ea_phase": {
-    "message": "Complétude & enquêtes",
+    "message": "Completeness & inquiries",
     "description": "Status phase for ea_demande_report_ea"
   },
   "status_ea_demande_report_ea_explication": {
-    "message": "Demande de report d'entretien",
+    "message": "Interview postponement requested",
     "description": "Status explanation for ea_demande_report_ea"
   },
   "status_ea_demande_report_ea_description": {
-    "message": "Une demande de report de l'entretien d'assimilation a été enregistrée. La préfecture vous proposera une nouvelle date. Attention aux délais pour ne pas retarder votre dossier.",
+    "message": "A request to postpone the assimilation interview has been recorded. The prefecture will propose a new date. Be mindful of deadlines to avoid delaying your case.",
     "description": "Status full description for ea_demande_report_ea"
   },
   "status_ea_en_attente_ea_phase": {
-    "message": "Entretien d'assimilation",
+    "message": "Assimilation interview",
     "description": "Status phase for ea_en_attente_ea"
   },
   "status_ea_en_attente_ea_explication": {
-    "message": "Convocation envoyée, en attente",
+    "message": "Summons sent, awaiting interview",
     "description": "Status explanation for ea_en_attente_ea"
   },
   "status_ea_en_attente_ea_description": {
-    "message": "Votre convocation à l'entretien d'assimilation est envoyée ou disponible. Préparez-vous : questions sur la France (histoire, culture, valeurs républicaines), votre parcours et vos motivations.",
+    "message": "Your summons for the assimilation interview has been sent or is available. Prepare yourself: questions about France (history, culture, republican values), your background, and your motivations.",
     "description": "Status full description for ea_en_attente_ea"
   },
   "status_ea_crea_a_valider_phase": {
-    "message": "Entretien d'assimilation",
+    "message": "Assimilation interview",
     "description": "Status phase for ea_crea_a_valider"
   },
   "status_ea_crea_a_valider_explication": {
-    "message": "Entretien passé, compte-rendu en rédaction",
+    "message": "Interview completed, report being drafted",
     "description": "Status explanation for ea_crea_a_valider"
   },
   "status_ea_crea_a_valider_description": {
-    "message": "Vous avez passé l'entretien d'assimilation ! L'agent rédige le compte-rendu évaluant votre niveau de langue, connaissance de la France et assimilation à la communauté française.",
+    "message": "You have completed the assimilation interview! The officer is drafting the report evaluating your language level, knowledge of France, and assimilation into the French community.",
     "description": "Status full description for ea_crea_a_valider"
   },
   "status_prop_decision_pref_a_effectuer_phase": {
-    "message": "Décision préfecture",
+    "message": "Prefecture decision",
     "description": "Status phase for prop_decision_pref_a_effectuer"
   },
   "status_prop_decision_pref_a_effectuer_explication": {
-    "message": "Avis préfectoral en cours",
+    "message": "Prefectural opinion in progress",
     "description": "Status explanation for prop_decision_pref_a_effectuer"
   },
   "status_prop_decision_pref_a_effectuer_description": {
-    "message": "L'agent instructeur analyse l'ensemble de votre dossier (enquêtes, entretien, pièces) pour formuler sa proposition d'avis : favorable, défavorable ou ajournement.",
+    "message": "The reviewing officer is analyzing your entire case (inquiries, interview, documents) to formulate a recommendation: favorable, unfavorable, or deferral.",
     "description": "Status full description for prop_decision_pref_a_effectuer"
   },
   "status_prop_decision_pref_en_attente_retour_hierarchique_phase": {
-    "message": "Décision préfecture",
+    "message": "Prefecture decision",
     "description": "Status phase for prop_decision_pref_en_attente_retour_hierarchique"
   },
   "status_prop_decision_pref_en_attente_retour_hierarchique_explication": {
-    "message": "Validation hiérarchique en cours",
+    "message": "Hierarchical validation in progress",
     "description": "Status explanation for prop_decision_pref_en_attente_retour_hierarchique"
   },
   "status_prop_decision_pref_en_attente_retour_hierarchique_description": {
-    "message": "La proposition de l'agent est soumise à sa hiérarchie pour validation. Cette étape permet de confirmer l'avis avant transmission au préfet. Durée variable selon les préfectures.",
+    "message": "The officer's recommendation is submitted to their hierarchy for validation. This step confirms the opinion before transmission to the prefect. Duration varies by prefecture.",
     "description": "Status full description for prop_decision_pref_en_attente_retour_hierarchique"
   },
   "status_prop_decision_pref_prop_a_editer_phase": {
-    "message": "Décision préfecture",
+    "message": "Prefecture decision",
     "description": "Status phase for prop_decision_pref_prop_a_editer"
   },
   "status_prop_decision_pref_prop_a_editer_explication": {
-    "message": "Rédaction de la proposition",
+    "message": "Recommendation being drafted",
     "description": "Status explanation for prop_decision_pref_prop_a_editer"
   },
   "status_prop_decision_pref_prop_a_editer_description": {
-    "message": "L'avis est validé et le document officiel de proposition est en cours de rédaction. Il résume votre situation et la recommandation de la préfecture au ministère.",
+    "message": "The opinion is validated and the official recommendation document is being drafted. It summarizes your situation and the prefecture's recommendation to the ministry.",
     "description": "Status full description for prop_decision_pref_prop_a_editer"
   },
   "status_prop_decision_pref_en_attente_retour_signataire_phase": {
-    "message": "Décision préfecture",
+    "message": "Prefecture decision",
     "description": "Status phase for prop_decision_pref_en_attente_retour_signataire"
   },
   "status_prop_decision_pref_en_attente_retour_signataire_explication": {
-    "message": "Attente signature du préfet",
+    "message": "Awaiting prefect's signature",
     "description": "Status explanation for prop_decision_pref_en_attente_retour_signataire"
   },
   "status_prop_decision_pref_en_attente_retour_signataire_description": {
-    "message": "Le document de proposition est finalisé et transmis au préfet (ou son représentant) pour signature. Une fois signé, votre dossier sera envoyé au ministère de l'Intérieur (SDANF).",
+    "message": "The recommendation document is finalized and sent to the prefect (or their representative) for signature. Once signed, your case will be sent to the Ministry of the Interior (SDANF).",
     "description": "Status full description for prop_decision_pref_en_attente_retour_signataire"
   },
   "status_controle_a_affecter_phase": {
-    "message": "Contrôle SDANF",
+    "message": "SDANF review",
     "description": "Status phase for controle_a_affecter"
   },
   "status_controle_a_affecter_explication": {
-    "message": "Arrivé à la SDANF, attente affectation",
+    "message": "Arrived at SDANF, awaiting assignment",
     "description": "Status explanation for controle_a_affecter"
   },
   "status_controle_a_affecter_description": {
-    "message": "Votre dossier est arrivé à la Sous-Direction de l'Accès à la Nationalité Française (SDANF) à Rezé (44). Il attend d'être attribué à un agent pour le contrôle ministériel.",
+    "message": "Your case has arrived at the Sub-Directorate for Access to French Nationality (SDANF) in Rez\u00e9 (44). It is waiting to be assigned to an officer for ministerial review.",
     "description": "Status full description for controle_a_affecter"
   },
   "status_controle_a_effectuer_phase": {
-    "message": "Contrôle SDANF",
+    "message": "SDANF review",
     "description": "Status phase for controle_a_effectuer"
   },
   "status_controle_a_effectuer_explication": {
-    "message": "Contrôle ministériel en cours",
+    "message": "Ministerial review in progress",
     "description": "Status explanation for controle_a_effectuer"
   },
   "status_controle_a_effectuer_description": {
-    "message": "Un agent de la SDANF contrôle votre dossier : vérification des pièces d'état civil, cohérence des informations, respect des conditions légales. Cette étape peut prendre plusieurs semaines.",
+    "message": "An SDANF officer is reviewing your case: verification of civil status documents, consistency of information, compliance with legal conditions. This step can take several weeks.",
     "description": "Status full description for controle_a_effectuer"
   },
   "status_controle_en_attente_pec_phase": {
-    "message": "Contrôle SCEC",
+    "message": "SCEC review",
     "description": "Status phase for controle_en_attente_pec"
   },
   "status_controle_en_attente_pec_explication": {
-    "message": "Transmis au SCEC de Nantes",
+    "message": "Sent to SCEC in Nantes",
     "description": "Status explanation for controle_en_attente_pec"
   },
   "status_controle_en_attente_pec_description": {
-    "message": "Le Service Central d'État Civil (SCEC) de Nantes vérifie l'authenticité de vos actes d'état civil étrangers. Cette vérification est obligatoire pour valider votre identité.",
+    "message": "The Central Civil Status Service (SCEC) in Nantes is verifying the authenticity of your foreign civil status documents. This verification is mandatory to validate your identity.",
     "description": "Status full description for controle_en_attente_pec"
   },
   "status_controle_pec_a_faire_phase": {
-    "message": "Contrôle SCEC",
+    "message": "SCEC review",
     "description": "Status phase for controle_pec_a_faire"
   },
   "status_controle_pec_a_faire_explication": {
-    "message": "Vérification d'état civil en cours",
+    "message": "Civil status verification in progress",
     "description": "Status explanation for controle_pec_a_faire"
   },
   "status_controle_pec_a_faire_description": {
-    "message": "Le SCEC procède à la vérification de vos pièces d'état civil. Une fois validées, vos actes seront transcrits dans les registres français si votre naturalisation aboutit.",
+    "message": "The SCEC is verifying your civil status documents. Once validated, your records will be transcribed into French registers if your naturalization is granted.",
     "description": "Status full description for controle_pec_a_faire"
   },
   "status_controle_transmise_pour_decret_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for controle_transmise_pour_decret"
   },
   "status_controle_transmise_pour_decret_explication": {
-    "message": "Avis FAVORABLE, transmis pour décret",
+    "message": "FAVORABLE opinion, sent for decree",
     "description": "Status explanation for controle_transmise_pour_decret"
   },
   "status_controle_transmise_pour_decret_description": {
-    "message": "Excellente nouvelle ! L'avis est FAVORABLE. Votre dossier est transmis au service des décrets pour être inclus dans un prochain décret de naturalisation. La fin approche !",
+    "message": "Excellent news! The opinion is FAVORABLE. Your case has been sent to the decree department to be included in an upcoming naturalization decree. The end is near!",
     "description": "Status full description for controle_transmise_pour_decret"
   },
   "status_controle_en_attente_retour_hierarchique_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for controle_en_attente_retour_hierarchique"
   },
   "status_controle_en_attente_retour_hierarchique_explication": {
-    "message": "Validation hiérarchique ministérielle",
+    "message": "Ministerial hierarchical validation",
     "description": "Status explanation for controle_en_attente_retour_hierarchique"
   },
   "status_controle_en_attente_retour_hierarchique_description": {
-    "message": "Le projet de décret incluant votre demande est soumis à la validation de la hiérarchie ministérielle. Étape administrative normale avant la finalisation du décret.",
+    "message": "The draft decree including your application is submitted for validation by the ministerial hierarchy. This is a normal administrative step before the decree is finalized.",
     "description": "Status full description for controle_en_attente_retour_hierarchique"
   },
   "status_controle_decision_a_editer_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for controle_decision_a_editer"
   },
   "status_controle_decision_a_editer_explication": {
-    "message": "Décision favorable, édition en cours",
+    "message": "Favorable decision, being drafted",
     "description": "Status explanation for controle_decision_a_editer"
   },
   "status_controle_decision_a_editer_description": {
-    "message": "La décision favorable est confirmée. Le document officiel du décret incluant votre nom est en cours d'édition. Vous serez bientôt inscrit(e) dans un décret de naturalisation.",
+    "message": "The favorable decision is confirmed. The official decree document including your name is being drafted. You will soon be listed in a naturalization decree.",
     "description": "Status full description for controle_decision_a_editer"
   },
   "status_controle_en_attente_signature_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for controle_en_attente_signature"
   },
   "status_controle_en_attente_signature_explication": {
-    "message": "Attente signature ministérielle",
+    "message": "Awaiting ministerial signature",
     "description": "Status explanation for controle_en_attente_signature"
   },
   "status_controle_en_attente_signature_description": {
-    "message": "Le décret de naturalisation est finalisé et attend la signature du ministre ou de son représentant. Une fois signé, il sera publié au Journal Officiel.",
+    "message": "The naturalization decree is finalized and awaiting the minister's or their representative's signature. Once signed, it will be published in the Official Journal.",
     "description": "Status full description for controle_en_attente_signature"
   },
   "status_transmis_a_ac_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for transmis_a_ac"
   },
   "status_transmis_a_ac_explication": {
-    "message": "Transmis à l'administration centrale",
+    "message": "Sent to central administration",
     "description": "Status explanation for transmis_a_ac"
   },
   "status_transmis_a_ac_description": {
-    "message": "Votre dossier favorable est transmis à l'administration centrale chargée de préparer les décrets. Vous êtes dans la dernière ligne droite de la procédure !",
+    "message": "Your favorable case has been sent to the central administration in charge of preparing decrees. You are in the final stretch of the process!",
     "description": "Status full description for transmis_a_ac"
   },
   "status_a_verifier_avant_insertion_decret_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for a_verifier_avant_insertion_decret"
   },
   "status_a_verifier_avant_insertion_decret_explication": {
-    "message": "Vérifications finales avant insertion",
+    "message": "Final checks before insertion",
     "description": "Status explanation for a_verifier_avant_insertion_decret"
   },
   "status_a_verifier_avant_insertion_decret_description": {
-    "message": "Dernières vérifications administratives aléatoires et facultatives avant l'insertion de votre nom dans un décret. On s'assure qu'aucun élément nouveau ne s'oppose à votre naturalisation.",
+    "message": "Final random and optional administrative checks before inserting your name in a decree. Ensuring no new element opposes your naturalization.",
     "description": "Status full description for a_verifier_avant_insertion_decret"
   },
   "status_prete_pour_insertion_decret_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for prete_pour_insertion_decret"
   },
   "status_prete_pour_insertion_decret_explication": {
-    "message": "Validé, prêt pour insertion au décret",
+    "message": "Validated, ready for decree insertion",
     "description": "Status explanation for prete_pour_insertion_decret"
   },
   "status_prete_pour_insertion_decret_description": {
-    "message": "Votre dossier est validé et prêt pour être inséré dans le prochain décret de naturalisation. La décision favorable a été signée par le Ministre !",
+    "message": "Your case is validated and ready to be inserted in the next naturalization decree. The favorable decision has been signed by the Minister!",
     "description": "Status full description for prete_pour_insertion_decret"
   },
   "status_decret_en_preparation_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for decret_en_preparation"
   },
   "status_decret_en_preparation_explication": {
-    "message": "Décret en cours de préparation",
+    "message": "Decree being prepared",
     "description": "Status explanation for decret_en_preparation"
   },
   "status_decret_en_preparation_description": {
-    "message": "Un décret de naturalisation incluant votre nom est en cours de préparation. Plusieurs dossiers sont regroupés dans chaque décret avant publication au Journal Officiel.",
+    "message": "A naturalization decree including your name is being prepared. Multiple cases are grouped in each decree before publication in the Official Journal.",
     "description": "Status full description for decret_en_preparation"
   },
   "status_decret_a_qualifier_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for decret_a_qualifier"
   },
   "status_decret_a_qualifier_explication": {
-    "message": "Décret en cours de qualification",
+    "message": "Decree being classified",
     "description": "Status explanation for decret_a_qualifier"
   },
   "status_decret_a_qualifier_description": {
-    "message": "Le décret incluant votre nom est en phase de qualification : catégorisation et vérification du type de décret (naturalisation, réintégration, etc.) avant validation finale.",
+    "message": "The decree including your name is in the classification phase: categorization and verification of the decree type (naturalization, reinstatement, etc.) before final validation.",
     "description": "Status full description for decret_a_qualifier"
   },
   "status_decret_en_validation_phase": {
-    "message": "Préparation décret",
+    "message": "Decree preparation",
     "description": "Status phase for decret_en_validation"
   },
   "status_decret_en_validation_explication": {
-    "message": "Décret en validation finale",
+    "message": "Decree in final validation",
     "description": "Status explanation for decret_en_validation"
   },
   "status_decret_en_validation_description": {
-    "message": "Le décret de naturalisation est en cours de validation finale par les services compétents. Dernière étape administrative avant la signature et la publication.",
+    "message": "The naturalization decree is undergoing final validation by the relevant departments. This is the last administrative step before signature and publication.",
     "description": "Status full description for decret_en_validation"
   },
   "status_inseree_dans_decret_phase": {
-    "message": "Publication JO",
+    "message": "Official Journal publication",
     "description": "Status phase for inseree_dans_decret"
   },
   "status_inseree_dans_decret_explication": {
-    "message": "Inséré dans un décret signé",
+    "message": "Included in a signed decree",
     "description": "Status explanation for inseree_dans_decret"
   },
   "status_inseree_dans_decret_description": {
-    "message": "Votre nom est officiellement inscrit dans un décret de naturalisation ! Il attend maintenant la publication au Journal Officiel de la République Française.",
+    "message": "Your name is officially listed in a naturalization decree! It is now awaiting publication in the Official Journal of the French Republic.",
     "description": "Status full description for inseree_dans_decret"
   },
   "status_decret_envoye_prefecture_phase": {
-    "message": "Publication JO",
+    "message": "Official Journal publication",
     "description": "Status phase for decret_envoye_prefecture"
   },
   "status_decret_envoye_prefecture_explication": {
-    "message": "Décret envoyé à votre préfecture",
+    "message": "Decree sent to your prefecture",
     "description": "Status explanation for decret_envoye_prefecture"
   },
   "status_decret_envoye_prefecture_description": {
-    "message": "Le décret signé a été transmis à votre préfecture. Elle va vous convoquer pour la cérémonie d'accueil dans la citoyenneté française et la remise de votre décret.",
+    "message": "The signed decree has been sent to your prefecture. They will summon you for the citizenship welcome ceremony and the handover of your decree.",
     "description": "Status full description for decret_envoye_prefecture"
   },
   "status_notification_envoyee_phase": {
-    "message": "Publication JO",
+    "message": "Official Journal publication",
     "description": "Status phase for notification_envoyee"
   },
   "status_notification_envoyee_explication": {
-    "message": "Notification officielle envoyée",
+    "message": "Official notification sent",
     "description": "Status explanation for notification_envoyee"
   },
   "status_notification_envoyee_description": {
-    "message": "La notification officielle de votre naturalisation vous a été envoyée. Vous serez convoqué(e) à la cérémonie d'accueil dans la citoyenneté française.",
+    "message": "The official notification of your naturalization has been sent to you. You will be summoned to the citizenship welcome ceremony.",
     "description": "Status full description for notification_envoyee"
   },
   "status_decret_naturalisation_publie_phase": {
-    "message": "NATURALISÉ(E)",
+    "message": "NATURALIZED",
     "description": "Status phase for decret_naturalisation_publie"
   },
   "status_decret_naturalisation_publie_explication": {
-    "message": "Décret publié au Journal Officiel",
+    "message": "Decree published in the Official Journal",
     "description": "Status explanation for decret_naturalisation_publie"
   },
   "status_decret_naturalisation_publie_description": {
-    "message": "FÉLICITATIONS ! Votre décret de naturalisation est publié au Journal Officiel de la République Française. Vous êtes officiellement citoyen(ne) français(e) !",
+    "message": "CONGRATULATIONS! Your naturalization decree has been published in the Official Journal of the French Republic. You are officially a French citizen!",
     "description": "Status full description for decret_naturalisation_publie"
   },
   "status_decret_naturalisation_publie_jo_phase": {
-    "message": "NATURALISÉ(E)",
+    "message": "NATURALIZED",
     "description": "Status phase for decret_naturalisation_publie_jo"
   },
   "status_decret_naturalisation_publie_jo_explication": {
-    "message": "Décret publié au Journal Officiel",
+    "message": "Decree published in the Official Journal",
     "description": "Status explanation for decret_naturalisation_publie_jo"
   },
   "status_decret_naturalisation_publie_jo_description": {
-    "message": "FÉLICITATIONS ! Votre décret de naturalisation est publié au Journal Officiel. Vous êtes officiellement français(e) ! La préfecture vous convoquera pour la cérémonie.",
+    "message": "CONGRATULATIONS! Your naturalization decree has been published in the Official Journal. You are officially French! The prefecture will summon you for the ceremony.",
     "description": "Status full description for decret_naturalisation_publie_jo"
   },
   "status_decret_publie_phase": {
-    "message": "NATURALISÉ(E)",
+    "message": "NATURALIZED",
     "description": "Status phase for decret_publie"
   },
   "status_decret_publie_explication": {
-    "message": "Décret publié",
+    "message": "Decree published",
     "description": "Status explanation for decret_publie"
   },
   "status_decret_publie_description": {
-    "message": "FÉLICITATIONS ! Votre décret de naturalisation est publié. Vous êtes officiellement citoyen(ne) français(e) ! La préfecture vous convoquera pour la cérémonie d'accueil.",
+    "message": "CONGRATULATIONS! Your naturalization decree has been published. You are officially a French citizen! The prefecture will summon you for the welcome ceremony.",
     "description": "Status full description for decret_publie"
   },
   "status_demande_traitee_phase": {
-    "message": "Finalisé",
+    "message": "Finalized",
     "description": "Status phase for demande_traitee"
   },
   "status_demande_traitee_explication": {
-    "message": "Demande entièrement traitée",
+    "message": "Application fully processed",
     "description": "Status explanation for demande_traitee"
   },
   "status_demande_traitee_description": {
-    "message": "Votre demande de naturalisation a été entièrement traitée. Consultez vos courriers ou contactez votre préfecture pour connaître l'issue de votre dossier.",
+    "message": "Your naturalization application has been fully processed. Check your mail or contact your prefecture to learn the outcome of your case.",
     "description": "Status full description for demande_traitee"
   },
   "status_decision_negative_en_delais_recours_phase": {
-    "message": "Décision négative",
+    "message": "Negative decision",
     "description": "Status phase for decision_negative_en_delais_recours"
   },
   "status_decision_negative_en_delais_recours_explication": {
-    "message": "Défavorable, délai de recours ouvert",
+    "message": "Unfavorable, appeal period open",
     "description": "Status explanation for decision_negative_en_delais_recours"
   },
   "status_decision_negative_en_delais_recours_description": {
-    "message": "Votre demande a reçu une décision défavorable. Vous disposez d'un délai de 2 mois pour former un recours gracieux auprès du ministre (RAPO) ou un recours contentieux devant le tribunal administratif.",
+    "message": "Your application has received an unfavorable decision. You have 2 months to file a gracious appeal with the minister (RAPO) or a contentious appeal before the administrative court.",
     "description": "Status full description for decision_negative_en_delais_recours"
   },
   "status_decision_notifiee_phase": {
-    "message": "Décision négative",
+    "message": "Negative decision",
     "description": "Status phase for decision_notifiee"
   },
   "status_decision_notifiee_explication": {
-    "message": "Décision notifiée au demandeur",
+    "message": "Decision notified to applicant",
     "description": "Status explanation for decision_notifiee"
   },
   "status_decision_notifiee_description": {
-    "message": "La décision concernant votre dossier vous a été officiellement notifiée. Consultez le courrier pour connaître la nature de la décision et les voies de recours disponibles.",
+    "message": "The decision regarding your case has been officially notified. Check the letter to learn the nature of the decision and available appeal options.",
     "description": "Status full description for decision_notifiee"
   },
   "status_demande_en_cours_rapo_phase": {
-    "message": "Recours RAPO",
+    "message": "RAPO appeal",
     "description": "Status phase for demande_en_cours_rapo"
   },
   "status_demande_en_cours_rapo_explication": {
-    "message": "Recours administratif en cours",
+    "message": "Administrative appeal in progress",
     "description": "Status explanation for demande_en_cours_rapo"
   },
   "status_demande_en_cours_rapo_description": {
-    "message": "Votre recours administratif préalable obligatoire (RAPO) est en cours d'examen par le ministère. Le RAPO est un recours gracieux contre une décision défavorable. Délai de réponse : environ 4 mois.",
+    "message": "Your mandatory prior administrative appeal (RAPO) is being reviewed by the ministry. The RAPO is a gracious appeal against an unfavorable decision. Expected response time: approximately 4 months.",
     "description": "Status full description for demande_en_cours_rapo"
   },
   "status_controle_demande_notifiee_phase": {
-    "message": "Décision notifiée",
+    "message": "Decision notified",
     "description": "Status phase for controle_demande_notifiee"
   },
   "status_controle_demande_notifiee_explication": {
-    "message": "Décision de contrôle notifiée",
+    "message": "Review decision notified",
     "description": "Status explanation for controle_demande_notifiee"
   },
   "status_controle_demande_notifiee_description": {
-    "message": "La décision issue du contrôle ministériel vous a été officiellement communiquée. Vérifiez vos courriers pour connaître la suite donnée à votre dossier.",
+    "message": "The decision from the ministerial review has been officially communicated to you. Check your mail to learn the next steps for your case.",
     "description": "Status full description for controle_demande_notifiee"
   },
   "status_irrecevabilite_manifeste_phase": {
-    "message": "Irrecevabilité",
+    "message": "Inadmissibility",
     "description": "Status phase for irrecevabilite_manifeste"
   },
   "status_irrecevabilite_manifeste_explication": {
-    "message": "Conditions légales non remplies",
+    "message": "Legal conditions not met",
     "description": "Status explanation for irrecevabilite_manifeste"
   },
   "status_irrecevabilite_manifeste_description": {
-    "message": "Votre demande ne remplit pas les conditions légales de recevabilité (durée de résidence, titre de séjour, etc.). Vérifiez les critères d'éligibilité avant de déposer une nouvelle demande.",
+    "message": "Your application does not meet the legal admissibility conditions (length of residence, residence permit, etc.). Check the eligibility criteria before filing a new application.",
     "description": "Status full description for irrecevabilite_manifeste"
   },
   "status_irrecevabilite_manifeste_en_delais_recours_phase": {
-    "message": "Irrecevabilité",
+    "message": "Inadmissibility",
     "description": "Status phase for irrecevabilite_manifeste_en_delais_recours"
   },
   "status_irrecevabilite_manifeste_en_delais_recours_explication": {
-    "message": "Irrecevable, délai de recours ouvert",
+    "message": "Inadmissible, appeal period open",
     "description": "Status explanation for irrecevabilite_manifeste_en_delais_recours"
   },
   "status_irrecevabilite_manifeste_en_delais_recours_description": {
-    "message": "Votre demande a été déclarée irrecevable. Vous pouvez contester cette décision par un recours gracieux (RAPO) ou contentieux dans un délai de 2 mois.",
+    "message": "Your application has been declared inadmissible. You may contest this decision through a gracious appeal (RAPO) or a contentious appeal within 2 months.",
     "description": "Status full description for irrecevabilite_manifeste_en_delais_recours"
   },
   "status_css_en_delais_recours_phase": {
-    "message": "Classement sans suite",
+    "message": "Case closed",
     "description": "Status phase for css_en_delais_recours"
   },
   "status_css_en_delais_recours_explication": {
-    "message": "Classé sans suite, recours possible",
+    "message": "Closed without action, appeal possible",
     "description": "Status explanation for css_en_delais_recours"
   },
   "status_css_en_delais_recours_description": {
-    "message": "Votre dossier a été classé sans suite (pièces non fournies dans les délais, désistement, etc.). Vous pouvez former un recours ou déposer une nouvelle demande complète.",
+    "message": "Your case has been closed without action (documents not provided on time, withdrawal, etc.). You may file an appeal or submit a new complete application.",
     "description": "Status full description for css_en_delais_recours"
   },
   "status_css_notifie_phase": {
-    "message": "Classement sans suite",
+    "message": "Case closed",
     "description": "Status phase for css_notifie"
   },
   "status_css_notifie_explication": {
-    "message": "Classement sans suite notifié",
+    "message": "Case closure notified",
     "description": "Status explanation for css_notifie"
   },
   "status_css_notifie_description": {
-    "message": "Le classement sans suite de votre dossier vous a été officiellement notifié. Analysez les motifs indiqués avant d'envisager une nouvelle demande.",
+    "message": "The closure of your case has been officially notified. Review the stated reasons before considering a new application.",
     "description": "Status full description for css_notifie"
   },
 
   "status_unknown_phase": {
-    "message": "Statut inconnu",
+    "message": "Unknown status",
     "description": "Fallback phase for unrecognized status"
   },
   "status_unknown_explication": {
-    "message": "Non disponible",
+    "message": "Not available",
     "description": "Fallback explanation for unrecognized status"
   },
   "status_unknown_description": {
-    "message": "Statut non répertorié. Contactez votre préfecture.",
+    "message": "Unrecognized status. Contact your prefecture.",
     "description": "Fallback description for unrecognized status"
   },
 
   "step_dossier_depose_label": {
-    "message": "Dépôt du dossier",
+    "message": "Case filing",
     "description": "Step default label for dossier_depose"
   },
   "step_ea_en_attente_ea_label": {
-    "message": "Entretien d'assimilation",
+    "message": "Assimilation interview",
     "description": "Step default label for ea_en_attente_ea"
   },
   "step_controle_a_affecter_label": {
-    "message": "SDANF — Attente affectation",
+    "message": "SDANF \u2014 Awaiting assignment",
     "description": "Step default label for controle_a_affecter"
   },
   "step_controle_a_effectuer_label": {
-    "message": "SDANF — Contrôle en cours",
+    "message": "SDANF \u2014 Review in progress",
     "description": "Step default label for controle_a_effectuer"
   },
   "step_controle_en_attente_pec_label": {
-    "message": "SCEC — Transmis Nantes",
+    "message": "SCEC \u2014 Sent to Nantes",
     "description": "Step default label for controle_en_attente_pec"
   },
   "step_prete_pour_insertion_decret_label": {
-    "message": "PPID — Prêt pour insertion décret",
+    "message": "PPID \u2014 Ready for decree insertion",
     "description": "Step default label for prete_pour_insertion_decret"
   },
   "step_inseree_dans_decret_label": {
-    "message": "IDD — Inséré dans le décret",
+    "message": "IDD \u2014 Inserted in decree",
     "description": "Step default label for inseree_dans_decret"
   },
   "step_decret_naturalisation_publie_label": {
-    "message": "Publication au JO",
+    "message": "Official Journal publication",
     "description": "Step default label for decret_naturalisation_publie"
   }
 }
