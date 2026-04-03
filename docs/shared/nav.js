@@ -22,7 +22,7 @@
     }
   }
 
-  /** Maintenance / update banner (temporary — remove when v2.4.6 is widely deployed) */
+  /** Maintenance / update banner (temporary — remove when v2.4.7 is widely deployed) */
   function initMaintenanceBanner() {
     var header = document.querySelector('header');
     if (!header) return;
@@ -33,11 +33,11 @@
       '<div class="maint-inner">'
       + '<div class="maint-icon">&#x1f512;</div>'
       + '<div class="maint-text">'
-      + '<strong class="maint-title">Mise \u00e0 jour de s\u00e9curit\u00e9 \u2014 v2.4.6</strong>'
+      + '<strong class="maint-title">Mise \u00e0 jour de s\u00e9curit\u00e9 \u2014 v2.4.7</strong>'
       + '<p class="maint-desc">'
       + 'Pour des raisons de s\u00e9curit\u00e9, les versions ant\u00e9rieures de l\u2019extension '
       + 'ne transmettent plus de donn\u00e9es au site de statistiques. '
-      + 'La mise \u00e0 jour vers la v2.4.6 se fait <strong>automatiquement</strong> via le Chrome Web Store.'
+      + 'La mise \u00e0 jour vers la v2.4.7 se fait <strong>automatiquement</strong> via le Chrome Web Store.'
       + '</p>'
       + '<p class="maint-hint">'
       + 'Si vos donn\u00e9es n\u2019apparaissent plus ici, v\u00e9rifiez votre version dans les param\u00e8tres de l\u2019extension.'
