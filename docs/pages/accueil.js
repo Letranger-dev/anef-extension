@@ -23,6 +23,10 @@
     var sub = document.getElementById('kpi-updated-sub');
     if (!dot || !text) return;
 
+    // Click handler to show cron history
+    var card = dot.closest('.kpi-timer-card');
+    if (card) card.addEventListener('click', showCronHistory);
+
     // HEAD request on snapshots.json to get the real deploy time
     fetch('./data/snapshots.json', { method: 'HEAD' })
       .then(function(r) {
@@ -66,6 +70,97 @@
       })
       .catch(function() {
         text.textContent = 'indisponible';
+      });
+  }
+
+  // ─── Cron history modal ───
+  var GITHUB_RUNS_API = 'https://api.github.com/repos/Letranger-dev/anef-extension/actions/workflows/refresh-data.yml/runs?per_page=15';
+
+  function formatAgo(dateStr) {
+    var min = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (min < 1) return "\u00e0 l'instant";
+    if (min < 60) return 'il y a ' + min + ' min';
+    var h = Math.floor(min / 60);
+    if (h < 24) return 'il y a ' + h + 'h' + (min % 60 > 0 ? String(min % 60).padStart(2, '0') : '');
+    var d = Math.floor(h / 24);
+    return 'il y a ' + d + 'j';
+  }
+
+  function formatDateFR(dateStr) {
+    var d = new Date(dateStr);
+    return String(d.getDate()).padStart(2, '0') + '/'
+      + String(d.getMonth() + 1).padStart(2, '0') + ' \u00e0 '
+      + String(d.getHours()).padStart(2, '0') + ':'
+      + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function conclusionClass(conclusion, status) {
+    if (status === 'in_progress') return 'in_progress';
+    if (conclusion === 'success') return 'success';
+    if (conclusion === 'failure') return 'failure';
+    return 'cancelled';
+  }
+
+  function showCronHistory() {
+    // Remove existing modal if any
+    var existing = document.getElementById('cron-history-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'cron-history-overlay';
+    overlay.className = 'history-modal-overlay open';
+
+    overlay.innerHTML =
+      '<div class="history-modal" style="max-width:440px">' +
+        '<div class="history-modal-header">' +
+          '<h3>Historique des actualisations</h3>' +
+          '<button class="history-close" id="cron-close">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list" id="cron-list">' +
+          '<div style="text-align:center;color:var(--text-dim);padding:1.5rem 0">Chargement\u2026</div>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay || e.target.closest('.history-close')) overlay.remove();
+    });
+
+    fetch(GITHUB_RUNS_API)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var runs = data.workflow_runs || [];
+        var list = document.getElementById('cron-list');
+        if (!runs.length) {
+          list.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:1rem">Aucun run trouvé</div>';
+          return;
+        }
+
+        var html = '';
+        for (var i = 0; i < runs.length; i++) {
+          var r = runs[i];
+          var cls = conclusionClass(r.conclusion, r.status);
+          var dur = '';
+          if (r.updated_at && r.run_started_at) {
+            var secs = Math.round((new Date(r.updated_at) - new Date(r.run_started_at)) / 1000);
+            dur = secs + 's';
+          }
+          var trigger = r.event === 'schedule' ? 'cron' : r.event === 'workflow_dispatch' ? 'manuel' : r.event;
+
+          html += '<div class="cron-run-item">'
+            + '<span class="cron-run-dot ' + U.escapeHtml(cls) + '"></span>'
+            + '<span class="cron-run-date">' + U.escapeHtml(formatDateFR(r.created_at)) + '</span>'
+            + '<span class="cron-run-ago">' + U.escapeHtml(formatAgo(r.created_at)) + '</span>'
+            + '<span class="cron-run-trigger">' + U.escapeHtml(trigger) + '</span>'
+            + '<span class="cron-run-duration">' + U.escapeHtml(dur) + '</span>'
+            + '</div>';
+        }
+        list.innerHTML = html;
+      })
+      .catch(function(err) {
+        var list = document.getElementById('cron-list');
+        if (list) list.innerHTML = '<div style="text-align:center;color:var(--red);padding:1rem">Erreur : ' + U.escapeHtml(err.message) + '</div>';
       });
   }
 

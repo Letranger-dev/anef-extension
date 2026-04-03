@@ -226,7 +226,7 @@ html { scroll-behavior: smooth; }
 .kpi-sub { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.25rem; }
 
 /* ─── Data freshness indicator ─── */
-.kpi-timer-card { display: flex; flex-direction: column; align-items: center; }
+.kpi-timer-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .kpi-freshness {
   display: flex;
   align-items: center;
@@ -295,6 +295,28 @@ html { scroll-behavior: smooth; }
 @media (hover: none) {
   .kpi-timer-card .timer-tooltip { display: none !important; }
 }
+
+/* ─── Cron history modal ─── */
+.cron-run-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.cron-run-item:last-child { border-bottom: none; }
+.cron-run-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.cron-run-dot.success { background: var(--green); box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+.cron-run-dot.failure { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+.cron-run-dot.cancelled { background: var(--orange); box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+.cron-run-dot.in_progress { background: var(--primary); box-shadow: 0 0 6px rgba(59,130,246,0.4); }
+.cron-run-date { color: var(--text); font-weight: 600; min-width: 110px; }
+.cron-run-ago { color: var(--text-dim); flex: 1; }
+.cron-run-duration { color: var(--text-muted); font-size: 0.75rem; }
+.cron-run-trigger { color: var(--text-dim); font-size: 0.72rem; font-style: italic; }
 
 .kpi-bar {
   display: flex;
