@@ -39,6 +39,7 @@ docs/data/
 # Internal notes
 bugs/
 tests/
+docs/reponses-securite.md
 
 # Extension packagée
 *.crx
