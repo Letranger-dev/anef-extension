@@ -40,7 +40,8 @@ jobs:
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" lib/constants.js
           sed -i "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" lib/constants.js
           sed -i "s|__SUPABASE_FUNCTION_URL__|${{ secrets.SUPABASE_FUNCTION_URL }}|g" lib/constants.js
-          if grep -q '__SUPABASE_URL__\|__SUPABASE_ANON_KEY__\|__SUPABASE_FUNCTION_URL__' lib/constants.js; then
+          sed -i "s|__SUPABASE_EDGE_KEY__|${{ secrets.SUPABASE_EDGE_KEY }}|g" lib/constants.js
+          if grep -q '__SUPABASE_URL__\|__SUPABASE_ANON_KEY__\|__SUPABASE_FUNCTION_URL__\|__SUPABASE_EDGE_KEY__' lib/constants.js; then
             echo "::error::Supabase placeholders not replaced. Check secrets."
             exit 1
           fi
