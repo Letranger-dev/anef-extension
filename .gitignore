@@ -38,10 +38,24 @@ docs/data/
 # SQL schemas & RPCs (never share)
 *.sql
 
-# Internal notes
+# Supabase Edge Functions (contient la logique serveur — ne pas exposer)
+supabase/
+
+# Internal notes & analysis
 bugs/
 tests/
 docs/reponses-securite.md
+docs/audit-*.md
+docs/facebook-post*.md
+docs/facebook-post*.txt
+docs/swap-nav.js
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Store screenshots (dev only)
+assets/store-screenshots.html
 
 # Extension packagée
 *.crx

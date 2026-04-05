@@ -116,38 +116,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Données du dossier (statut principal)
     case 'DOSSIER_DATA':
       logger.info('📥 Données dossier reçues', message.data);
-      handleDossierData(message.data);
+      handleDossierData(message.data).catch(e => logger.error('handleDossierData error', e));
       sendResponse({ received: true });
       break;
 
     // Données du stepper (ID dossier)
     case 'DOSSIER_STEPPER':
       logger.info('📥 Stepper reçu', { id: message.data?.dossier?.id });
-      handleDossierStepper(message.data);
+      handleDossierStepper(message.data).catch(e => logger.error('handleDossierStepper error', e));
       break;
 
     // Données détaillées de l'API
     case 'API_DATA':
       logger.info('📥 Données API reçues');
-      handleApiData(message.data);
+      handleApiData(message.data).catch(e => logger.error('handleApiData error', e));
       break;
 
     // Notifications ANEF
     case 'NOTIFICATIONS':
       logger.info('📥 Notifications reçues', { count: message.data?.length });
-      handleNotifications(message.data);
+      handleNotifications(message.data).catch(e => logger.error('handleNotifications error', e));
       break;
 
     // Informations utilisateur
     case 'USER_INFO':
       logger.info('📥 Infos utilisateur reçues', message.data);
-      handleUserInfo(message.data);
+      handleUserInfo(message.data).catch(e => logger.error('handleUserInfo error', e));
       break;
 
     // Historique des séjours
     case 'HISTORIQUE':
       logger.info('📥 Historique reçu', message.data);
-      handleHistorique(message.data);
+      handleHistorique(message.data).catch(e => logger.error('handleHistorique error', e));
       break;
 
     // Page chargée
@@ -163,13 +163,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Site en maintenance
     case 'MAINTENANCE':
       logger.warn('🔧 Maintenance détectée');
-      handleMaintenance();
+      handleMaintenance().catch(e => logger.error('handleMaintenance error', e));
       break;
 
     // Session expirée (JWT invalide / mot de passe expiré)
     case 'EXPIRED_SESSION':
       logger.warn('🔑 Session expirée détectée (JWT invalide)');
-      handleExpiredSession();
+      handleExpiredSession().catch(e => logger.error('handleExpiredSession error', e));
       break;
 
     // Résultat de la récupération par le script injecté
@@ -211,8 +211,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'BACKGROUND_REFRESH': {
       logger.info('🔄 Actualisation manuelle demandée');
       const manualStart = Date.now();
-      refreshPromise = backgroundRefresh();
-      refreshPromise.then(async (result) => {
+      const p = backgroundRefresh();
+      refreshPromise = p;
+      p.then(async (result) => {
         // Ne pas loguer les refreshes annulés par une nouvelle demande
         if (result.aborted) {
           sendResponse(result);
@@ -1229,10 +1230,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await storage.saveSettings({ autoCheckJitterMin: jitter });
       logger.info('🎲 Jitter auto-check généré (migration):', jitter + ' min');
     }
-    // Migration : forcer l'intervalle à 90 min
-    if (currentSettings.autoCheckInterval !== 90) {
-      await storage.saveSettings({ autoCheckInterval: 90 });
+    // Migration : forcer l'intervalle à 90 min (une seule fois)
+    if (currentSettings.autoCheckInterval !== 90 && !currentSettings._intervalMigrated) {
+      await storage.saveSettings({ autoCheckInterval: 90, _intervalMigrated: true });
       logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 90 min');
+    } else if (!currentSettings._intervalMigrated) {
+      await storage.saveSettings({ _intervalMigrated: true });
     }
     // Migration v2.2.0 : supprimer disabledByFailure obsolète, reset compteur
     const meta = await storage.getAutoCheckMeta();
@@ -1276,13 +1279,6 @@ chrome.runtime.onStartup.addListener(async () => {
     await updateBadge(lastStatus.statut);
   }
 
-  // Migration ponctuelle : forcer l'intervalle à 90 min
-  const currentSettings = await storage.getSettings();
-  if (currentSettings.autoCheckInterval !== 90) {
-    await storage.saveSettings({ autoCheckInterval: 90 });
-    logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 90 min');
-  }
-
   // Synchroniser le backup au démarrage
   storage.scheduleBackupToSync();
 
@@ -1302,7 +1298,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const newEnabled = changes.settings.newValue?.autoCheckEnabled;
     if (oldEnabled !== newEnabled) {
       logger.info('⚙️ autoCheckEnabled changé via storage:', oldEnabled, '→', newEnabled);
-      scheduleAutoCheck();
+      scheduleAutoCheck().catch(e => logger.error('scheduleAutoCheck error', e));
     }
   }
 });

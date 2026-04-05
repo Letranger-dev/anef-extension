@@ -84,7 +84,7 @@
   // Types de messages autorisés (whitelist sécurité)
   const ALLOWED_MESSAGE_TYPES = [
     'DOSSIER_DATA', 'DOSSIER_STEPPER', 'API_DATA', 'NOTIFICATIONS',
-    'USER_INFO', 'HISTORIQUE', 'MAINTENANCE', 'FETCH_COMPLETE', 'LOG'
+    'USER_INFO', 'HISTORIQUE', 'MAINTENANCE', 'EXPIRED_SESSION', 'FETCH_COMPLETE', 'LOG'
   ];
 
   window.addEventListener('ANEF_EXTENSION_DATA', function(event) {
@@ -126,7 +126,7 @@
             source: 'ANEF_EXTENSION',
             type: 'DO_AUTO_LOGIN',
             credentials: message.credentials
-          }, '*');
+          }, window.location.origin);
         }, 500);
         sendResponse({ started: true });
         return true;
@@ -221,13 +221,18 @@
         logger.info('📍 Navigation détectée:', { from: previousUrl.split('#')[1], to: lastUrl.split('#')[1] });
         safeSendMessage({ type: 'PAGE_CHANGED', url: lastUrl });
 
-        // Si on arrive sur mon-compte après une connexion, relancer le script d'injection
         const wasOnLogin = previousUrl.includes('connexion-inscription') ||
                           previousUrl.includes('authentification') ||
                           previousUrl.includes('/auth') ||
                           previousUrl.includes('/login');
         const isOnMonCompte = lastUrl.includes('mon-compte');
 
+        // Reset quand on quitte mon-compte → permet un re-fetch au retour
+        if (!isOnMonCompte && injectedScriptTriggered) {
+          injectedScriptTriggered = false;
+        }
+
+        // Si on arrive sur mon-compte après connexion ou retour, relancer la récupération
         if (isOnMonCompte && (wasOnLogin || !injectedScriptTriggered)) {
           logger.info('🔄 Relance du script d\'interception après navigation');
           injectedScriptTriggered = true;
@@ -246,7 +251,7 @@
     window.postMessage({
       source: 'ANEF_EXTENSION',
       type: 'TRIGGER_DATA_FETCH'
-    }, '*');
+    }, window.location.origin);
   }
 
   // ─────────────────────────────────────────────────────────────

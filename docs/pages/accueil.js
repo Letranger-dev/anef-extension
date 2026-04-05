@@ -8,6 +8,7 @@
   var U = ANEF.utils;
   var D = ANEF.data;
   var F = ANEF.filters;
+  var _timelineWrapper = null;
   var CH = ANEF.charts;
 
   var allSummaries = [];
@@ -266,7 +267,7 @@
   }
 
   function renderTimeline(summaries) {
-    var wrapper = document.getElementById('timeline-wrapper');
+    var wrapper = _timelineWrapper = document.getElementById('timeline-wrapper');
     var STATUTS = C.STATUTS;
 
     // Group by step, then by statut within each step
@@ -602,7 +603,7 @@
         var prevKey = s.previousStatut.toLowerCase();
         var prevInfo = C.STATUTS[prevKey];
         var prevExpl = prevInfo ? prevInfo.explication : '';
-        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.escapeHtml(U.formatDateFr(s.previousDateStatut)) : '';
         var prevSub = prevInfo ? C.formatSubStep(prevInfo.rang) : '';
         changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
           '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien : ' +
@@ -847,7 +848,7 @@
         var prevKey = s.previousStatut.toLowerCase();
         var prevInfo = C.STATUTS[prevKey];
         var prevExpl = prevInfo ? prevInfo.explication : '';
-        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.formatDateFr(s.previousDateStatut) : '';
+        var prevDateStr = s.previousDateStatut ? ' depuis le ' + U.escapeHtml(U.formatDateFr(s.previousDateStatut)) : '';
         var prevSub = prevInfo ? C.formatSubStep(prevInfo.rang) : '';
         changeHtml = '<span class="badge-status-changed">Statut modifi\u00e9</span>' +
           '<span class="meta-wrap" style="font-size:0.7rem;color:var(--text-dim)"> ancien : ' +
@@ -1882,7 +1883,7 @@
         } else if (backTo.timelineBubble) {
           // Re-trigger the timeline bubble click to reopen its modal
           var tb = backTo.timelineBubble;
-          var bubble = wrapper.querySelector('.station-sub-bubble[data-step="' + tb.step + '"][data-statut="' + tb.statut + '"]');
+          var bubble = _timelineWrapper && _timelineWrapper.querySelector('.station-sub-bubble[data-step="' + tb.step + '"][data-statut="' + tb.statut + '"]');
           if (bubble) bubble.click();
         }
       });

@@ -43,12 +43,16 @@ async function fetchAllSnapshots() {
 
   while (true) {
     var url = SUPABASE_URL + '/rest/v1/dossier_snapshots?select=' + COLUMNS + '&order=created_at.desc&limit=' + PAGE_SIZE + '&offset=' + offset;
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 30000);
     var res = await fetch(url, {
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timer);
     if (!res.ok) {
       throw new Error('Supabase API error: ' + res.status + ' ' + (await res.text()));
     }

@@ -40,11 +40,12 @@
     input.value = text;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.dispatchEvent(new Event('blur', { bubbles: true }));
   }
 
   /** Envoie un message au content script */
   function notifyExtension(type, data) {
-    window.postMessage({ source: 'ANEF_AUTO_LOGIN', type, data }, '*');
+    window.postMessage({ source: 'ANEF_AUTO_LOGIN', type, data }, window.location.origin);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -76,9 +77,6 @@
 
   async function clickSeConnecter() {
     log('📍 Page ANEF détectée');
-
-    // Attendre que Angular charge
-    await sleep(2000);
 
     const btn = await waitForElement('p-button.fullWidthButton button', 10000);
 
@@ -152,7 +150,14 @@
   // Point d'entrée
   // ─────────────────────────────────────────────────────────────
 
+  let loginInProgress = false;
+
   async function performAutoLogin(username, password) {
+    if (loginInProgress) {
+      log('⏳ Connexion déjà en cours');
+      return;
+    }
+    loginInProgress = true;
     log('🚀 Démarrage connexion automatique');
     log('📍 URL:', window.location.href);
 
@@ -186,6 +191,8 @@
     } catch (error) {
       log('❌ Erreur:', error.message);
       notifyExtension('LOGIN_FAILED', { error: error.message });
+    } finally {
+      loginInProgress = false;
     }
   }
 

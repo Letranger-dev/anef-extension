@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -37,6 +41,15 @@ jobs:
 
       - name: Inject Supabase credentials
         run: |
+          # Vérifier que les secrets ne sont pas vides AVANT injection
+          for SECRET_NAME in SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_FUNCTION_URL SUPABASE_EDGE_KEY; do
+            eval "VAL=\$$SECRET_NAME"
+            if [ -z "$VAL" ]; then
+              echo "::error::Secret $SECRET_NAME is empty or not configured"
+              exit 1
+            fi
+          done
+
           sed -i "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" lib/constants.js
           sed -i "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" lib/constants.js
           sed -i "s|__SUPABASE_FUNCTION_URL__|${{ secrets.SUPABASE_FUNCTION_URL }}|g" lib/constants.js
@@ -45,6 +58,11 @@ jobs:
             echo "::error::Supabase placeholders not replaced. Check secrets."
             exit 1
           fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+          SUPABASE_EDGE_KEY: ${{ secrets.SUPABASE_EDGE_KEY }}
 
       - name: Create extension ZIP
         run: |
@@ -59,7 +77,7 @@ jobs:
           cp -r assets build/
           cp -r _locales build/
 
-          rm -f build/assets/generate-icons.html 2>/dev/null || true
+          rm -f build/assets/generate-icons.html build/assets/store-screenshots.html build/assets/icon.svg 2>/dev/null || true
 
           # Retirer la clé "key" du manifest (réservée au dev local, le Store assigne son propre ID)
           python3 -c "
@@ -74,6 +92,7 @@ jobs:
           cd ..
 
       - name: Delete existing release
+        if: steps.get_version.outputs.VERSION_CHANGED == 'true'
         run: |
           gh release delete ${{ steps.get_version.outputs.VERSION }} --yes 2>/dev/null || true
           git push origin :refs/tags/${{ steps.get_version.outputs.VERSION }} 2>/dev/null || true
@@ -81,6 +100,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
+        if: steps.get_version.outputs.VERSION_CHANGED == 'true'
         run: |
           gh release create "${{ steps.get_version.outputs.VERSION }}" \
             "anef-status-tracker-${{ steps.get_version.outputs.VERSION }}.zip" \
@@ -156,6 +176,10 @@ jobs:
             echo "❌ Upload failed (HTTP $HTTP_CODE)"
             exit 1
           fi
+          if [ "$UPLOAD_STATUS" != "SUCCESS" ]; then
+            echo "::error::Upload state is '$UPLOAD_STATUS' (expected SUCCESS), aborting publish"
+            exit 1
+          fi
           echo "✅ Upload successful"
           echo "::endgroup::"
 
@@ -171,7 +195,8 @@ jobs:
           echo "HTTP $HTTP_CODE"
           echo "$PUBLISH_BODY" | jq . 2>/dev/null || echo "$PUBLISH_BODY"
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "⚠️ Publish request returned $HTTP_CODE (may need manual review)"
+            echo "::error::Publish request returned $HTTP_CODE"
+            exit 1
           else
             echo "✅ Published"
           fi

@@ -503,8 +503,8 @@
         to_phase: t.to_phase,
         avg_days: ANEF.utils.round1(sum / t.days.length),
         median_days: ANEF.utils.round1(ANEF.utils.medianCalc(t.days)),
-        min_days: Math.min.apply(null, t.days),
-        max_days: Math.max.apply(null, t.days),
+        min_days: t.days.length ? Math.min.apply(null, t.days) : null,
+        max_days: t.days.length ? Math.max.apply(null, t.days) : null,
         count: t.days.length,
         days: t.days
       };

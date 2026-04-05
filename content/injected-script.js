@@ -93,8 +93,8 @@ QJNdXtE3G7SjkDOn36yZSaXp
   function decryptStatus(encryptedData) {
     try {
       if (typeof forge === 'undefined') {
-        log('forge.js non disponible');
-        return encryptedData;
+        logError('forge.js non disponible, déchiffrement impossible');
+        return null;
       }
 
       let privateKey = forge.pki.decryptRsaPrivateKey(PRIVATE_KEY.trim(), PASSPHRASE);
@@ -114,8 +114,8 @@ QJNdXtE3G7SjkDOn36yZSaXp
       return decrypted.split('#K#')[0] || decrypted;
 
     } catch (error) {
-      log('Erreur déchiffrement:', error.message);
-      return encryptedData;
+      logError('Erreur déchiffrement:', error.message);
+      return null;
     }
   }
 
@@ -217,7 +217,13 @@ QJNdXtE3G7SjkDOn36yZSaXp
         throw new Error(`Erreur ${response.status}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        logError('Réponse API non-JSON');
+        return null;
+      }
 
       if (!data?.dossier?.statut) {
         log('Pas de statut dans la réponse');
@@ -226,6 +232,10 @@ QJNdXtE3G7SjkDOn36yZSaXp
 
       // Déchiffrer le statut
       const decryptedStatus = decryptStatus(data.dossier.statut);
+      if (!decryptedStatus) {
+        logError('Déchiffrement échoué, statut ignoré');
+        return null;
+      }
       log('🔓 Statut:', decryptedStatus);
 
       // Envoyer les données principales
@@ -401,10 +411,12 @@ QJNdXtE3G7SjkDOn36yZSaXp
     });
   }
 
+  let _tabsLoggedOnce = false;
+
   function findNationalityTab() {
     const tabs = document.querySelectorAll('a[role="tab"], li[role="presentation"] a, .p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li');
-    if (tabs.length > 0 && !findNationalityTab._logged) {
-      findNationalityTab._logged = true;
+    if (tabs.length > 0 && !_tabsLoggedOnce) {
+      _tabsLoggedOnce = true;
       log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
     }
     return Array.from(tabs).find(

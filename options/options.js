@@ -13,71 +13,77 @@ import * as storage from '../lib/storage.js';
 import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
 
 // ─────────────────────────────────────────────────────────────
-// Éléments DOM
+// Éléments DOM (initialisés dans DOMContentLoaded)
 // ─────────────────────────────────────────────────────────────
 
-const tabs = document.querySelectorAll('.tab');
-const tabContents = document.querySelectorAll('.tab-content');
+let tabs, tabContents;
+const elements = {};
 
-const elements = {
-  // Historique
-  historyList: document.getElementById('history-list'),
+function initializeElements() {
+  tabs = document.querySelectorAll('.tab');
+  tabContents = document.querySelectorAll('.tab-content');
 
-  // Step dates
-  stepDatesSection: document.getElementById('step-dates-section'),
-  stepDatesTimeline: document.getElementById('step-dates-timeline'),
-  btnSaveDates: document.getElementById('btn-save-dates'),
-  btnPullDates: document.getElementById('btn-pull-dates'),
+  Object.assign(elements, {
+    // Historique
+    historyList: document.getElementById('history-list'),
 
-  // Paramètres
-  settingNotifications: document.getElementById('setting-notifications'),
-  settingHistoryLimit: document.getElementById('setting-history-limit'),
-  btnSaveSettings: document.getElementById('btn-save-settings'),
-  btnResetSettings: document.getElementById('btn-reset-settings'),
+    // Step dates
+    stepDatesSection: document.getElementById('step-dates-section'),
+    stepDatesTimeline: document.getElementById('step-dates-timeline'),
+    btnSaveDates: document.getElementById('btn-save-dates'),
+    btnPullDates: document.getElementById('btn-pull-dates'),
 
-  // Identifiants
-  settingUsername: document.getElementById('setting-username'),
-  settingPassword: document.getElementById('setting-password'),
-  btnTogglePassword: document.getElementById('btn-toggle-password'),
-  iconEye: document.getElementById('icon-eye'),
-  iconEyeOff: document.getElementById('icon-eye-off'),
-  credentialIndicator: document.getElementById('credential-indicator'),
-  credentialStatusText: document.getElementById('credential-status-text'),
-  btnSaveCredentials: document.getElementById('btn-save-credentials'),
-  btnClearCredentials: document.getElementById('btn-clear-credentials'),
+    // Paramètres
+    settingNotifications: document.getElementById('setting-notifications'),
+    settingHistoryLimit: document.getElementById('setting-history-limit'),
+    btnSaveSettings: document.getElementById('btn-save-settings'),
+    btnResetSettings: document.getElementById('btn-reset-settings'),
 
-  // Export/Import
-  btnExport: document.getElementById('btn-export'),
-  btnImport: document.getElementById('btn-import'),
-  importFile: document.getElementById('import-file'),
-  btnClearAll: document.getElementById('btn-clear-all'),
+    // Identifiants
+    settingUsername: document.getElementById('setting-username'),
+    settingPassword: document.getElementById('setting-password'),
+    btnTogglePassword: document.getElementById('btn-toggle-password'),
+    iconEye: document.getElementById('icon-eye'),
+    iconEyeOff: document.getElementById('icon-eye-off'),
+    credentialIndicator: document.getElementById('credential-indicator'),
+    credentialStatusText: document.getElementById('credential-status-text'),
+    btnSaveCredentials: document.getElementById('btn-save-credentials'),
+    btnClearCredentials: document.getElementById('btn-clear-credentials'),
 
-  // Auto-check
-  settingAutoCheck: document.getElementById('setting-auto-check'),
-  autoCheckToggleWrapper: document.getElementById('auto-check-toggle-wrapper'),
-  autoCheckStatus: document.getElementById('auto-check-status'),
-  autoCheckDot: document.getElementById('auto-check-dot'),
-  autoCheckStatusText: document.getElementById('auto-check-status-text'),
-  autoCheckNoCreds: document.getElementById('auto-check-no-creds'),
-  autoCheckSuspended: document.getElementById('auto-check-suspended'),
-  btnResumeAutoCheck: document.getElementById('btn-resume-auto-check'),
-  checkLogSection: document.getElementById('check-log-section'),
-  checkLogList: document.getElementById('check-log-list'),
+    // Export/Import
+    btnExport: document.getElementById('btn-export'),
+    btnImport: document.getElementById('btn-import'),
+    importFile: document.getElementById('import-file'),
+    btnClearAll: document.getElementById('btn-clear-all'),
 
-  // Debug
-  logsContainer: document.getElementById('logs-container'),
-  btnRefreshLogs: document.getElementById('btn-refresh-logs'),
-  btnClearLogs: document.getElementById('btn-clear-logs'),
+    // Auto-check
+    settingAutoCheck: document.getElementById('setting-auto-check'),
+    autoCheckToggleWrapper: document.getElementById('auto-check-toggle-wrapper'),
+    autoCheckStatus: document.getElementById('auto-check-status'),
+    autoCheckDot: document.getElementById('auto-check-dot'),
+    autoCheckStatusText: document.getElementById('auto-check-status-text'),
+    autoCheckNoCreds: document.getElementById('auto-check-no-creds'),
+    autoCheckSuspended: document.getElementById('auto-check-suspended'),
+    btnResumeAutoCheck: document.getElementById('btn-resume-auto-check'),
+    checkLogSection: document.getElementById('check-log-section'),
+    checkLogList: document.getElementById('check-log-list'),
 
-  // Toast
-  toast: document.getElementById('toast')
-};
+    // Debug
+    logsContainer: document.getElementById('logs-container'),
+    btnRefreshLogs: document.getElementById('btn-refresh-logs'),
+    btnClearLogs: document.getElementById('btn-clear-logs'),
+
+    // Toast
+    toast: document.getElementById('toast')
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // Initialisation
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initializeElements();
   initTabs();
   initVersion();
 
@@ -478,7 +484,7 @@ async function handleSaveStepDates() {
       // Champ vidé mais date existante → garder l'ancienne (pas de suppression)
       entries.push(existing);
       showToast('Une date déjà enregistrée ne peut pas être supprimée', 'error');
-      return;
+      continue;
     }
   }
 
@@ -541,8 +547,8 @@ async function handlePullStepDates() {
 
 async function loadSettings() {
   const settings = await storage.getSettings();
-  elements.settingNotifications.checked = settings.notificationsEnabled;
-  elements.settingHistoryLimit.value = settings.historyLimit.toString();
+  if (elements.settingNotifications) elements.settingNotifications.checked = settings.notificationsEnabled;
+  if (elements.settingHistoryLimit) elements.settingHistoryLimit.value = settings.historyLimit.toString();
   if (elements.settingAutoCheck) {
     elements.settingAutoCheck.checked = settings.autoCheckEnabled;
   }
@@ -552,9 +558,9 @@ async function handleSaveSettings() {
   const autoCheckEnabled = elements.settingAutoCheck?.checked || false;
 
   await storage.saveSettings({
-    notificationsEnabled: elements.settingNotifications.checked,
+    notificationsEnabled: elements.settingNotifications?.checked ?? true,
     autoCheckEnabled,
-    historyLimit: parseInt(elements.settingHistoryLimit.value, 10)
+    historyLimit: parseInt(elements.settingHistoryLimit?.value || '100', 10)
   });
 
   // Notifier le service worker pour reconfigurer l'alarme
@@ -837,7 +843,9 @@ async function handleExport() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `anef-status-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
 
     URL.revokeObjectURL(url);
     showToast('Export réussi', 'success');
@@ -852,7 +860,12 @@ async function handleImport(event) {
 
   try {
     const data = JSON.parse(await file.text());
-    if (!data.exportDate) throw new Error('Fichier invalide');
+    if (!data.exportDate || typeof data !== 'object') throw new Error('Fichier invalide');
+    // Valider les clés attendues
+    const validKeys = ['exportDate', 'version', 'lastStatus', 'lastCheck', 'lastCheckAttempt',
+      'history', 'settings', 'apiData', 'autoCheckMeta', 'checkLog', 'stepDates', '_hasCredentials'];
+    const dataKeys = Object.keys(data);
+    if (!dataKeys.some(k => validKeys.includes(k))) throw new Error('Fichier invalide');
 
     await storage.importData(data);
     await loadHistory();
@@ -944,6 +957,7 @@ async function handleClearLogs() {
 // ─────────────────────────────────────────────────────────────
 
 function showToast(message, type = 'info') {
+  if (!elements.toast) return;
   elements.toast.textContent = message;
   elements.toast.className = `toast ${type} show`;
   setTimeout(() => elements.toast.classList.remove('show'), 3000);

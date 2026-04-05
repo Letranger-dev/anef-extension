@@ -106,8 +106,7 @@ function initializeElements() {
     btnLogin: document.getElementById('btn-login'),
     btnCheck: document.getElementById('btn-check'),
     btnRefresh: document.getElementById('btn-refresh'),
-    btnDownload: document.getElementById('btn-download'),
-    btnHistory: document.getElementById('btn-history'),
+    btnShare: document.getElementById('btn-share'),
     btnSettings: document.getElementById('btn-settings'),
 
     // Affichage statut
@@ -176,8 +175,7 @@ function attachEventListeners() {
   elements.btnCheck?.addEventListener('click', () => openAnefPage('mon-compte'));
   document.getElementById('btn-renew-password')?.addEventListener('click', () => openAnefPage('login'));
   elements.btnRefresh?.addEventListener('click', refreshInBackground);
-  elements.btnDownload?.addEventListener('click', downloadStatusImage);
-  elements.btnHistory?.addEventListener('click', () => chrome.runtime.openOptionsPage());
+  elements.btnShare?.addEventListener('click', shareStatusText);
   elements.btnSettings?.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
   // Clic sur la version = export logs (caché pour les devs)
@@ -345,7 +343,7 @@ function displayStatus(statusData, apiData, lastCheck) {
           statusLastCheck.textContent = '—';
         }
       }
-    })();
+    })().catch(e => console.warn('[Popup] Erreur mise à jour dates:', e));
   }
 
   // Barre de progression
@@ -622,7 +620,6 @@ async function refreshInBackground() {
 
   try {
     const result = await chrome.runtime.sendMessage({ type: 'BACKGROUND_REFRESH' });
-    clearInterval(progressInterval);
 
     if (result?.needsLogin) {
       showView('notConnected');
@@ -642,10 +639,10 @@ async function refreshInBackground() {
     await loadData();
 
   } catch (error) {
-    clearInterval(progressInterval);
     console.error('[Popup] Erreur refresh:', error);
     await loadData();
   } finally {
+    clearInterval(progressInterval);
     stopQuoteCarousel();
     if (elements.btnRefresh) {
       elements.btnRefresh.classList.remove('loading');
@@ -659,7 +656,7 @@ async function refreshInBackground() {
 // ─────────────────────────────────────────────────────────────
 
 /** Génère et télécharge une image du suivi */
-async function downloadStatusImage() {
+async function shareStatusText() {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
     if (!response?.lastStatus) return;
@@ -667,254 +664,114 @@ async function downloadStatusImage() {
     const { lastStatus, apiData } = response;
     const statusInfo = getStatusExplanation(lastStatus.statut);
 
-    // Canvas
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const width = 520;
-    const height = 340;
-    canvas.width = width;
-    canvas.height = height;
+    // Récupérer les stepDates pour les dates rectifiées
+    const sdData = await chrome.storage.local.get('stepDates');
+    const stepDates = sdData.stepDates || [];
 
-    // Couleurs
-    const bleuFrance = '#002654';
-    const rouge = '#ce1126';
-    const blanc = '#ffffff';
+    // Construire les lignes du texte (anonyme, pas d'info perso)
+    const lines = [];
+    lines.push(`Mon dossier ANEF — ${statusInfo.phase}`);
+    lines.push(`Étape ${formatSubStep(statusInfo.rang)}/12`);
+    lines.push('');
 
-    // Fond
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-    bgGradient.addColorStop(0, '#f8fafc');
-    bgGradient.addColorStop(1, '#e9ecef');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Header bleu
-    ctx.fillStyle = bleuFrance;
-    ctx.fillRect(0, 0, width, 52);
-
-    // Bande tricolore
-    ctx.fillStyle = bleuFrance;
-    ctx.fillRect(0, 52, width / 3, 3);
-    ctx.fillStyle = blanc;
-    ctx.fillRect(width / 3, 52, width / 3, 3);
-    ctx.fillStyle = rouge;
-    ctx.fillRect(2 * width / 3, 52, width / 3, 3);
-
-    // Titre
-    ctx.fillStyle = blanc;
-    ctx.font = 'bold 17px system-ui, -apple-system, sans-serif';
-    ctx.fillText('ANEF Status Tracker', 20, 24);
-
-    // Date et heure
-    const now = new Date();
-    const dateStr = formatDate(now);
-    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.fillText(`${dateStr} à ${timeStr}`, 20, 42);
-
-    // Carte principale
-    const cardY = 68;
-    const cardHeight = 115;
-
-    // Ombre
-    ctx.fillStyle = 'rgba(0, 38, 84, 0.1)';
-    roundRect(ctx, 22, cardY + 4, width - 44, cardHeight, 12);
-    ctx.fill();
-
-    // Fond carte
-    ctx.fillStyle = blanc;
-    roundRect(ctx, 20, cardY, width - 40, cardHeight, 12);
-    ctx.fill();
-
-    // Bordure gauche
-    const borderGradient = ctx.createLinearGradient(20, cardY, 20, cardY + cardHeight);
-    borderGradient.addColorStop(0, bleuFrance);
-    borderGradient.addColorStop(1, rouge);
-    ctx.fillStyle = borderGradient;
-    ctx.fillRect(20, cardY + 8, 4, cardHeight - 16);
-
-    // Phase
-    ctx.fillStyle = '#1e293b';
-    ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
-    ctx.fillText(statusInfo.phase, 36, cardY + 26);
-
-    // Badge étape
-    ctx.fillStyle = '#e8f0fe';
-    roundRect(ctx, 36, cardY + 34, 70, 20, 10);
-    ctx.fill();
-    ctx.fillStyle = bleuFrance;
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`Étape ${formatSubStep(statusInfo.rang)}/12`, 46, cardY + 48);
-
-    // Badge code statut
-    ctx.font = '11px Monaco, Consolas, monospace';
-    const codeWidth = ctx.measureText(lastStatus.statut).width + 20;
-    ctx.fillStyle = '#fef3c7';
-    roundRect(ctx, 115, cardY + 34, codeWidth, 20, 10);
-    ctx.fill();
-    ctx.fillStyle = '#92400e';
-    ctx.fillText(lastStatus.statut, 125, cardY + 48);
-
-    // Barre de progression
-    const progressY = cardY + 70;
-    const progressWidth = width - 80;
-    const progressHeight = 10;
-
-    ctx.fillStyle = '#e2e8f0';
-    roundRect(ctx, 36, progressY, progressWidth, progressHeight, 5);
-    ctx.fill();
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 1;
-    roundRect(ctx, 36, progressY, progressWidth, progressHeight, 5);
-    ctx.stroke();
-
-    const progress = (statusInfo.etape / 12) * progressWidth;
-    if (progress > 0) {
-      const progressGradient = ctx.createLinearGradient(36, 0, 36 + progressWidth, 0);
-      progressGradient.addColorStop(0, bleuFrance);
-      progressGradient.addColorStop(0.6, '#3b5998');
-      progressGradient.addColorStop(1, rouge);
-      ctx.fillStyle = progressGradient;
-      roundRect(ctx, 36, progressY, progress, progressHeight, 5);
-      ctx.fill();
+    // Statut actuel avec date
+    const manualEntry = stepDates.find(sd =>
+      (sd.statut || '').toLowerCase() === (lastStatus.statut || '').toLowerCase()
+    );
+    const statutDate = manualEntry?.date_statut || lastStatus.date_statut;
+    if (statutDate) {
+      const days = daysSince(statutDate);
+      const duration = days !== null ? (days === 0 ? " (aujourd'hui)" : ` (il y a ${formatDuration(days)})`) : '';
+      lines.push(`Statut : ${lastStatus.statut}`);
+      lines.push(`${statusInfo.description}`);
+      lines.push(`Depuis le : ${formatDate(statutDate)}${duration}`);
+    } else {
+      lines.push(`Statut : ${lastStatus.statut}`);
+      lines.push(`${statusInfo.description}`);
     }
 
-    // Labels progression
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '9px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Dépôt', 36, progressY + 20);
-    ctx.textAlign = 'right';
-    ctx.fillText('Décret', 36 + progressWidth, progressY + 20);
-    ctx.textAlign = 'left';
+    // Historique des étapes traversées (stepDates + history + apiData)
+    const histData = await chrome.storage.local.get('history');
+    const history = histData.history || [];
 
-    // Section stats
-    const statsY = 200;
-    const statWidth = 150;
-    const statGap = 12;
-
-    let statsCount = 0;
-    if (apiData?.dateDepot) statsCount++;
-    if (apiData?.dateEntretien) statsCount++;
-    if (lastStatus.date_statut) statsCount++;
-
-    let statIndex = 0;
-    const totalStatsWidth = statsCount * statWidth + (statsCount - 1) * statGap;
-    const startX = (width - totalStatsWidth) / 2;
-
-    if (apiData?.dateDepot) {
-      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, 'DÉPÔT', formatDuration(daysSince(apiData.dateDepot)), bleuFrance);
-      statIndex++;
+    // Fusionner toutes les sources de dates par statut
+    const dateByStatut = {};
+    for (const h of history) {
+      const key = (h.statut || '').toLowerCase();
+      if (key && h.date_statut) dateByStatut[key] = h.date_statut;
+    }
+    for (const sd of stepDates) {
+      const key = (sd.statut || '').toLowerCase();
+      if (key && sd.date_statut) dateByStatut[key] = sd.date_statut; // stepDates prioritaires
     }
 
-    if (apiData?.dateEntretien) {
-      const entretienDate = new Date(apiData.dateEntretien);
-      const isPast = entretienDate < new Date();
-      const label = isPast ? 'ENTRETIEN' : 'ENTRETIEN PRÉVU';
-      const dateFormatted = formatDate(apiData.dateEntretien, true);
-      const entretienDays = daysSince(apiData.dateEntretien);
-      const duration = isPast
-        ? (entretienDays === 0 ? "Aujourd'hui" : `Il y a ${formatDuration(entretienDays)}`)
-        : `Dans ${formatDuration(Math.ceil((entretienDate - new Date()) / 86400000))}`;
-      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, label, `${dateFormatted} (${duration})`, bleuFrance);
-      statIndex++;
+    // Construire la timeline avec durée passée à chaque étape
+    const stepsWithDates = [];
+    for (const step of STEP_DEFAULTS) {
+      const key = step.statut.toLowerCase();
+      let date = dateByStatut[key];
+      if (!date && step.etape === 2 && apiData?.dateDepot) date = apiData.dateDepot;
+      if (!date && step.etape === 7 && apiData?.dateEntretien) date = apiData.dateEntretien;
+      if (date) stepsWithDates.push({ ...step, date });
     }
 
-    if (lastStatus.date_statut) {
-      drawStatCard(ctx, startX + statIndex * (statWidth + statGap), statsY, statWidth, 'DERNIÈRE MAJ', formatDuration(daysSince(lastStatus.date_statut)), bleuFrance);
+    const timeline = [];
+    for (let i = 0; i < stepsWithDates.length; i++) {
+      const s = stepsWithDates[i];
+      const indent = s.sub ? '  ' : '';
+      const prefix = s.sub || s.etape;
+      const isLast = i === stepsWithDates.length - 1;
+
+      if (isLast) {
+        // Étape en cours : "il y a X" ou "aujourd'hui"
+        const days = daysSince(s.date);
+        const agoStr = days === 0 ? " (aujourd'hui)" : days > 0 ? ` (il y a ${formatDuration(days)})` : '';
+        timeline.push(`${s.icon} ${indent}${prefix}. ${s.label} — ${formatDate(s.date)}${agoStr} \u2190 en cours`);
+      } else {
+        // Étape passée : durée passée à ce statut
+        const nextDate = stepsWithDates[i + 1].date;
+        const daysAt = Math.round((new Date(nextDate) - new Date(s.date)) / 86400000);
+        const spentStr = daysAt > 0 ? ` (${formatDuration(daysAt)} à ce statut)` : daysAt === 0 ? ' (< 1 jour à ce statut)' : '';
+        timeline.push(`${s.icon} ${indent}${prefix}. ${s.label} — ${formatDate(s.date)}${spentStr}`);
+      }
     }
 
-    // Footer tricolore
-    const footerY = height - 25;
-    ctx.fillStyle = bleuFrance;
-    ctx.fillRect(width/2 - 60, footerY, 40, 2);
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(width/2 - 20, footerY, 40, 2);
-    ctx.fillStyle = rouge;
-    ctx.fillRect(width/2 + 20, footerY, 40, 2);
+    if (timeline.length) {
+      lines.push('');
+      lines.push('Parcours :');
+      lines.push(...timeline);
+    }
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '9px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('ANEF Status Tracker', width / 2, height - 8);
-    ctx.textAlign = 'left';
+    // Barre de progression texte
+    const step = statusInfo.etape;
+    const filled = Math.round((step / 12) * 10);
+    const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
+    lines.push('');
+    lines.push(`Progression : [${bar}] ${step}/12`);
 
-    // Téléchargement
-    const link = document.createElement('a');
-    link.download = `anef-suivi-${now.toISOString().slice(0,10)}_${timeStr.replace(':', 'h')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    lines.push('');
+    lines.push('— ANEF Status Tracker');
+
+    const text = lines.join('\n');
+
+    // Copier dans le clipboard
+    await navigator.clipboard.writeText(text);
+
+    // Feedback visuel sur le bouton
+    const btn = elements.btnShare;
+    const btnLabel = btn?.querySelector('span');
+    if (btn && btnLabel) {
+      const originalText = btnLabel.textContent;
+      btnLabel.textContent = 'Copié !';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btnLabel.textContent = originalText;
+        btn.classList.remove('copied');
+      }, 2000);
+    }
 
   } catch (error) {
-    console.error('[Popup] Erreur génération image:', error);
-  }
-}
-
-/** Dessine un rectangle arrondi */
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-/** Dessine une carte de statistique */
-function drawStatCard(ctx, x, y, width, label, value, accentColor) {
-  const cardHeight = 80;
-
-  // Ombre
-  ctx.fillStyle = 'rgba(0, 38, 84, 0.08)';
-  roundRect(ctx, x + 2, y + 3, width, cardHeight, 10);
-  ctx.fill();
-
-  // Fond
-  ctx.fillStyle = '#ffffff';
-  roundRect(ctx, x, y, width, cardHeight, 10);
-  ctx.fill();
-
-  // Bordure gauche
-  const borderGrad = ctx.createLinearGradient(x, y, x, y + cardHeight);
-  borderGrad.addColorStop(0, accentColor);
-  borderGrad.addColorStop(1, '#ce1126');
-  ctx.fillStyle = borderGrad;
-  ctx.fillRect(x, y + 8, 3, cardHeight - 16);
-
-  // Label
-  ctx.fillStyle = '#64748b';
-  ctx.font = '9px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(label, x + 12, y + 18);
-
-  // Valeur (avec retour à la ligne si nécessaire)
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-
-  const words = value.split(' ');
-  let line = '';
-  let lineY = y + 34;
-  const maxLines = 3;
-  let lineCount = 0;
-
-  for (const word of words) {
-    const testLine = line + word + ' ';
-    if (ctx.measureText(testLine).width > width - 20 && line !== '') {
-      ctx.fillText(line.trim(), x + 12, lineY);
-      line = word + ' ';
-      lineY += 14;
-      lineCount++;
-      if (lineCount >= maxLines) break;
-    } else {
-      line = testLine;
-    }
-  }
-  if (lineCount < maxLines) {
-    ctx.fillText(line.trim(), x + 12, lineY);
+    console.error('[Popup] Erreur partage texte:', error);
   }
 }
 

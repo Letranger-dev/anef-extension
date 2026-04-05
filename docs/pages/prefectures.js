@@ -366,33 +366,13 @@
     }
 
     // Build matrix: prefecture x (step or statut for step 9) => days spent AT each step
+    // Use state.grouped (already deduplicated and sorted by groupByDossier)
     var matrix = {};
     var allHashes = new Set(filtered.map(function(s) { return s.fullHash; }));
-    var relevantSnaps = state.snapshots.filter(function(s) { return allHashes.has(s.dossier_hash); });
-
-    // Group snapshots by dossier, sort chronologically
-    var byDossier = {};
-    for (var i = 0; i < relevantSnaps.length; i++) {
-      var s = relevantSnaps[i];
-      if (!s.dossier_hash || !s.date_statut) continue;
-      if (!byDossier[s.dossier_hash]) byDossier[s.dossier_hash] = [];
-      byDossier[s.dossier_hash].push(s);
-    }
 
     var today = new Date();
-    var dossierKeys = Object.keys(byDossier);
-    for (var d = 0; d < dossierKeys.length; d++) {
-      var snaps = byDossier[dossierKeys[d]];
-      snaps.sort(function(a, b) {
-        var dateDiff = new Date(a.date_statut || 0) - new Date(b.date_statut || 0);
-        if (dateDiff !== 0) return dateDiff;
-        var stepDiff = Number(a.etape) - Number(b.etape);
-        if (stepDiff !== 0) return stepDiff;
-        // Même étape + même date → trier par rang (sous-statut)
-        var rangA = (C.STATUTS[(a.statut || '').toLowerCase()] || {}).rang || (a.etape * 100);
-        var rangB = (C.STATUTS[(b.statut || '').toLowerCase()] || {}).rang || (b.etape * 100);
-        return rangA - rangB;
-      });
+    state.grouped.forEach(function(snaps, hash) {
+      if (!allHashes.has(hash)) return;
 
       for (var j = 0; j < snaps.length; j++) {
         var cur = snaps[j];
@@ -414,7 +394,7 @@
         var days = U.daysDiff(cur.date_statut, endDate);
         if (days === null || days < 0) continue;
 
-        var entry = { days: days, hash: dossierKeys[d].substring(0, 6) };
+        var entry = { days: days, hash: hash.substring(0, 6) };
         var sLower = cur.statut ? cur.statut.toLowerCase() : '';
         if (Number(cur.etape) === 9 && sLower && STEP9_STATUTS.indexOf(sLower) !== -1) {
           var sKey = pref + '|' + sLower;
@@ -426,7 +406,7 @@
           matrix[eKey].push(entry);
         }
       }
-    }
+    });
 
     // Find global max for color scaling
     var globalMax = 0;
@@ -569,8 +549,10 @@
             durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
           } else {
             var today = new Date(); today.setHours(0, 0, 0, 0);
-            var days = U.daysDiff(snap.date_statut, today);
-            durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+            days = U.daysDiff(snap.date_statut, today);
+            if (days !== null) {
+              durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+            }
           }
         }
       }

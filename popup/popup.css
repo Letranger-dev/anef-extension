@@ -299,6 +299,12 @@ body {
   background: var(--slate-200);
 }
 
+.btn-secondary.copied {
+  background: #10b981;
+  color: white;
+  transition: background 0.2s;
+}
+
 .actions {
   display: flex;
   gap: 10px;

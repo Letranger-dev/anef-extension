@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.25.0';
+  var SITE_VERSION = '1.26.0';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -335,9 +335,15 @@
     return ['decret_naturalisation_publie', 'decret_naturalisation_publie_jo', 'decret_publie', 'demande_traitee'].indexOf(code) !== -1;
   }
 
+  var NEGATIVE_STATUSES = [
+    'decision_negative_en_delais_recours', 'decision_notifiee',
+    'irrecevabilite_manifeste', 'irrecevabilite_manifeste_en_delais_recours',
+    'css_en_delais_recours', 'css_notifie'
+  ];
+
   function isNegativeStatus(statutCode) {
     var code = String(statutCode || '').toLowerCase().trim();
-    return code.indexOf('negative') !== -1 || code.indexOf('irrecevabilite') !== -1 || code.indexOf('css_') !== -1;
+    return NEGATIVE_STATUSES.indexOf(code) !== -1;
   }
 
   /**

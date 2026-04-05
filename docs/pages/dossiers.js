@@ -343,7 +343,7 @@
           durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
         } else {
           var today = new Date(); today.setHours(0, 0, 0, 0);
-          var days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
+          days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
           if (!days && snap.created_at) {
             days = U.daysDiff(snap.created_at, today);
           }
