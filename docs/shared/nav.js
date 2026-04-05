@@ -73,6 +73,54 @@
     }
   }
 
+  /** Maintenance banner — version CWS obsolète (temporaire, supprimer quand v2.4.9 approuvée) */
+  function initMaintenanceBanner() {
+    var header = document.querySelector('header');
+    if (!header) return;
+
+    var banner = document.createElement('div');
+    banner.id = 'maint-banner';
+    banner.innerHTML =
+      '<div class="maint-inner">'
+      + '<div class="maint-icon">\u26a0\ufe0f</div>'
+      + '<div class="maint-text">'
+      + '<strong class="maint-title">Site en maintenance \u2014 Mise \u00e0 jour en cours</strong>'
+      + '<p class="maint-desc">'
+      + 'La version actuellement disponible sur le Chrome Web Store (v2.4.5) '
+      + '<strong>n\u2019est plus compatible</strong> avec le site de statistiques. '
+      + 'Une nouvelle version s\u00e9curis\u00e9e (v2.4.9) est en attente de validation par Google.'
+      + '</p>'
+      + '<p class="maint-hint">'
+      + 'Les donn\u00e9es du site ne sont plus aliment\u00e9es en attendant. '
+      + 'La mise \u00e0 jour sera automatique d\u00e8s l\u2019approbation.'
+      + '</p>'
+      + '</div>'
+      + '</div>';
+    header.insertAdjacentElement('afterend', banner);
+
+    if (!document.getElementById('maint-banner-css')) {
+      var style = document.createElement('style');
+      style.id = 'maint-banner-css';
+      style.textContent =
+        '#maint-banner{background:linear-gradient(135deg,#451a03 0%,#78350f 100%);border-bottom:2px solid rgba(245,158,11,0.25);padding:0.9rem 1.25rem}'
+        + '.maint-inner{max-width:900px;margin:0 auto;display:flex;align-items:flex-start;gap:0.8rem}'
+        + '.maint-icon{font-size:1.5rem;flex-shrink:0;margin-top:0.1rem}'
+        + '.maint-text{flex:1;min-width:0}'
+        + '.maint-title{color:#fbbf24;font-size:0.85rem;display:block}'
+        + '.maint-desc{color:#d6d3d1;font-size:0.78rem;margin:0.3rem 0 0;line-height:1.5}'
+        + '.maint-desc strong{color:#fca5a5}'
+        + '.maint-hint{color:#78716c;font-size:0.7rem;margin:0.25rem 0 0;font-style:italic}'
+        + '@media(max-width:640px){'
+        + '#maint-banner{padding:0.7rem 0.8rem}'
+        + '.maint-inner{gap:0.5rem}'
+        + '.maint-icon{font-size:1.2rem}'
+        + '.maint-title{font-size:0.8rem}'
+        + '.maint-desc{font-size:0.72rem}'
+        + '}';
+      document.head.appendChild(style);
+    }
+  }
+
   /** Inject version tag in footer */
   function initVersion() {
     var footer = document.querySelector('footer');
@@ -86,6 +134,7 @@
   // Auto-init on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', function() {
     initNav();
+    initMaintenanceBanner();
     initCWSLink();
     initVersion();
   });
