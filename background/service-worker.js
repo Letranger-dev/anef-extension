@@ -245,6 +245,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       scheduleAutoCheck().then(() => sendResponse({ ok: true }));
       return true;
 
+    // Test notification (dev/debug)
+    case 'TEST_NOTIFICATION':
+      sendStatusChangeNotification({ statut: message.statut || 'controle_a_effectuer' })
+        .then(() => sendResponse({ sent: true }))
+        .catch(e => sendResponse({ error: e.message }));
+      return true;
+
     // Infos auto-check pour l'UI
     case 'GET_AUTO_CHECK_INFO':
       getAutoCheckInfo().then(sendResponse);
@@ -472,33 +479,47 @@ async function handleHistorique(data) {
 // Notifications
 // ─────────────────────────────────────────────────────────────
 
-/** Envoie une notification de changement de statut */
+/** Envoie une notification discrète de changement de statut */
 async function sendStatusChangeNotification(data) {
   const settings = await storage.getSettings();
-  if (!settings.notificationsEnabled) return;
-
-  const statusInfo = getStatusExplanation(data.statut);
-  let title = '🔔 Changement de statut ANEF !';
-
-  if (isPositiveStatus(data.statut)) {
-    title = '🎉 FÉLICITATIONS !';
-  } else if (isNegativeStatus(data.statut)) {
-    title = '⚠️ Mise à jour de votre dossier';
+  if (!settings.notificationsEnabled) {
+    logger.info('Notifications désactivées, pas d\'envoi');
+    return;
   }
 
+  const statusInfo = getStatusExplanation(data.statut);
+  let title = 'Nouveau statut ANEF';
+
+  if (isPositiveStatus(data.statut)) {
+    title = 'Bonne nouvelle ANEF !';
+  } else if (isNegativeStatus(data.statut)) {
+    title = 'Mise à jour ANEF';
+  }
+
+  const notifId = 'anef-status-' + Date.now();
+
   try {
-    await chrome.notifications.create({
+    await chrome.notifications.create(notifId, {
       type: 'basic',
-      iconUrl: 'assets/icon-128.png',
+      iconUrl: chrome.runtime.getURL('assets/icon-128.png'),
       title,
-      message: `${statusInfo.phase}: ${statusInfo.explication}`,
-      priority: 2,
-      requireInteraction: true
+      message: `${statusInfo.phase} — ${statusInfo.explication}`,
+      priority: 1,
+      silent: true,
+      requireInteraction: false
     });
+    logger.info('Notification envoyée:', notifId);
   } catch (error) {
     logger.error('Erreur notification:', error.message);
   }
 }
+
+// Clic sur la notification → ouvre le popup
+chrome.notifications.onClicked.addListener((notifId) => {
+  if (notifId.startsWith('anef-status-')) {
+    chrome.notifications.clear(notifId);
+  }
+});
 
 // ─────────────────────────────────────────────────────────────
 // Badge de l'extension
