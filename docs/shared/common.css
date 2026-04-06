@@ -993,6 +993,40 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .mouvement-dossier-item + .mouvement-dossier-item {
   border-top: 1px solid var(--border);
 }
+/* Décret list items */
+.decret-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.decret-list-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+.decret-list-item + .decret-list-item {
+  border-top: 1px solid var(--border);
+}
+.decret-list-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.decret-list-num {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #a78bfa;
+}
+.decret-list-count {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  background: rgba(139,92,246,0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
 .mouvement-dossier-content {
   flex: 1;
   min-width: 0;
@@ -1122,6 +1156,12 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   font-size: 0.95rem;
   font-weight: 600;
   margin: 0;
+}
+.history-modal-body {
+  overflow-y: auto;
+  padding: 0.5rem 0.8rem;
+  flex: 1;
+  min-height: 0;
 }
 .history-back {
   background: rgba(255,255,255,0.06);

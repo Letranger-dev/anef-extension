@@ -261,8 +261,10 @@
       var card = document.getElementById('kpi-decret-card');
       card.style.display = '';
       U.setText('kpi-decret', lastDecret);
-      U.setText('kpi-decret-sub', lastDecretDossiers.length + ' dossier' + (lastDecretDossiers.length > 1 ? 's' : ''));
-      card.onclick = function() { showDecretDossiers(lastDecret, decretMap[lastDecret]); };
+      var totalDossiers = 0;
+      for (var dk = 0; dk < decretKeys.length; dk++) totalDossiers += decretMap[decretKeys[dk]].length;
+      U.setText('kpi-decret-sub', decretKeys.length + ' d\u00e9cret' + (decretKeys.length > 1 ? 's' : '') + ' \u2014 ' + totalDossiers + ' dossier' + (totalDossiers > 1 ? 's' : ''));
+      card.onclick = function() { showAllDecrets(decretMap); };
     }
   }
 
@@ -1893,7 +1895,66 @@
     modal.classList.add('open');
   }
 
+  // ─── Liste de tous les décrets ──────────────────────────
+
+  function showAllDecrets(decretMap) {
+    _allDecretMap = decretMap;
+    var keys = Object.keys(decretMap).sort().reverse(); // plus récent en premier
+    var html = '';
+
+    for (var k = 0; k < keys.length; k++) {
+      var num = keys[k];
+      var dossiers = decretMap[num];
+      html += '<div class="decret-list-item" data-decret="' + U.escapeHtml(num) + '">' +
+        '<div class="decret-list-left">' +
+          '<span class="decret-list-num">' + U.escapeHtml(num) + '</span>' +
+          '<span class="decret-list-count">' + dossiers.length + ' dossier' + (dossiers.length > 1 ? 's' : '') + '</span>' +
+        '</div>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
+      '</div>';
+    }
+
+    var modal = document.getElementById('all-decrets-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'all-decrets-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<h3>D\u00e9crets de naturalisation</h3>' +
+          '<button class="history-close">\u00d7</button>' +
+        '</div>' +
+        '<div class="history-modal-body">' + html + '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    // Clic sur un décret → ouvre la liste des dossiers
+    var items = modal.querySelectorAll('.decret-list-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener('click', (function(num) {
+        return function() {
+          modal.classList.remove('open');
+          showDecretDossiers(num, decretMap[num]);
+        };
+      })(items[i].getAttribute('data-decret')));
+    }
+
+    modal.classList.add('open');
+  }
+
   // ─── Décret Dossiers Popup ──────────────────────────────
+
+  var _allDecretMap = null; // conservé pour le retour
 
   function showDecretDossiers(decretNum, dossiers) {
     var html = '';
@@ -1929,18 +1990,29 @@
       document.body.appendChild(modal);
     }
 
+    var backBtn = _allDecretMap ? '<button class="history-back" title="Retour aux d\u00e9crets">\u2190</button>' : '';
+
     modal.innerHTML =
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
+          backBtn +
           '<h3>D\u00e9cret ' + U.escapeHtml(decretNum) + ' \u2014 ' + dossiers.length + ' dossier' + (dossiers.length > 1 ? 's' : '') + '</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
-        '<div class="modal-history-list mouvement-dossier-list">' + html + '</div>' +
+        '<div class="history-modal-body modal-history-list mouvement-dossier-list">' + html + '</div>' +
       '</div>';
 
     modal.querySelector('.history-close').addEventListener('click', function() {
       modal.classList.remove('open');
     });
+
+    var back = modal.querySelector('.history-back');
+    if (back) {
+      back.addEventListener('click', function() {
+        modal.classList.remove('open');
+        showAllDecrets(_allDecretMap);
+      });
+    }
 
     var items = modal.querySelectorAll('.mouvement-dossier-item');
     for (var j = 0; j < items.length; j++) {
