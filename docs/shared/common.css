@@ -659,7 +659,7 @@ html { scroll-behavior: smooth; }
 
 .global-timeline {
   display: flex; position: relative;
-  min-width: 950px; padding: 2rem 0.5rem 1rem; gap: 2px;
+  min-width: 1200px; padding: 2rem 0.5rem 1rem; gap: 0;
 }
 .global-timeline::before {
   content:''; position:absolute; top:calc(2rem + 11px); left:30px; right:30px;
@@ -669,7 +669,7 @@ html { scroll-behavior: smooth; }
 }
 .timeline-station {
   flex:1; display:flex; flex-direction:column; align-items:center;
-  position:relative; z-index:1; min-width:80px; padding:0 3px;
+  position:relative; z-index:1; min-width:100px; padding:0 4px;
 }
 
 /* Dot principal */
@@ -690,67 +690,69 @@ html { scroll-behavior: smooth; }
 .timeline-station.active .station-number { color:var(--text-main); }
 .station-name {
   font-size:0.62rem; color:var(--text-dim); text-align:center;
-  max-width:75px; line-height:1.25; margin-top:0.1rem;
+  max-width:90px; line-height:1.25; margin-top:0.1rem;
 }
 .timeline-station.active .station-name { color:var(--text-muted); }
 
 /* Sous-bulles (badges statut) */
 .station-sub-bubbles {
   display:flex; flex-direction:column; align-items:center;
-  gap:4px; margin-top:0.5rem; width:100%;
+  gap:5px; margin-top:0.5rem; width:100%;
 }
 .station-sub-bubble {
-  display:inline-flex; align-items:center; gap:0.35rem;
-  font-size:0.68rem; font-weight:600; color:#fff;
-  padding:0.25rem 0.55rem; border-radius:12px; cursor:pointer;
-  white-space:nowrap; max-width: 100%;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  display:inline-flex; align-items:center; gap:0.25rem;
+  font-size:0.65rem; font-weight:600; color:#fff;
+  padding:0.2rem 0.25rem 0.2rem 0.5rem; border-radius:20px; cursor:pointer;
+  white-space:nowrap;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
 }
 .station-sub-bubble:hover {
-  transform: scale(1.06) translateY(-1px);
-  box-shadow: 0 3px 12px rgba(0,0,0,0.45);
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
   filter: brightness(1.15);
   z-index: 5;
 }
 .station-sub-bubble:focus { outline: none; }
-.station-sub-label { opacity:0.92; font-weight:500; overflow:hidden; text-overflow:ellipsis; }
+.station-sub-label { opacity:0.9; font-weight:500; }
 .station-sub-count {
-  font-weight:800; font-size:0.7rem;
-  background:rgba(0,0,0,0.2); padding:0 0.3rem;
-  border-radius:8px; min-width:1.2em; text-align:center;
+  font-weight:700; font-size:0.6rem;
+  background:rgba(0,0,0,0.22);
+  padding:0.1rem 0.35rem;
+  border-radius:20px;
+  min-width:1.4em; text-align:center;
+  line-height:1.2;
 }
 
 /* ─── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  .global-timeline { min-width: 1000px; gap: 2px; padding: 1.5rem 0.25rem 0.75rem; }
+  .global-timeline { min-width: 1300px; gap: 0; padding: 1.5rem 0.5rem 0.75rem; }
   .global-timeline::before { top: calc(1.5rem + 9px); height: 3px; }
-  .station-dot { width: 18px; height: 18px; }
-  .station-number { font-size: 0.68rem; }
-  .station-name { font-size: 0.55rem; max-width: 62px; }
-  .station-sub-bubbles { gap: 3px; }
+  .station-dot { width: 16px; height: 16px; }
+  .station-number { font-size: 0.72rem; }
+  .station-name { font-size: 0.56rem; max-width: 80px; }
+  .station-sub-bubbles { gap: 4px; }
   .station-sub-bubble {
-    padding: 0.15rem 0.4rem; font-size: 0.58rem;
-    max-width: 90px; border-radius: 10px;
+    padding: 0.18rem 0.4rem; font-size: 0.6rem;
+    border-radius: 9px;
   }
-  .station-sub-label { max-width: 5.5em; }
-  .station-sub-count { font-size: 0.58rem; padding: 0 0.2rem; }
-  .timeline-station { min-width: 76px; padding: 0 2px; }
-  .station-sub-bubble:focus {
-    max-width: none; z-index: 10;
-    transform: scale(1.12);
+  .timeline-station { min-width: 100px; padding: 0 4px; }
+  .station-sub-bubble:active {
+    transform: scale(1.06);
     box-shadow: 0 3px 14px rgba(0,0,0,0.5);
+    filter: brightness(1.15);
   }
-  .station-sub-bubble:focus .station-sub-label { max-width: none; }
 }
 
 /* ─── Desktop large ───────────────────────────────────────── */
 @media (min-width: 768px) {
-  .global-timeline { min-width: 850px; }
+  .global-timeline { min-width: 1400px; }
+  .timeline-station { min-width: 115px; padding: 0 6px; }
   .station-dot { width: 24px; height: 24px; }
-  .station-name { max-width: 85px; font-size: 0.66rem; }
-  .station-sub-bubble { font-size: 0.7rem; padding: 0.28rem 0.6rem; }
+  .station-name { max-width: 100px; font-size: 0.66rem; }
+  .station-sub-bubbles { gap: 6px; }
+  .station-sub-bubble { font-size: 0.68rem; padding: 0.24rem 0.3rem 0.24rem 0.55rem; }
 }
 
 /* ─── Charts ───────────────────────────────────────────────── */
