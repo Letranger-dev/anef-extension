@@ -646,24 +646,32 @@
       stepData.push(d);
     }
 
-    // Dynamic height based on bar count — compact on mobile
+    // Dynamic height based on bar count
     var isMobile = window.innerWidth <= 600;
     var barH = isMobile ? 26 : 38;
-    container.style.height = Math.max(250, data.length * barH + 30) + 'px';
+    container.style.height = Math.max(250, data.length * barH + 8) + 'px';
     container.style.minHeight = 'auto';
 
     var config = CH.horizontalBarConfig(labels, values, colors, {
       suffix: 'j',
       datalabels: {
         color: '#e2e8f0',
-        font: { size: 11, weight: 'bold' },
+        font: { size: isMobile ? 10 : 11, weight: 'bold' },
         anchor: 'end',
         align: 'right',
         formatter: function(value, ctx) {
+          if (isMobile) return U.formatDuration(Math.round(value));
           return U.formatDuration(Math.round(value)) + ' (' + stepData[ctx.dataIndex].count + ' dossiers)';
         }
       }
     });
+
+    // Mobile: visible bars with spacing (row detection handles touch)
+    if (isMobile) {
+      config.data.datasets[0].barThickness = 16;
+      config.data.datasets[0].borderRadius = 4;
+      config.options.scales.y.ticks.font = { size: 10 };
+    }
 
     // Register datalabels plugin
     if (typeof ChartDataLabels !== 'undefined') {
@@ -721,6 +729,13 @@
     };
 
     CH.create('duration', 'duration-chart', config);
+
+    // Trim container to actual canvas height (removes bottom gap)
+    if (isMobile) {
+      setTimeout(function() {
+        container.style.height = canvas.clientHeight + 'px';
+      }, 100);
+    }
   }
 
   // ─── Duration Step → Dossier List Modal ────────────────────
