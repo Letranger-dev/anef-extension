@@ -530,6 +530,8 @@
     var buckets = {};
 
     grouped.forEach(function(snaps) {
+      var hash = snaps[0] ? (snaps[0].dossier_hash || '').substring(0, 6) : '';
+      var fullHash = snaps[0] ? snaps[0].dossier_hash : '';
       for (var i = 0; i < snaps.length - 1; i++) {
         var curr = snaps[i];
         var next = snaps[i + 1];
@@ -554,8 +556,9 @@
           phase = curr.phase || C.PHASE_NAMES[curr.etape];
         }
 
-        if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statut, rang: rang, days: [] };
+        if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statut, rang: rang, days: [], dossiers: [] };
         buckets[key].days.push(days);
+        buckets[key].dossiers.push({ hash: hash, fullHash: fullHash, days: days, dateFrom: curr.date_statut, dateTo: next.date_statut });
       }
     });
 
@@ -575,7 +578,8 @@
         max_days: sorted[sorted.length - 1],
         p25_days: M.percentile(sorted, 25),
         p75_days: M.percentile(sorted, 75),
-        count: b.days.length
+        count: b.days.length,
+        dossiers: b.dossiers
       };
     }).sort(function(a, b) { return a.rang - b.rang; });
   }
@@ -642,8 +646,10 @@
       stepData.push(d);
     }
 
-    // Dynamic height based on bar count
-    container.style.height = Math.max(250, data.length * 38 + 50) + 'px';
+    // Dynamic height based on bar count — compact on mobile
+    var isMobile = window.innerWidth <= 600;
+    var barH = isMobile ? 26 : 38;
+    container.style.height = Math.max(250, data.length * barH + 30) + 'px';
     container.style.minHeight = 'auto';
 
     var config = CH.horizontalBarConfig(labels, values, colors, {
@@ -690,7 +696,259 @@
     // Extra right padding for datalabels
     config.options.layout = { padding: { right: 160 } };
 
+    // Click on bar → show dossier list for that step
+    config.options.onClick = function(evt, elements) {
+      if (!elements || !elements.length) return;
+      var idx = elements[0].index;
+      if (stepData[idx]) showDurationStepDossiers(stepData[idx]);
+    };
+    config.options.onHover = function(evt, elements) {
+      evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    };
+
     CH.create('duration', 'duration-chart', config);
+  }
+
+  // ─── Duration Step → Dossier List Modal ────────────────────
+
+  function findSummaryByHash(hash) {
+    for (var i = 0; i < state.summaries.length; i++) {
+      if (state.summaries[i].hash === hash) return state.summaries[i];
+    }
+    return null;
+  }
+
+  function showDurationStepDossiers(stepInfo) {
+    var sousEtape = C.formatSubStep(stepInfo.rang);
+    var shortName = stepInfo.statut && STEP9_SHORT[stepInfo.statut]
+      ? STEP9_SHORT[stepInfo.statut]
+      : (C.PHASE_SHORT[stepInfo.etape] || stepInfo.phase);
+    var title = sousEtape + ' \u2014 ' + shortName;
+    var color = C.STEP_COLORS[stepInfo.etape] || '#64748b';
+
+    // Sort dossiers by duration desc
+    var dossiers = stepInfo.dossiers.slice().sort(function(a, b) { return b.days - a.days; });
+
+    // Duration filter ranges
+    var RANGES = [
+      { key: 'all', label: 'Tous', min: 0, max: Infinity },
+      { key: 'lt1', label: '\u2264 1 jour', min: 0, max: 2 },
+      { key: 'lt7', label: '\u2264 1 semaine', min: 0, max: 8 },
+      { key: 'lt14', label: '\u2264 2 semaines', min: 0, max: 15 },
+      { key: 'lt30', label: '\u2264 1 mois', min: 0, max: 31 },
+      { key: 'lt90', label: '\u2264 3 mois', min: 0, max: 91 },
+      { key: 'gt90', label: '> 3 mois', min: 91, max: Infinity }
+    ];
+    // Count per range
+    var rangeCounts = {};
+    for (var r = 0; r < RANGES.length; r++) rangeCounts[RANGES[r].key] = 0;
+    for (var c = 0; c < dossiers.length; c++) {
+      var dd = dossiers[c].days;
+      for (var r2 = 1; r2 < RANGES.length; r2++) {
+        if (dd >= RANGES[r2].min && dd < RANGES[r2].max) rangeCounts[RANGES[r2].key]++;
+      }
+    }
+    rangeCounts.all = dossiers.length;
+    var totalDossiers = dossiers.length;
+
+    // Stats header
+    var statsHtml =
+      '<div class="duration-stats-grid">' +
+        '<div class="duration-stat-card"><span class="duration-stat-value">' + stepInfo.count + '</span><span class="duration-stat-label">passages</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#3b82f6">' + U.formatDuration(Math.round(stepInfo.median_days)) + '</span><span class="duration-stat-label">m\u00e9diane</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#10b981">' + (stepInfo.min_days === 0 ? '< 1 jour' : U.formatDuration(stepInfo.min_days)) + '</span><span class="duration-stat-label">min</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#ef4444">' + U.formatDuration(stepInfo.max_days) + '</span><span class="duration-stat-label">max</span></div>' +
+      '</div>';
+
+    // Filter row: select + result
+    var filterHtml = '<div class="duration-filter-row">' +
+      '<select class="duration-filter-select">';
+    for (var f = 0; f < RANGES.length; f++) {
+      var rng = RANGES[f];
+      var cnt = rangeCounts[rng.key];
+      var pct = totalDossiers ? Math.round(cnt / totalDossiers * 100) : 0;
+      var optLabel = rng.key === 'all'
+        ? rng.label + ' (' + cnt + ')'
+        : rng.label + ' \u2014 ' + cnt + ' (' + pct + '%)';
+      filterHtml += '<option value="' + rng.key + '">' + optLabel + '</option>';
+    }
+    filterHtml += '</select>' +
+      '<span class="duration-filter-result"></span>' +
+    '</div>';
+
+    // Dossier list
+    var listHtml = '';
+    for (var i = 0; i < dossiers.length; i++) {
+      var d = dossiers[i];
+      var summary = findSummaryByHash(d.hash);
+      var dColor = summary ? C.getStepColor(summary.currentStep) : color;
+      var daysColor = d.days >= 60 ? '#ef4444' : d.days >= 30 ? '#f59e0b' : '#10b981';
+
+      listHtml += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(d.hash) + '" data-full-hash="' + U.escapeHtml(d.fullHash) + '" data-days="' + d.days + '">' +
+        '<span class="activity-dot" style="background:' + dColor + ';flex-shrink:0"></span>' +
+        '<div class="mouvement-dossier-content">' +
+          '<div class="mouvement-dossier-top">' +
+            '<span class="activity-hash">#' + U.escapeHtml(d.hash) + '</span>' +
+            '<span class="detail-badge" style="background:' + dColor + ';font-size:0.7rem;padding:0.1rem 0.4rem">' +
+              (summary ? U.escapeHtml(summary.sousEtape) : sousEtape) +
+            '</span>' +
+          '</div>' +
+          '<div class="mouvement-dossier-desc">' +
+            '<span class="duration-dossier-duration" style="color:' + daysColor + '">' + (d.days === 0 ? '< 1 jour' : U.formatDuration(d.days)) + '</span> \u00e0 cette \u00e9tape' +
+          '</div>' +
+          '<div class="mouvement-dossier-detail">' +
+            U.formatDateFr(d.dateFrom) + ' \u2192 ' + U.formatDateFr(d.dateTo) +
+            (summary && summary.prefecture ? ' \u2014 ' + U.escapeHtml(summary.prefecture) : '') +
+          '</div>' +
+        '</div>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
+      '</div>';
+    }
+
+    var modal = document.getElementById('duration-step-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'duration-step-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<div class="duration-modal-header">' +
+            '<span class="activity-dot" style="background:' + color + ';color:' + color + '"></span>' +
+            '<h3>' + U.escapeHtml(title) + '</h3>' +
+          '</div>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list mouvement-dossier-list">' +
+          statsHtml +
+          filterHtml +
+          listHtml +
+        '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    // Filter select handler
+    var select = modal.querySelector('.duration-filter-select');
+    var resultEl = modal.querySelector('.duration-filter-result');
+    select.addEventListener('change', function() {
+      var rangeKey = select.value;
+      var range = null;
+      for (var rr = 0; rr < RANGES.length; rr++) {
+        if (RANGES[rr].key === rangeKey) { range = RANGES[rr]; break; }
+      }
+      var allItems = modal.querySelectorAll('.mouvement-dossier-item');
+      var visibleCount = 0;
+      allItems.forEach(function(item) {
+        var days = parseInt(item.getAttribute('data-days'), 10);
+        var show = rangeKey === 'all' || (days >= range.min && days < range.max);
+        item.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+      if (rangeKey === 'all') {
+        resultEl.textContent = '';
+      } else {
+        var pct = Math.round(visibleCount / totalDossiers * 100);
+        resultEl.innerHTML = '<span class="duration-filter-result-count">' + visibleCount + '</span>/' + totalDossiers +
+          ' <span class="duration-filter-result-pct">(' + pct + '%)</span>';
+      }
+    });
+
+    // Click dossier → detail
+    var items = modal.querySelectorAll('.mouvement-dossier-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].addEventListener('click', function(ev) {
+        var hash = ev.currentTarget.getAttribute('data-hash');
+        var fullHash = ev.currentTarget.getAttribute('data-full-hash');
+        modal.classList.remove('open');
+        showDurationDossierDetail(hash, fullHash, { durationStep: stepInfo });
+      });
+    }
+
+    modal.classList.add('open');
+  }
+
+  // ─── Duration Dossier Detail Modal ─────────────────────────
+
+  function buildDossierInfoHtml(s) {
+    if (!s) return '';
+    var color = C.getStepColor(s.currentStep);
+    var items = [];
+
+    items.push('<span class="detail-badge" style="background:' + color + '">' + U.escapeHtml(s.sousEtape + '/12 \u2014 ' + s.explication) + '</span>');
+
+    if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
+    if (s.dateStatut) {
+      if (s.isFinished) {
+        items.push('<div class="detail-row"><span class="detail-label">Finalis\u00e9 le</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
+      } else {
+        items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
+      }
+    }
+    if (s.daysSinceDeposit != null) items.push('<div class="detail-row"><span class="detail-label">Dur\u00e9e totale</span><span>' + U.formatDuration(s.daysSinceDeposit) + '</span></div>');
+    if (s.dateEntretien) items.push('<div class="detail-row"><span class="detail-label">Entretien</span><span>' + U.formatDateFr(s.dateEntretien) + '</span></div>');
+    if (s.lieuEntretien) items.push('<div class="detail-row"><span class="detail-label">Lieu</span><span>' + U.escapeHtml(s.lieuEntretien) + '</span></div>');
+    if (s.prefecture) items.push('<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(s.prefecture) + '</span></div>');
+    if (s.numeroDecret) items.push('<div class="detail-row"><span class="detail-label">D\u00e9cret</span><span>' + U.escapeHtml(s.numeroDecret) + '</span></div>');
+    if (s.hasComplement) items.push('<div class="detail-row"><span class="detail-label">Compl\u00e9ment</span><span style="color:var(--orange)">Demand\u00e9</span></div>');
+    if (s.lastChecked) items.push('<div class="detail-row"><span class="detail-label">Derni\u00e8re v\u00e9rif.</span><span style="color:var(--text-dim)">' + U.formatDateTimeFr(s.lastChecked) + '</span></div>');
+
+    return '<div class="dossier-detail-info">' + items.join('') + '</div>';
+  }
+
+  function showDurationDossierDetail(hash, fullHash, backTo) {
+    var summary = findSummaryByHash(hash);
+    var snaps = state.grouped.get(fullHash) || [];
+
+    var infoHtml = buildDossierInfoHtml(summary);
+    var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '<div class="detail-section-label" style="color:var(--text-dim)">Aucun historique disponible</div>';
+    var historyLabel = snaps.length > 0 ? '<div class="detail-section-label">Historique des statuts</div>' : '';
+
+    var modal = document.getElementById('duration-dossier-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'duration-dossier-modal';
+      modal.className = 'history-modal-overlay';
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div class="history-modal">' +
+        '<div class="history-modal-header">' +
+          '<button class="history-back" title="Retour">\u2190</button>' +
+          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<button class="history-close" title="Fermer">\u00d7</button>' +
+        '</div>' +
+        '<div class="modal-history-list">' +
+          infoHtml +
+          historyLabel +
+          timelineHtml +
+        '</div>' +
+      '</div>';
+
+    modal.querySelector('.history-close').addEventListener('click', function() {
+      modal.classList.remove('open');
+    });
+
+    modal.querySelector('.history-back').addEventListener('click', function() {
+      modal.classList.remove('open');
+      if (backTo && backTo.durationStep) {
+        showDurationStepDossiers(backTo.durationStep);
+      }
+    });
+
+    modal.classList.add('open');
   }
 
   // ─── Histogram ───────────────────────────────────────────

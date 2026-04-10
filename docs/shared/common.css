@@ -1370,6 +1370,123 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   background: rgba(59,130,246,0.08);
 }
 
+/* ─── Duration Step Modal ─────────────────────────────────── */
+
+.duration-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.duration-modal-header .activity-dot {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+.duration-modal-header h3 {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duration-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  padding: 0.65rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.duration-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.55rem 0.35rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.15s;
+}
+.duration-stat-card:hover {
+  background: rgba(255,255,255,0.06);
+}
+.duration-stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.duration-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.2rem;
+}
+
+.duration-dossier-duration {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.duration-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+.duration-filter-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+}
+.duration-filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.duration-filter-select option {
+  background: var(--bg-card);
+  color: var(--text);
+}
+.duration-filter-result {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.duration-filter-result-count {
+  font-weight: 700;
+  color: var(--primary-light);
+}
+.duration-filter-result-pct {
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (max-width: 480px) {
+  .duration-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ─── Estimator ────────────────────────────────────────────── */
 
 .estimator {
