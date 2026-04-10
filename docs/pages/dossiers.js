@@ -696,14 +696,28 @@
     // Extra right padding for datalabels
     config.options.layout = { padding: { right: 160 } };
 
-    // Click on bar → show dossier list for that step
-    config.options.onClick = function(evt, elements) {
-      if (!elements || !elements.length) return;
-      var idx = elements[0].index;
-      if (stepData[idx]) showDurationStepDossiers(stepData[idx]);
+    // Click anywhere on a row → show dossier list for that step
+    // Resolves bar index from Y coordinate so the full row is tappable on mobile
+    function getBarIndexFromY(chart, yPixel) {
+      var yScale = chart.scales.y;
+      var meta = chart.getDatasetMeta(0);
+      if (!meta.data.length) return -1;
+      var best = -1, bestDist = Infinity;
+      for (var b = 0; b < meta.data.length; b++) {
+        var dist = Math.abs(meta.data[b].y - yPixel);
+        if (dist < bestDist) { bestDist = dist; best = b; }
+      }
+      // Accept if within half the bar spacing
+      var barSpacing = meta.data.length > 1 ? Math.abs(meta.data[1].y - meta.data[0].y) : 40;
+      return bestDist <= barSpacing * 0.6 ? best : -1;
+    }
+    config.options.onClick = function(evt, elements, chart) {
+      var idx = elements.length ? elements[0].index : getBarIndexFromY(chart, evt.y);
+      if (idx >= 0 && stepData[idx]) showDurationStepDossiers(stepData[idx]);
     };
-    config.options.onHover = function(evt, elements) {
-      evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    config.options.onHover = function(evt, elements, chart) {
+      var idx = elements.length ? 0 : getBarIndexFromY(chart, evt.y);
+      evt.native.target.style.cursor = idx >= 0 ? 'pointer' : 'default';
     };
 
     CH.create('duration', 'duration-chart', config);
