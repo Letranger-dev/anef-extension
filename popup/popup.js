@@ -108,6 +108,7 @@ function initializeElements() {
     btnRefresh: document.getElementById('btn-refresh'),
     btnShare: document.getElementById('btn-share'),
     btnSettings: document.getElementById('btn-settings'),
+    btnPrivacy: document.getElementById('btn-privacy'),
 
     // Affichage statut
     statusIcon: document.getElementById('status-icon'),
@@ -177,6 +178,22 @@ function attachEventListeners() {
   elements.btnRefresh?.addEventListener('click', refreshInBackground);
   elements.btnShare?.addEventListener('click', shareStatusText);
   elements.btnSettings?.addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+  // Privacy toggle
+  elements.btnPrivacy?.addEventListener('click', () => {
+    const isNowPrivate = document.body.classList.toggle('privacy-mode');
+    document.getElementById('icon-eye-open').style.display = isNowPrivate ? 'none' : '';
+    document.getElementById('icon-eye-closed').style.display = isNowPrivate ? '' : 'none';
+    chrome.storage.local.set({ privacyMode: isNowPrivate });
+  });
+  // Restore privacy state
+  chrome.storage.local.get('privacyMode', (d) => {
+    if (d.privacyMode) {
+      document.body.classList.add('privacy-mode');
+      document.getElementById('icon-eye-open').style.display = 'none';
+      document.getElementById('icon-eye-closed').style.display = '';
+    }
+  });
 
   // Clic sur la version = export logs (caché pour les devs)
   document.getElementById('version')?.addEventListener('click', handleExportLogs);
@@ -334,11 +351,19 @@ function displayStatus(statusData, apiData, lastCheck) {
       // Dernière MAJ (date ANEF la plus récente, peut être = date statut ou plus récente)
       const statusLastCheck = document.getElementById('status-last-check');
       if (statusLastCheck) {
-        if (date_statut && earliestDate && date_statut.substring(0, 10) !== earliestDate.substring(0, 10)) {
-          // La date ANEF est différente (plus récente) → afficher comme dernière MAJ
-          statusLastCheck.textContent = formatDate(date_statut, true);
-        } else if (lastCheck) {
-          statusLastCheck.textContent = formatDate(lastCheck, true);
+        const majDate = (date_statut && earliestDate && date_statut.substring(0, 10) !== earliestDate.substring(0, 10))
+          ? date_statut : lastCheck;
+        if (majDate) {
+          const datePart = formatDate(majDate);
+          const d = new Date(majDate);
+          const timePart = !isNaN(d) ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : '';
+          statusLastCheck.textContent = datePart + ' ';
+          if (timePart) {
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'privacy-time';
+            timeSpan.textContent = timePart;
+            statusLastCheck.appendChild(timeSpan);
+          }
         } else {
           statusLastCheck.textContent = '—';
         }
@@ -484,8 +509,11 @@ function displayLastCheck(lastCheck, lastCheckAttempt) {
   elements.lastCheckDate.textContent = '';
 
   if (lastCheck) {
-    // Si la dernière tentative est plus récente et en échec, afficher les deux
-    if (lastCheckAttempt && !lastCheckAttempt.success && lastCheckAttempt.timestamp > lastCheck) {
+    // Si la dernière tentative a échoué ET est strictement plus récente, afficher les deux
+    const attemptFailed = lastCheckAttempt && !lastCheckAttempt.success;
+    const attemptNewer = attemptFailed && lastCheckAttempt.timestamp &&
+      new Date(lastCheckAttempt.timestamp).getTime() > new Date(lastCheck).getTime() + 5000;
+    if (attemptNewer) {
       elements.lastCheckDate.textContent = formatDateShort(lastCheck) + ' ';
       const span = document.createElement('span');
       span.className = 'last-check-attempt';
@@ -803,8 +831,10 @@ async function checkStepDatesAlert() {
     if (response.apiData.dateDepot) coveredStatuts.add('dossier_depose');
     if (response.apiData.dateEntretien) coveredStatuts.add('ea_en_attente_ea');
 
-    // Étapes passées ou en cours (rang <= currentRang)
+    // Seuls les jalons obligatoires (locked) sans date déclenchent l'alerte.
+    // Les étapes intermédiaires non observées sont simplement sautées.
     const pastSteps = STEP_DEFAULTS.filter(s => {
+      if (!s.locked) return false;
       const sRang = getStatusExplanation(s.statut).rang;
       return sRang <= currentRang;
     });

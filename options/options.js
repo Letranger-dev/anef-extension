@@ -262,10 +262,17 @@ async function loadStepDates() {
   const currentEtape = currentInfo ? currentInfo.etape : 0;
   const currentRang = currentInfo ? currentInfo.rang : 0;
 
-  // Dates auto (sources fiables uniquement : apiData + statut actuel)
+  // Dates auto : apiData + statut actuel + historique observé
   const autoByStatut = {};
   if (apiData.dateDepot) autoByStatut['dossier_depose'] = toDateStr(apiData.dateDepot);
   if (apiData.dateEntretien) autoByStatut['ea_en_attente_ea'] = toDateStr(apiData.dateEntretien);
+  // Remplir depuis l'historique (statuts passés observés par l'extension)
+  for (const h of history) {
+    const key = (h.statut || '').toLowerCase();
+    const date = toDateStr(h.date_statut);
+    if (key && date) autoByStatut[key] = date;
+  }
+  // Le statut actuel a priorité (date la plus récente)
   if (lastStatus?.date_statut) {
     autoByStatut[lastStatus.statut.toLowerCase()] = toDateStr(lastStatus.date_statut);
   }

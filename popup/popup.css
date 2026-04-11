@@ -1050,3 +1050,26 @@ body {
     transform: translateY(-10px);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Privacy mode — masque les données sensibles
+   ═══════════════════════════════════════════════════════════════ */
+
+.privacy-mode #last-check-date,
+.privacy-mode #detail-dossier-id-value,
+.privacy-mode #detail-numero-national-value,
+.privacy-mode #detail-prefecture-value,
+.privacy-mode #detail-entretien-lieu-value,
+.privacy-mode #stat-depot-date,
+.privacy-mode #stat-entretien-date,
+.privacy-mode #stat-statut-age-date {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.2s;
+}
+.privacy-mode .privacy-time {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
