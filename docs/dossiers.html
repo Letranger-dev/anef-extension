@@ -163,12 +163,13 @@
 
     <!-- Duration by Step Chart -->
     <div class="section" id="duration-section">
-      <h2>Durée par étape</h2>
-      <p class="section-subtitle">Combien de temps les dossiers restent à chaque étape avant de passer à la suivante — basé sur les dossiers ayant déjà changé d'étape</p>
+      <h2>Durée par statut</h2>
+      <p class="section-subtitle">Combien de temps les dossiers restent à chaque statut avant de progresser — basé sur les transitions observées</p>
       <div id="duration-stats" class="chart-stats" style="display:none"></div>
-      <div class="chart-container" id="duration-chart-container" style="min-height:550px">
-        <canvas id="duration-chart"></canvas>
+      <div class="chart-container" id="duration-chart-container">
+        <canvas id="duration-chart" style="display:none"></canvas>
         <p class="no-data" id="duration-no-data" style="display:none">Pas de données</p>
+        <div id="duration-list-container"></div>
       </div>
     </div>
 

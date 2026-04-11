@@ -526,7 +526,6 @@
    */
   function computeDurationAtStep(grouped) {
     var STATUTS = C.STATUTS;
-    var STEP9 = D.STEP9_STATUTS;
     var buckets = {};
 
     grouped.forEach(function(snaps) {
@@ -541,22 +540,13 @@
         var days = U.daysDiff(curr.date_statut, next.date_statut);
         if (days === null || days < 0) continue;
 
-        var key, rang, phase, statut = null;
         var statutLower = curr.statut ? curr.statut.toLowerCase() : '';
+        var key = 'statut:' + statutLower;
+        var info = STATUTS[statutLower];
+        var rang = info ? info.rang : (Number(curr.etape) * 100);
+        var phase = info ? info.phase : (curr.phase || C.PHASE_NAMES[curr.etape]);
 
-        if (Number(curr.etape) === 9 && statutLower && STEP9.indexOf(statutLower) !== -1) {
-          key = 'statut:' + statutLower;
-          var info = STATUTS[statutLower];
-          rang = info ? info.rang : (curr.etape * 100);
-          phase = info ? info.phase : C.PHASE_NAMES[curr.etape];
-          statut = statutLower;
-        } else {
-          key = 'etape:' + curr.etape;
-          rang = curr.etape * 100;
-          phase = curr.phase || C.PHASE_NAMES[curr.etape];
-        }
-
-        if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statut, rang: rang, days: [], dossiers: [] };
+        if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statutLower, rang: rang, explication: info ? info.explication : '', days: [], dossiers: [] };
         buckets[key].days.push(days);
         buckets[key].dossiers.push({ hash: hash, fullHash: fullHash, days: days, dateFrom: curr.date_statut, dateTo: next.date_statut });
       }
@@ -572,6 +562,7 @@
         phase: b.phase,
         statut: b.statut,
         rang: b.rang,
+        explication: b.explication,
         median_days: U.round1(U.medianCalc(b.days)),
         avg_days: U.round1(sum / sorted.length),
         min_days: sorted[0],
@@ -597,144 +588,88 @@
       canvas.style.display = 'none';
       noData.style.display = 'block';
       if (statsDiv) statsDiv.style.display = 'none';
-      CH.destroy('duration');
+      container.style.display = 'none';
       return;
     }
 
-    canvas.style.display = 'block';
+    // Hide canvas — we use a list instead
+    canvas.style.display = 'none';
     noData.style.display = 'none';
+    var listDiv = document.getElementById('duration-list-container');
 
-    // Find slowest step and total transitions
+    // Find slowest/fastest and total
     var totalTransitions = 0;
     var slowest = data[0];
     var fastest = data[0];
+    var maxMedian = 0;
     for (var k = 0; k < data.length; k++) {
       totalTransitions += data[k].count;
       if (data[k].median_days > slowest.median_days) slowest = data[k];
       if (data[k].median_days < fastest.median_days) fastest = data[k];
+      if (data[k].median_days > maxMedian) maxMedian = data[k].median_days;
     }
 
     // Stats cards
     if (statsDiv) {
-      var slowLabel = slowest.statut && STEP9_SHORT[slowest.statut]
-        ? STEP9_SHORT[slowest.statut]
-        : (C.PHASE_SHORT[slowest.etape] || slowest.phase);
-      var fastLabel = fastest.statut && STEP9_SHORT[fastest.statut]
-        ? STEP9_SHORT[fastest.statut]
-        : (C.PHASE_SHORT[fastest.etape] || fastest.phase);
+      var slowLabel = slowest.explication || C.PHASE_SHORT[slowest.etape] || slowest.phase;
+      var fastLabel = fastest.explication || C.PHASE_SHORT[fastest.etape] || fastest.phase;
       statsDiv.style.display = 'flex';
       statsDiv.innerHTML =
-        '<div class="chart-stat"><span class="chart-stat-value">' + totalTransitions + '</span><span class="chart-stat-label">passages observés</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(Math.round(fastest.median_days)) + '</span><span class="chart-stat-label">étape la plus rapide<br><small style="color:var(--text-dim)">' + U.escapeHtml(fastLabel) + '</small></span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(Math.round(slowest.median_days)) + '</span><span class="chart-stat-label">étape la plus lente<br><small style="color:var(--text-dim)">' + U.escapeHtml(slowLabel) + '</small></span></div>';
+        '<div class="chart-stat"><span class="chart-stat-value">' + totalTransitions + '</span><span class="chart-stat-label">passages observ\u00e9s</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(Math.round(fastest.median_days)) + '</span><span class="chart-stat-label">statut le plus rapide<br><small style="color:var(--text-dim)">' + U.escapeHtml(fastLabel) + '</small></span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(Math.round(slowest.median_days)) + '</span><span class="chart-stat-label">statut le plus lent<br><small style="color:var(--text-dim)">' + U.escapeHtml(slowLabel) + '</small></span></div>';
     }
 
-    var labels = [];
-    var values = [];
-    var colors = [];
-    var stepData = [];
+    // Build interactive list
+    var html = '<div class="duration-list">';
+    var prevEtape = -1;
 
     for (var i = 0; i < data.length; i++) {
       var d = data[i];
+      var color = C.STEP_COLORS[d.etape] || C.STEP_COLORS[0];
       var sousEtape = C.formatSubStep(d.rang);
-      var shortName = d.statut && STEP9_SHORT[d.statut]
-        ? STEP9_SHORT[d.statut]
-        : (C.PHASE_SHORT[d.etape] || d.phase);
-      labels.push(sousEtape + ' \u2014 ' + shortName);
-      values.push(d.median_days);
-      colors.push(C.STEP_COLORS[d.etape] || C.STEP_COLORS[0]);
-      stepData.push(d);
-    }
+      var expl = d.explication || C.PHASE_SHORT[d.etape] || d.phase;
+      var pct = maxMedian > 0 ? Math.min(100, Math.round(d.median_days / maxMedian * 100)) : 0;
+      // Ensure minimum visible bar width
+      var barPct = Math.max(4, pct);
 
-    // Dynamic height based on bar count
-    var isMobile = window.innerWidth <= 600;
-    var barH = isMobile ? 26 : 38;
-    container.style.height = Math.max(250, data.length * barH + 8) + 'px';
-    container.style.minHeight = 'auto';
-
-    var config = CH.horizontalBarConfig(labels, values, colors, {
-      suffix: 'j',
-      datalabels: {
-        color: '#e2e8f0',
-        font: { size: isMobile ? 10 : 11, weight: 'bold' },
-        anchor: 'end',
-        align: 'right',
-        formatter: function(value, ctx) {
-          if (isMobile) return U.formatDuration(Math.round(value));
-          return U.formatDuration(Math.round(value)) + ' (' + stepData[ctx.dataIndex].count + ' dossiers)';
-        }
+      // Step group separator
+      if (d.etape !== prevEtape) {
+        if (prevEtape !== -1) html += '<div class="duration-list-sep"></div>';
+        prevEtape = d.etape;
       }
-    });
 
-    // Mobile: visible bars with spacing (row detection handles touch)
-    if (isMobile) {
-      config.data.datasets[0].barThickness = 16;
-      config.data.datasets[0].borderRadius = 4;
-      config.options.scales.y.ticks.font = { size: 10 };
+      html += '<div class="duration-list-item" data-idx="' + i + '">' +
+        '<div class="duration-list-left">' +
+          '<span class="duration-list-badge" style="background:' + color + '">' + U.escapeHtml(sousEtape) + '</span>' +
+          '<div class="duration-list-info">' +
+            '<div class="duration-list-name">' + U.escapeHtml(expl) + '</div>' +
+            '<div class="duration-list-code">' + U.escapeHtml(d.statut || '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="duration-list-right">' +
+          '<div class="duration-list-bar-wrap">' +
+            '<div class="duration-list-bar" style="width:' + barPct + '%;background:' + color + '"></div>' +
+          '</div>' +
+          '<div class="duration-list-values">' +
+            '<span class="duration-list-median">' + U.formatDuration(Math.round(d.median_days)) + '</span>' +
+            '<span class="duration-list-count">' + d.count + ' dossiers</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="mouvement-chevron">\u203a</span>' +
+      '</div>';
     }
+    html += '</div>';
 
-    // Register datalabels plugin
-    if (typeof ChartDataLabels !== 'undefined') {
-      config.plugins = [ChartDataLabels];
-    }
+    listDiv.innerHTML = html;
 
-    // Enriched tooltip
-    config.options.plugins.tooltip = {
-      callbacks: {
-        title: function(items) { return items[0].label; },
-        label: function(ctx) {
-          var d = stepData[ctx.dataIndex];
-          return 'Attente habituelle : ' + U.formatDuration(Math.round(d.median_days));
-        },
-        afterLabel: function(ctx) {
-          var d = stepData[ctx.dataIndex];
-          var lines = [];
-          lines.push('Le plus rapide : ' + U.formatDuration(d.min_days));
-          lines.push('Le plus long : ' + U.formatDuration(d.max_days));
-          if (d.count >= 4) {
-            lines.push('25% passent en moins de ' + U.formatDuration(d.p25_days));
-            lines.push('75% passent en moins de ' + U.formatDuration(d.p75_days));
-          }
-          lines.push(d.count + ' dossiers observés');
-          return lines;
-        }
-      }
-    };
-
-    // Extra right padding for datalabels
-    config.options.layout = { padding: { right: 160 } };
-
-    // Click anywhere on a row → show dossier list for that step
-    // Resolves bar index from Y coordinate so the full row is tappable on mobile
-    function getBarIndexFromY(chart, yPixel) {
-      var yScale = chart.scales.y;
-      var meta = chart.getDatasetMeta(0);
-      if (!meta.data.length) return -1;
-      var best = -1, bestDist = Infinity;
-      for (var b = 0; b < meta.data.length; b++) {
-        var dist = Math.abs(meta.data[b].y - yPixel);
-        if (dist < bestDist) { bestDist = dist; best = b; }
-      }
-      // Accept if within half the bar spacing
-      var barSpacing = meta.data.length > 1 ? Math.abs(meta.data[1].y - meta.data[0].y) : 40;
-      return bestDist <= barSpacing * 0.6 ? best : -1;
-    }
-    config.options.onClick = function(evt, elements, chart) {
-      var idx = elements.length ? elements[0].index : getBarIndexFromY(chart, evt.y);
-      if (idx >= 0 && stepData[idx]) showDurationStepDossiers(stepData[idx]);
-    };
-    config.options.onHover = function(evt, elements, chart) {
-      var idx = elements.length ? 0 : getBarIndexFromY(chart, evt.y);
-      evt.native.target.style.cursor = idx >= 0 ? 'pointer' : 'default';
-    };
-
-    CH.create('duration', 'duration-chart', config);
-
-    // Trim container to actual canvas height (removes bottom gap)
-    if (isMobile) {
-      setTimeout(function() {
-        container.style.height = canvas.clientHeight + 'px';
-      }, 100);
+    // Click handlers
+    var items = listDiv.querySelectorAll('.duration-list-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].addEventListener('click', function(ev) {
+        var idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
+        if (data[idx]) showDurationStepDossiers(data[idx]);
+      });
     }
   }
 
@@ -749,9 +684,7 @@
 
   function showDurationStepDossiers(stepInfo) {
     var sousEtape = C.formatSubStep(stepInfo.rang);
-    var shortName = stepInfo.statut && STEP9_SHORT[stepInfo.statut]
-      ? STEP9_SHORT[stepInfo.statut]
-      : (C.PHASE_SHORT[stepInfo.etape] || stepInfo.phase);
+    var shortName = stepInfo.explication || C.PHASE_SHORT[stepInfo.etape] || stepInfo.phase;
     var title = sousEtape + ' \u2014 ' + shortName;
     var color = C.STEP_COLORS[stepInfo.etape] || '#64748b';
 

@@ -1432,6 +1432,124 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   font-size: 0.85rem;
 }
 
+/* ─── Duration List (replaces chart) ──────────────────────── */
+
+.duration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.duration-list-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.4rem 0;
+}
+.duration-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid transparent;
+}
+.duration-list-item:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--border);
+}
+.duration-list-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-width: 0;
+  flex: 1;
+}
+.duration-list-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.duration-list-info {
+  min-width: 0;
+}
+.duration-list-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.duration-list-code {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.duration-list-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+.duration-list-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.duration-list-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.duration-list-values {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.4rem;
+}
+.duration-list-median {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.duration-list-count {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+@media (max-width: 480px) {
+  .duration-list-item {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.5rem 0.4rem;
+  }
+  .duration-list-left {
+    flex: 1 1 100%;
+  }
+  .duration-list-right {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding-left: 2.2rem;
+  }
+  .duration-list-name {
+    font-size: 0.78rem;
+  }
+}
+
 .duration-filter-row {
   display: flex;
   align-items: center;
