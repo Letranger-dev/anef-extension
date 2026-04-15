@@ -227,8 +227,11 @@
     grouped.forEach(function(snaps, hash) {
       var latest = snaps[snaps.length - 1];
       var finished = ANEF.constants.isFinished({ etape: latest.etape, statut: latest.statut });
-      // Dossiers terminés : figer la durée à la date du dernier statut (pas today)
-      var endDate = finished && latest.date_statut ? new Date(latest.date_statut + 'T00:00:00') : today;
+      // Dossiers clôturés : figer la durée à la date du dernier statut (pas today)
+      // Exception : étape 11 (IDD — inséré dans décret, en attente JO) reste en cours,
+      // le compteur doit continuer car le dossier n'est pas publié au JO.
+      var freezeDuration = finished && latest.etape !== 11 && latest.date_statut;
+      var endDate = freezeDuration ? new Date(latest.date_statut + 'T00:00:00') : today;
       var daysAtStatus = latest.date_statut ? ANEF.utils.daysDiff(latest.date_statut, endDate) : null;
       var daysSinceDeposit = latest.date_depot ? ANEF.utils.daysDiff(latest.date_depot, endDate) : null;
 

@@ -252,18 +252,21 @@
       var s = pageData[i];
       var color = C.getStepColor(s.currentStep);
       var daysAtStatus, totalDuration;
-      if (s.isFinished) {
-        daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
+      // Étape 11 (IDD) : techniquement "finished" mais encore en cours (attente JO) → afficher comme "en cours"
+      var displayAsInProgress = !s.isFinished || s.currentStep === 11;
+      if (displayAsInProgress) {
+        daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
         totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
       } else {
-        daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+        daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
         totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
       }
 
       var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
       var sansEntretien = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
       var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
-      var finishedBadge = s.isFinished ? (C.isPositiveStatus(s.statut) || s.currentStep === 11 ? ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>' : ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>') : '';
+      // Badge "Terminé/Clôturé" uniquement si vraiment clôturé (pas pour IDD étape 11)
+      var finishedBadge = (s.isFinished && s.currentStep !== 11) ? (C.isPositiveStatus(s.statut) ? ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>' : ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>') : '';
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
         '<div class="dossier-row-main">' +
@@ -276,7 +279,7 @@
             triBadge + sansEntretienBadge + finishedBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
-            '<span>' + (s.isFinished ? daysAtStatus : daysAtStatus + ' au statut') + '</span>' +
+            '<span>' + (displayAsInProgress ? daysAtStatus + ' au statut' : daysAtStatus) + '</span>' +
             '<span>' + totalDuration + ' total</span>' +
             (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
             (s.hasComplement ? '<span style="color:var(--orange)">Complément</span>' : '') +
@@ -338,7 +341,8 @@
           durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
         }
       } else {
-        var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut });
+        // Étape 11 (IDD) : encore en cours, pas figé
+        var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut }) && Number(snap.etape) !== 11;
         if (isTerminated) {
           durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
         } else {
@@ -395,7 +399,9 @@
     }
 
     var daysAtStatus, totalDuration, durationLabel;
-    if (s.isFinished) {
+    // Étape 11 (IDD) : techniquement "finished" mais encore en cours (attente JO)
+    var displayAsFinished = s.isFinished && s.currentStep !== 11;
+    if (displayAsFinished) {
       daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
       durationLabel = 'Finalis\u00e9 le';
     } else {
@@ -849,7 +855,8 @@
 
     if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
     if (s.dateStatut) {
-      if (s.isFinished) {
+      // Étape 11 (IDD) : encore en cours, pas finalisé
+      if (s.isFinished && s.currentStep !== 11) {
         items.push('<div class="detail-row"><span class="detail-label">Finalis\u00e9 le</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
       } else {
         items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');

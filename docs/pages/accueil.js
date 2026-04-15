@@ -452,15 +452,27 @@
   }
 
   function renderSdanfWait(summaries) {
-    // Tous les dossiers étape 9, les obsolètes (>20j sans vérif) affichés en dernier
-    sdanfState.all = summaries.filter(function(s) { return s.currentStep === 9; });
+    // Dossiers étape 9 + sous-statuts spécifiques étapes 10-11 (vérifs finales + PPID + IDD)
+    var EXTRA_PRE_DECRET_STATUTS = {
+      'a_verifier_avant_insertion_decret': true,
+      'prete_pour_insertion_decret': true,
+      'inseree_dans_decret': true
+    };
+    sdanfState.all = summaries.filter(function(s) {
+      if (s.currentStep === 9) return true;
+      if ((s.currentStep === 10 || s.currentStep === 11) && EXTRA_PRE_DECRET_STATUTS[(s.statut || '').toLowerCase()]) return true;
+      return false;
+    });
 
     // Populate statut filter pills
     var STATUT_PILLS = {
-      'controle_a_affecter': { label: 'Contrôle à affecter', short: 'Ctrl. à affecter', color: '#f59e0b' },
-      'controle_a_effectuer': { label: 'Contrôle à effectuer', short: 'Ctrl. à effectuer', color: '#3b82f6' },
-      'controle_en_attente_pec': { label: 'En attente PEC', short: 'Ctrl. attente PEC', color: '#8b5cf6' },
-      'controle_pec_a_faire': { label: 'PEC à faire', short: 'Ctrl. PEC à faire', color: '#8b5cf6' }
+      'controle_a_affecter': { label: 'Contrôle à affecter', short: 'À affecter', color: '#f59e0b' },
+      'controle_a_effectuer': { label: 'Contrôle à effectuer', short: 'À effectuer', color: '#3b82f6' },
+      'controle_en_attente_pec': { label: 'En attente PEC', short: 'Attente PEC', color: '#8b5cf6' },
+      'controle_pec_a_faire': { label: 'PEC à faire', short: 'PEC à faire', color: '#8b5cf6' },
+      'a_verifier_avant_insertion_decret': { label: 'Vérifs avant décret', short: 'Vérifs décret', color: '#14b8a6' },
+      'prete_pour_insertion_decret': { label: 'Prêt pour décret', short: 'Prêt décret', color: '#10b981' },
+      'inseree_dans_decret': { label: 'Inséré au décret', short: 'Inséré décret', color: '#059669' }
     };
     var statuts = {};
     var prefs = {};
@@ -548,7 +560,10 @@
       'controle_a_affecter': { short: 'Attente affectation', cls: 'orange' },
       'controle_a_effectuer': { short: 'Contr\u00f4le en cours', cls: '' },
       'controle_en_attente_pec': { short: 'Transmis SCEC', cls: 'violet' },
-      'controle_pec_a_faire': { short: 'V\u00e9rif. \u00e9tat civil', cls: 'violet' }
+      'controle_pec_a_faire': { short: 'V\u00e9rif. \u00e9tat civil', cls: 'violet' },
+      'a_verifier_avant_insertion_decret': { short: 'V\u00e9rifs avant d\u00e9cret', cls: '' },
+      'prete_pour_insertion_decret': { short: 'Pr\u00eat pour d\u00e9cret', cls: '' },
+      'inseree_dans_decret': { short: 'Ins\u00e9r\u00e9 au d\u00e9cret', cls: '' }
     };
     var kpiHtml = '<span class="kpi-bar-item"><strong>' + total + '</strong> total</span>';
     var subKeys = Object.keys(subCounts).sort(function(a, b) {
@@ -575,13 +590,16 @@
     document.getElementById('sdanf-btn-prev').disabled = sdanfState.page <= 1;
     document.getElementById('sdanf-btn-next').disabled = sdanfState.page >= totalPages;
 
-    // Render rows
+    // Render rows (étapes 9 et 10 partagent la même couleur amber)
     var color = C.STEP_COLORS[9];
     var BADGE_MAP = {
       'controle_a_affecter': { text: '9.1 Attente affectation', cls: 'badge-entretien-non' },
       'controle_a_effectuer': { text: '9.2 Contrôle en cours', cls: 'badge-entretien-non' },
       'controle_en_attente_pec': { text: '9.3 Transmis SCEC', cls: 'badge-entretien-oui' },
-      'controle_pec_a_faire': { text: '9.4 Vérif. état civil', cls: 'badge-entretien-oui' }
+      'controle_pec_a_faire': { text: '9.4 Vérif. état civil', cls: 'badge-entretien-oui' },
+      'a_verifier_avant_insertion_decret': { text: '10.6 Vérifs avant décret', cls: 'badge-entretien-oui' },
+      'prete_pour_insertion_decret': { text: '10.7 Prêt pour décret', cls: 'badge-entretien-oui' },
+      'inseree_dans_decret': { text: '11.1 Inséré au décret', cls: 'badge-entretien-oui' }
     };
     var html = '';
     for (var i = 0; i < pageData.length; i++) {
@@ -1720,7 +1738,8 @@
 
     if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
     if (s.dateStatut) {
-      if (s.isFinished) {
+      // Étape 11 (IDD) : encore en cours, pas finalisé
+      if (s.isFinished && s.currentStep !== 11) {
         items.push('<div class="detail-row"><span class="detail-label">Finalis\u00e9 le</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
       } else {
         items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
@@ -1766,16 +1785,17 @@
       var thisDateStatut = t.date_statut;
       var nextDateStatut = (i + 1 < history.length) ? history[i + 1].date_statut : null;
       var isCurrentStatus = (i === history.length - 1);
-      var dossierFinished = summary && summary.isFinished;
+      // Étape 11 (IDD) : techniquement "finished" mais encore en cours (attente JO)
+      var dossierFinished = summary && summary.isFinished && summary.currentStep !== 11;
       var timeOnStatus = null;
       if (thisDateStatut && nextDateStatut) {
         timeOnStatus = U.daysDiff(thisDateStatut, nextDateStatut);
       } else if (thisDateStatut && !nextDateStatut) {
         if (dossierFinished) {
-          // Dossier terminé : ne pas compter vers aujourd'hui
+          // Dossier clôturé : ne pas compter vers aujourd'hui
           timeOnStatus = null;
         } else {
-          // Dernier statut (en cours) : date_statut → aujourd'hui
+          // Dernier statut (en cours ou IDD en attente JO) : date_statut → aujourd'hui
           timeOnStatus = U.daysDiff(thisDateStatut, now);
         }
       }

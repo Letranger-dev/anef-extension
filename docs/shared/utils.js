@@ -6,12 +6,27 @@
 
   window.ANEF = window.ANEF || {};
 
+  function toParisCalendarUTC(d) {
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(d);
+    var y = 0, m = 0, day = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].type === 'year') y = +parts[i].value;
+      else if (parts[i].type === 'month') m = +parts[i].value;
+      else if (parts[i].type === 'day') day = +parts[i].value;
+    }
+    return Date.UTC(y, m - 1, day);
+  }
+
   function daysDiff(dateStr1, dateStr2OrDate) {
     try {
       var d1 = new Date(dateStr1);
       var d2 = dateStr2OrDate instanceof Date ? dateStr2OrDate : new Date(dateStr2OrDate);
       if (isNaN(d1) || isNaN(d2)) return null;
-      return Math.max(0, Math.floor((d2 - d1) / 86400000));
+      var u1 = toParisCalendarUTC(d1);
+      var u2 = toParisCalendarUTC(d2);
+      return Math.max(0, Math.round((u2 - u1) / 86400000));
     } catch(e) {
       return null;
     }
@@ -19,16 +34,17 @@
 
   function formatDuration(days) {
     if (days === null || days === undefined) return '\u2014';
-    if (days === 0) return "aujourd'hui";
+    if (days === 0) return '< 1 jour';
     if (days < 30) return days + ' jour' + (days > 1 ? 's' : '');
-    var months = Math.floor(days / 30);
+    var totalMonths = Math.floor(days / 30);
     var remainDays = days % 30;
-    if (months < 12) {
-      if (remainDays === 0) return months + ' mois';
-      return months + ' mois, ' + remainDays + ' j';
+    if (totalMonths < 12) {
+      if (remainDays === 0) return totalMonths + ' mois';
+      return totalMonths + ' mois, ' + remainDays + ' j';
     }
-    var years = Math.floor(days / 365);
-    var remainMonths = Math.floor((days % 365) / 30);
+    var years = Math.floor(totalMonths / 12);
+    var remainMonths = totalMonths % 12;
+    if (remainMonths === 0) return years + ' an' + (years > 1 ? 's' : '');
     return years + ' an' + (years > 1 ? 's' : '') + ', ' + remainMonths + ' mois';
   }
 

@@ -2096,12 +2096,14 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   }
   .sdanf-statut-pills {
     gap: 4px;
+    row-gap: 6px;
   }
   .sdanf-pill {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.68rem;
-    min-height: 24px;
-    border-radius: 12px;
+    padding: 0.18rem 0.45rem;
+    font-size: 0.66rem;
+    min-height: 22px;
+    border-radius: 11px;
+    letter-spacing: 0;
   }
   .sdanf-pill .pill-full { display: none; }
   .sdanf-pill .pill-short { display: inline; }

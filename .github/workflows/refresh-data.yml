@@ -1,10 +1,9 @@
 name: Refresh Stats Data
 
+# Déclenchement externe via cron-job.org (workflow_dispatch)
+# Le cron schedule GitHub a été retiré car il était skippé ~65% du temps
+# cf. project_cron_externe.md pour la config du cron externe
 on:
-  schedule:
-    - cron: '17,47 7-16 * * 1-5'  # Semaine peak: /30min 9h-18h Paris (couvre été+hiver)
-    - cron: '17 7-16 * * 0,6'     # Weekend peak: /1h 9h-18h Paris
-    - cron: '17 5,18,21 * * *'    # Off-peak tous les jours: 7h, 20h, 23h Paris (été)
   workflow_dispatch:
 
 permissions:

@@ -386,8 +386,8 @@
         if (j + 1 < snaps.length) {
           endDate = snaps[j + 1].date_statut;
         } else {
-          // Dernier snapshot — figer si dossier terminé
-          var isTerminated = C.isFinished({ etape: cur.etape, statut: cur.statut });
+          // Dernier snapshot — figer si dossier clôturé (hors étape 11 en attente JO)
+          var isTerminated = C.isFinished({ etape: cur.etape, statut: cur.statut }) && Number(cur.etape) !== 11;
           endDate = isTerminated ? cur.date_statut : today;
         }
         if (!endDate) continue;
@@ -544,7 +544,8 @@
         }
       } else {
         if (snap.date_statut) {
-          var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut });
+          // Étape 11 (IDD) : encore en cours, pas figé
+          var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut }) && Number(snap.etape) !== 11;
           if (isTerminated) {
             durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
           } else {
