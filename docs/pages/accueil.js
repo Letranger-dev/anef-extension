@@ -14,9 +14,15 @@
   var allSummaries = [];
 
   // ─── Data freshness indicator ───
-  // Uses the Last-Modified header of snapshots.json (deployed by GitHub Actions)
-  // as the single source of truth for when data was last refreshed.
+  // Source of truth: Last-Modified header of snapshots.json (rewritten on each
+  // refresh-data.yml run, triggered by cron-job.org via workflow_dispatch).
+  // See: .github/workflows/refresh-data.yml
   var _freshnessInterval = null;
+
+  // Expected refresh cadence. cron-job.org currently fires every 60min.
+  // If the external schedule changes, bump this constant — it also drives
+  // the green/orange/red thresholds below.
+  var EXPECTED_REFRESH_INTERVAL_MIN = 60;
 
   function startFreshnessIndicator(fallbackTimestamp) {
     var dot = document.getElementById('freshness-dot');
@@ -41,8 +47,11 @@
         function tick() {
           var ageMin = Math.floor((Date.now() - updatedAt) / 60000);
 
-          // Freshness classes: green < 90min, orange < 150min, red >= 150min
-          var cls = ageMin < 90 ? '' : ageMin < 150 ? 'warn' : 'stale';
+          // Thresholds scale with the expected cadence:
+          // green < 1.5× interval, orange < 2.5× interval, red ≥ 2.5×
+          var greenUntil = EXPECTED_REFRESH_INTERVAL_MIN * 1.5;
+          var orangeUntil = EXPECTED_REFRESH_INTERVAL_MIN * 2.5;
+          var cls = ageMin < greenUntil ? '' : ageMin < orangeUntil ? 'warn' : 'stale';
           dot.className = 'freshness-dot' + (cls ? ' ' + cls : '');
           text.className = 'freshness-text' + (cls ? ' ' + cls : '');
 
@@ -75,7 +84,8 @@
   }
 
   // ─── Cron history modal ───
-  var GITHUB_RUNS_API = 'https://api.github.com/repos/Letranger-dev/anef-extension/actions/workflows/refresh-data.yml/runs?per_page=15';
+  // per_page=30 → ~30h of history at the current hourly cadence.
+  var GITHUB_RUNS_API = 'https://api.github.com/repos/Letranger-dev/anef-extension/actions/workflows/refresh-data.yml/runs?per_page=30';
 
   function formatAgo(dateStr) {
     var min = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -147,7 +157,10 @@
             var secs = Math.round((new Date(r.updated_at) - new Date(r.run_started_at)) / 1000);
             dur = secs + 's';
           }
-          var trigger = r.event === 'schedule' ? 'cron' : r.event === 'workflow_dispatch' ? 'manuel' : r.event;
+          // All automated refreshes come through workflow_dispatch (triggered by
+          // cron-job.org). Manual runs from the GitHub UI are indistinguishable
+          // via the API, so we label them all "auto" — matches the user's mental model.
+          var trigger = r.event === 'schedule' ? 'cron' : r.event === 'workflow_dispatch' ? 'auto' : r.event;
 
           html += '<div class="cron-run-item">'
             + '<span class="cron-run-dot ' + U.escapeHtml(cls) + '"></span>'
@@ -791,6 +804,22 @@
         break;
       case 'step-asc':
         data = data.slice().sort(function(a, b) { return a.rang - b.rang || (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); });
+        break;
+      case 'entretien-desc':
+        data = data.slice().sort(function(a, b) {
+          if (!a.dateEntretien && !b.dateEntretien) return 0;
+          if (!a.dateEntretien) return 1;
+          if (!b.dateEntretien) return -1;
+          return b.dateEntretien.localeCompare(a.dateEntretien);
+        });
+        break;
+      case 'entretien-asc':
+        data = data.slice().sort(function(a, b) {
+          if (!a.dateEntretien && !b.dateEntretien) return 0;
+          if (!a.dateEntretien) return 1;
+          if (!b.dateEntretien) return -1;
+          return a.dateEntretien.localeCompare(b.dateEntretien);
+        });
         break;
     }
     return data;

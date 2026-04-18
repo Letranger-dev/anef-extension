@@ -365,42 +365,70 @@
     }).sort(function(a, b) { return a.etape - b.etape; });
   }
 
-  /** Duration by status — like computeDurationByStep but splits step 9 into 4 sub-statuts */
+  /** Duration by status — like computeDurationByStep but splits step 9 into 4 sub-statuts.
+   *  For each dossier × step, keep only the EARLIEST observed date_statut (= arrival
+   *  at that step). One data point per (dossier, step) — no double-counting dossiers
+   *  with many identical snapshots, and earlier steps benefit from historical snapshots
+   *  of dossiers that have since progressed. */
   var STEP9_STATUTS = ['controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
 
-  function computeDurationByStatus(snapshots) {
+  function _bucketKeyFor(s) {
     var STATUTS = ANEF.constants.STATUTS;
     var PHASE_NAMES = ANEF.constants.PHASE_NAMES;
+    var statutLower = s.statut ? s.statut.toLowerCase() : '';
+    if (Number(s.etape) === 9 && statutLower && STEP9_STATUTS.indexOf(statutLower) !== -1) {
+      var info = STATUTS[statutLower];
+      return {
+        key: 'statut:' + statutLower,
+        rang: info ? info.rang : (s.etape * 100),
+        phase: info ? info.phase : PHASE_NAMES[s.etape],
+        statut: statutLower
+      };
+    }
+    return {
+      key: 'etape:' + s.etape,
+      rang: s.etape * 100,
+      phase: s.phase || PHASE_NAMES[s.etape],
+      statut: null
+    };
+  }
+
+  function computeDurationByStatus(snapshots) {
     var buckets = {};
 
+    // Group snapshots by dossier
+    var byDossier = {};
     for (var i = 0; i < snapshots.length; i++) {
       var s = snapshots[i];
-      if (!s.date_depot || !s.date_statut) continue;
-      var days = ANEF.utils.daysDiff(s.date_depot, s.date_statut);
-      if (days === null || days < 0) continue;
-
-      var key, rang, phase;
-      var statutLower = s.statut ? s.statut.toLowerCase() : '';
-      if (Number(s.etape) === 9 && statutLower && STEP9_STATUTS.indexOf(statutLower) !== -1) {
-        // Split step 9 by statut
-        key = 'statut:' + statutLower;
-        var info = STATUTS[statutLower];
-        rang = info ? info.rang : (s.etape * 100);
-        phase = info ? info.phase : PHASE_NAMES[s.etape];
-      } else {
-        // Group by etape
-        key = 'etape:' + s.etape;
-        rang = s.etape * 100;
-        phase = s.phase || PHASE_NAMES[s.etape];
-      }
-
-      if (!buckets[key]) buckets[key] = { etape: Number(s.etape), phase: phase, statut: null, rang: rang, days: [] };
-      buckets[key].days.push(days);
-      // Store statut for step 9 sub-entries
-      if (Number(s.etape) === 9 && statutLower && STEP9_STATUTS.indexOf(statutLower) !== -1) {
-        buckets[key].statut = statutLower;
-      }
+      if (!s.date_depot || !s.date_statut || !s.dossier_hash) continue;
+      if (!byDossier[s.dossier_hash]) byDossier[s.dossier_hash] = [];
+      byDossier[s.dossier_hash].push(s);
     }
+
+    // For each dossier, take the earliest date_statut per (step or step9-substatut)
+    Object.keys(byDossier).forEach(function(hash) {
+      var snaps = byDossier[hash];
+      var earliestByKey = {};
+
+      for (var j = 0; j < snaps.length; j++) {
+        var s = snaps[j];
+        var meta = _bucketKeyFor(s);
+        var prev = earliestByKey[meta.key];
+        if (!prev || s.date_statut < prev.snap.date_statut) {
+          earliestByKey[meta.key] = { snap: s, meta: meta };
+        }
+      }
+
+      Object.keys(earliestByKey).forEach(function(k) {
+        var entry = earliestByKey[k];
+        var s = entry.snap;
+        var days = ANEF.utils.daysDiff(s.date_depot, s.date_statut);
+        if (days === null || days < 0) return;
+
+        if (!buckets[k]) buckets[k] = { etape: Number(s.etape), phase: entry.meta.phase, statut: entry.meta.statut, rang: entry.meta.rang, days: [] };
+        buckets[k].days.push(days);
+      });
+    });
 
     return Object.keys(buckets).map(function(key) {
       var b = buckets[key];
@@ -468,6 +496,48 @@
         steps: data.steps
       };
     }).sort(function(a, b) { return b.total - a.total; });
+  }
+
+  /** Time spent AT each step (not cumulative). For each consecutive pair in a
+   *  dossier's snapshot history, count days as "time spent at the previous step
+   *  before transitioning". Step 9 split by sub-statut. Only observed transitions
+   *  — ongoing waits aren't counted. */
+  function computeStepWaitTimes(grouped) {
+    var buckets = {};
+
+    grouped.forEach(function(snaps) {
+      if (!snaps || snaps.length < 2) return;
+      for (var i = 1; i < snaps.length; i++) {
+        var prev = snaps[i - 1];
+        var curr = snaps[i];
+        if (!prev.date_statut || !curr.date_statut) continue;
+        var prevKey = _bucketKeyFor(prev).key;
+        var currKey = _bucketKeyFor(curr).key;
+        if (prevKey === currKey) continue; // same bucket, not a transition
+        var days = ANEF.utils.daysDiff(prev.date_statut, curr.date_statut);
+        if (days === null || days < 0) continue;
+
+        var meta = _bucketKeyFor(prev);
+        if (!buckets[meta.key]) buckets[meta.key] = { etape: Number(prev.etape), phase: meta.phase, statut: meta.statut, rang: meta.rang, days: [] };
+        buckets[meta.key].days.push(days);
+      }
+    });
+
+    return Object.keys(buckets).map(function(key) {
+      var b = buckets[key];
+      var sum = 0;
+      for (var j = 0; j < b.days.length; j++) sum += b.days[j];
+      return {
+        etape: b.etape,
+        phase: b.phase,
+        statut: b.statut,
+        rang: b.rang,
+        avg_days: ANEF.utils.round1(sum / b.days.length),
+        median_days: ANEF.utils.round1(ANEF.utils.medianCalc(b.days)),
+        count: b.days.length,
+        days: b.days
+      };
+    }).sort(function(a, b) { return a.rang - b.rang; });
   }
 
   /** Compute transitions from grouped data */
@@ -579,6 +649,7 @@
     computePhaseDistribution: computePhaseDistribution,
     computeDurationByStep: computeDurationByStep,
     computeDurationByStatus: computeDurationByStatus,
+    computeStepWaitTimes: computeStepWaitTimes,
     STEP9_STATUTS: STEP9_STATUTS,
     computePrefectureStats: computePrefectureStats,
     computeTransitions: computeTransitions,

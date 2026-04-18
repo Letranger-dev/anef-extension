@@ -57,7 +57,7 @@
   });
 
   function initFilters(prefectures) {
-    F.createPrefectureDropdown('filter-prefecture-container', prefectures, state.filters.prefecture, function(v) {
+    F.createPrefectureMultiSelect('filter-prefecture-container', prefectures, state.filters.prefecture, function(v) {
       state.filters.prefecture = v; syncAndRender();
     });
     F.createStatusFilter('filter-status-container', state.filters.statut, function(v) {
@@ -74,7 +74,10 @@
   }
 
   function getFiltered() {
-    return D.applyFilters(state.summaries, state.filters);
+    // Exclude finished dossiers (step ≥ 11 or negative outcome) from all stats —
+    // they skew averages toward longer durations.
+    return D.applyFilters(state.summaries, state.filters)
+      .filter(function(s) { return !s.isFinished; });
   }
 
   function getFilteredSnapshots(filtered) {
@@ -82,18 +85,34 @@
     return D.getSnapshotsForHashes(state.snapshots, hashes);
   }
 
+  function getFilteredGrouped(filteredHashes) {
+    var set = {};
+    for (var i = 0; i < filteredHashes.length; i++) set[filteredHashes[i]] = true;
+    var out = new Map();
+    state.grouped.forEach(function(snaps, hash) {
+      if (set[hash]) out.set(hash, snaps);
+    });
+    return out;
+  }
+
   function renderAll() {
     var filtered = getFiltered();
     var filteredSnapshots = getFilteredSnapshots(filtered);
+    var filteredGrouped = getFilteredGrouped(filtered.map(function(s) { return s.fullHash; }));
 
     var countEl = document.getElementById('filter-count');
-    countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '');
+    countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '') + ' en cours';
 
+    // Chart: cumulative time since deposit (first arrival at each step)
     var durations = D.computeDurationByStatus(filteredSnapshots)
-      .filter(function(d) { return d.etape !== 0; });
+      .filter(function(d) { return d.etape >= 2 && d.count >= 3; });
+
+    // Table: time SPENT at each step (observed transitions only)
+    var waitTimes = D.computeStepWaitTimes(filteredGrouped)
+      .filter(function(d) { return d.etape >= 2 && d.count >= 3; });
 
     renderDurationBarChart(durations);
-    renderPercentileTable(durations);
+    renderPercentileTable(waitTimes);
   }
 
   // ─── Estimator ───────────────────────────────────────────
@@ -240,6 +259,14 @@
     return d.etape + '. ' + d.phase;
   }
 
+  /** Ultra-short label for cramped mobile viewports — uses PHASE_SHORT */
+  function compactLabel(d) {
+    if (d.statut && STEP9_SHORT[d.statut]) {
+      return C.formatSubStep(d.rang) + ' ' + STEP9_SHORT[d.statut];
+    }
+    return d.etape + '. ' + (C.PHASE_SHORT[d.etape] || d.phase);
+  }
+
   // ─── Duration Bar Chart ──────────────────────────────────
 
   function renderDurationBarChart(durations) {
@@ -256,8 +283,10 @@
     canvas.style.display = 'block';
     noData.style.display = 'none';
 
-    var isMobile = window.innerWidth < 768;
-    var chartLabels = durations.map(shortLabel);
+    // Use container width (not viewport) — more reliable when chart is inside a narrow card
+    var containerW = canvas.parentElement.getBoundingClientRect().width;
+    var isMobile = containerW < 500;
+    var chartLabels = durations.map(isMobile ? compactLabel : shortLabel);
     var fullLabels = durations.map(labelWithStatus);
     var step9Colors = { 'controle_a_affecter': '#f59e0b', 'controle_a_effectuer': '#d97706', 'controle_en_attente_pec': '#b45309', 'controle_pec_a_faire': '#92400e' };
     var colors = durations.map(function(d) {
@@ -287,8 +316,23 @@
       }
     ];
 
-    var config = CH.barConfig(chartLabels, datasets, { suffix: 'j', ySuffix: 'j', datalabels: isMobile ? false : undefined });
-    // Use full labels and formatDuration in tooltips
+    var config = CH.barConfig(chartLabels, datasets, { suffix: 'j', ySuffix: 'j', datalabels: false });
+
+    // Horizontal layout: step labels on Y-axis (readable, no rotation),
+    // days on X-axis. One row per step — scales nicely for 12+ bars.
+    config.options.indexAxis = 'y';
+    config.options.scales = {
+      x: {
+        ticks: { color: '#94a3b8', callback: function(v) { return v + ' j'; } },
+        grid: { color: '#1e293b' },
+        beginAtZero: true
+      },
+      y: {
+        ticks: { color: '#e2e8f0', font: { size: isMobile ? 10 : 12 }, autoSkip: false },
+        grid: { display: false }
+      }
+    };
+    config.options.plugins.legend = { position: 'top', labels: { color: '#e2e8f0', usePointStyle: true, boxWidth: 12 } };
     config.options.plugins.tooltip = config.options.plugins.tooltip || {};
     config.options.plugins.tooltip.callbacks = config.options.plugins.tooltip.callbacks || {};
     config.options.plugins.tooltip.callbacks.title = function(items) {
@@ -297,11 +341,6 @@
     config.options.plugins.tooltip.callbacks.label = function(item) {
       return item.dataset.label + ' : ' + U.formatDuration(Math.round(item.raw));
     };
-    // Mobile: rotate labels more, smaller font
-    if (isMobile) {
-      config.options.scales.x.ticks.maxRotation = 65;
-      config.options.scales.x.ticks.font = { size: 9 };
-    }
     CH.create('durationBar', 'duration-bar-chart', config);
   }
 

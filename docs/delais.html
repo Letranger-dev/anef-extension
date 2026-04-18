@@ -155,17 +155,19 @@
           <h2 class="inline-heading">Temps cumul&eacute; depuis le d&eacute;p&ocirc;t</h2>
           <span class="details-hint">Voir le graphique</span>
         </summary>
-        <p class="section-subtitle" style="margin-top:0.5rem">Moyenne et m&eacute;diane du nombre de jours depuis le d&eacute;p&ocirc;t, par &eacute;tape</p>
-        <div class="chart-container chart-container--tall" style="min-height:320px">
+        <p class="section-subtitle" style="margin-top:0.5rem">Temps &eacute;coul&eacute; entre le d&eacute;p&ocirc;t et la <strong>premi&egrave;re arriv&eacute;e</strong> &agrave; chaque &eacute;tape (un point par dossier, &eacute;tapes &lt; 3 dossiers masqu&eacute;es)</p>
+        <div class="chart-container chart-container--tall" style="min-height:520px">
           <canvas id="duration-bar-chart"></canvas>
           <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de donn&eacute;es</p>
         </div>
+        <p class="section-subtitle" style="font-size:0.75rem;margin-top:0.75rem;color:var(--text-dim)">Les baisses r&eacute;siduelles entre &eacute;tapes refl&egrave;tent un biais de cohorte : les dossiers ayant atteint les derni&egrave;res &eacute;tapes proviennent de lots plus anciens ou plus rapides.</p>
       </details>
     </div>
 
     <!-- Percentile table -->
     <div class="section">
       <h2>Temps d'attente par &eacute;tape</h2>
+      <p class="section-subtitle">Dur&eacute;e effective pass&eacute;e &agrave; chaque &eacute;tape avant de transitionner (dossiers en cours, transitions observ&eacute;es uniquement)</p>
       <div class="table-container">
         <table class="percentile-table">
           <thead>
