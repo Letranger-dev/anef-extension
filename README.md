@@ -17,6 +17,8 @@ Extension Chrome pour suivre votre statut de naturalisation française en temps 
 - **Actualisation en arrière-plan** - Rafraîchissez vos données sans quitter votre onglet
 - **Export d'image** - Téléchargez une image de votre suivi à partager
 - **Notifications** - Soyez alerté lors d'un changement de statut
+- **Mode privé** - Masque en un clic les données sensibles (numéros, dates, préfecture, décret) pour partager votre écran en toute sérénité
+- **Vérification automatique** - Toutes les heures en arrière-plan (configurable), avec gestion intelligente des échecs
 
 ## Installation
 

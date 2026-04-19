@@ -1,6 +1,6 @@
 # Politique de confidentialité — ANEF Status Tracker
 
-*Dernière mise à jour : 2 avril 2026*
+*Dernière mise à jour : 19 avril 2026*
 
 ## Données collectées
 
@@ -9,6 +9,10 @@
 - **Identifiants ANEF** : chiffrés localement avec AES-256-GCM, jamais transmis à des tiers
 - **Paramètres** : préférences de notifications et de vérification automatique
 - **Journal des vérifications** : horodatage des vérifications automatiques (conservé 24h)
+- **Préférence d'affichage du mode privé** : état activé/désactivé du bouton de masquage visuel
+
+### Mode privé (masquage visuel)
+Un bouton en forme d'œil dans l'interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d'entretien, numéro de décret, type de demande. Cette fonctionnalité est purement locale : aucune donnée n'est transmise ou modifiée, seul l'affichage est altéré pour faciliter le partage d'écran ou les captures.
 
 ### Statistiques anonymes
 Les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :
@@ -55,7 +59,7 @@ Ces données sont **pseudonymisées** : aucun nom, email, numéro de dossier en 
 
 ## Autorisations
 - **storage** : stockage local des données du dossier et des paramètres
-- **alarms** : vérification automatique périodique du statut
+- **alarms** : vérification automatique périodique du statut (par défaut toutes les 60 minutes)
 - **notifications** : alertes lors des changements de statut
 - **tabs** : ouverture temporaire du portail ANEF pour les vérifications automatiques
 - **Accès au site ANEF** : lecture des données de votre dossier sur le portail officiel

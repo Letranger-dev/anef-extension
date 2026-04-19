@@ -987,7 +987,7 @@ async function backgroundRefresh() {
 
 const ALARM_NAME = 'anef-auto-check';
 const ALARM_RETRY_NAME = 'anef-auto-check-retry';
-const COOLDOWN_MINUTES = 60; // 1h
+const COOLDOWN_MINUTES = 45; // 45 min (marge sous l'intervalle de 60 min)
 
 /**
  * Configure ou annule l'alarme de vérification automatique
@@ -1014,7 +1014,7 @@ async function scheduleAutoCheck() {
   // Backoff progressif : après des échecs consécutifs, augmenter l'intervalle
   const baseInterval = settings.autoCheckInterval || 90;
   const failures = meta.consecutiveFailures || 0;
-  const backoffMultiplier = failures > 0 ? Math.min(Math.pow(1.5, failures), 4) : 1; // cap x4 = ~12h
+  const backoffMultiplier = failures > 0 ? Math.min(Math.pow(1.5, failures), 4) : 1; // cap x4 = ~4h (60×4)
   const intervalMinutes = Math.round(baseInterval * backoffMultiplier);
   const jitter = settings.autoCheckJitterMin || 0;
 
@@ -1075,7 +1075,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       return;
     }
 
-    // Cooldown : skip si dernière tentative < 1h30 (ne s'applique PAS aux retries)
+    // Cooldown : skip si dernière tentative < COOLDOWN_MINUTES (ne s'applique PAS aux retries)
     const meta = await storage.getAutoCheckMeta();
     if (!isRetry && meta.lastAttempt) {
       const elapsed = Date.now() - new Date(meta.lastAttempt).getTime();
@@ -1251,12 +1251,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await storage.saveSettings({ autoCheckJitterMin: jitter });
       logger.info('🎲 Jitter auto-check généré (migration):', jitter + ' min');
     }
-    // Migration : forcer l'intervalle à 90 min (une seule fois)
-    if (currentSettings.autoCheckInterval !== 90 && !currentSettings._intervalMigrated) {
-      await storage.saveSettings({ autoCheckInterval: 90, _intervalMigrated: true });
-      logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 90 min');
-    } else if (!currentSettings._intervalMigrated) {
-      await storage.saveSettings({ _intervalMigrated: true });
+    // Migration : forcer l'intervalle à 60 min (une seule fois — flag _intervalMigrated60)
+    if (currentSettings.autoCheckInterval !== 60 && !currentSettings._intervalMigrated60) {
+      await storage.saveSettings({ autoCheckInterval: 60, _intervalMigrated60: true });
+      logger.info('⏰ Intervalle auto-check corrigé:', currentSettings.autoCheckInterval, '→ 60 min');
+    } else if (!currentSettings._intervalMigrated60) {
+      await storage.saveSettings({ _intervalMigrated60: true });
     }
     // Migration v2.2.0 : supprimer disabledByFailure obsolète, reset compteur
     const meta = await storage.getAutoCheckMeta();

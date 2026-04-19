@@ -95,7 +95,12 @@
     var filtered = getFiltered();
     var prefStats = D.computePrefectureStats(filtered);
 
-    document.getElementById('filter-count').textContent = filtered.length + ' dossiers, ' + prefStats.length + ' préfectures';
+    var countEl = document.getElementById('filter-count');
+    if (filtered.length === 0) {
+      countEl.textContent = 'Aucun dossier ne correspond aux filtres';
+    } else {
+      countEl.textContent = filtered.length + ' dossiers, ' + prefStats.length + ' préfectures';
+    }
 
     renderRankingTable(prefStats);
     renderBarChart(prefStats);

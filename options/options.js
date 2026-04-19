@@ -896,6 +896,7 @@ async function handleClearAll() {
   if (!confirm('Supprimer toutes les données (historique, paramètres) ?\nVos identifiants de connexion seront conservés.\nCette action est irréversible.')) return;
 
   await storage.clearExceptCredentials();
+  try { await chrome.action.setBadgeText({ text: '' }); } catch (e) { /* ignore */ }
   await loadHistory();
   await loadSettings();
 

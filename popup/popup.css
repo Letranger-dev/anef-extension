@@ -1056,10 +1056,8 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 .privacy-mode #last-check-date,
-.privacy-mode #detail-dossier-id-value,
-.privacy-mode #detail-numero-national-value,
-.privacy-mode #detail-prefecture-value,
-.privacy-mode #detail-entretien-lieu-value,
+.privacy-mode #status-date,
+.privacy-mode .detail-chip-value,
 .privacy-mode #stat-depot-date,
 .privacy-mode #stat-entretien-date,
 .privacy-mode #stat-statut-age-date {

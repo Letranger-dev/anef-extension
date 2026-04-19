@@ -101,7 +101,11 @@
     var filteredGrouped = getFilteredGrouped(filtered.map(function(s) { return s.fullHash; }));
 
     var countEl = document.getElementById('filter-count');
-    countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '') + ' en cours';
+    if (filtered.length === 0) {
+      countEl.textContent = 'Aucun dossier ne correspond aux filtres';
+    } else {
+      countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '') + ' en cours';
+    }
 
     // Chart: cumulative time since deposit (first arrival at each step)
     var durations = D.computeDurationByStatus(filteredSnapshots)
