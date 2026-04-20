@@ -33,19 +33,23 @@
   }
 
   function formatDuration(days) {
-    if (days === null || days === undefined) return '\u2014';
+    if (days === null || days === undefined || isNaN(days) || days < 0) return '\u2014';
     if (days === 0) return '< 1 jour';
     if (days < 30) return days + ' jour' + (days > 1 ? 's' : '');
-    var totalMonths = Math.floor(days / 30);
-    var remainDays = days % 30;
-    if (totalMonths < 12) {
-      if (remainDays === 0) return totalMonths + ' mois';
-      return totalMonths + ' mois, ' + remainDays + ' j';
+    if (days < 365) {
+      var months = Math.floor(days / 30);
+      var remain = days % 30;
+      if (remain === 0) return months + ' mois';
+      return months + ' mois, ' + remain + ' j';
     }
-    var years = Math.floor(totalMonths / 12);
-    var remainMonths = totalMonths % 12;
-    if (remainMonths === 0) return years + ' an' + (years > 1 ? 's' : '');
-    return years + ' an' + (years > 1 ? 's' : '') + ', ' + remainMonths + ' mois';
+    var years = Math.floor(days / 365);
+    var rest = days % 365;
+    var m = Math.floor(rest / 30);
+    var d = rest % 30;
+    var parts = [years + ' an' + (years > 1 ? 's' : '')];
+    if (m > 0) parts.push(m + ' mois');
+    if (d > 0) parts.push(d + ' j');
+    return parts.join(', ');
   }
 
   function formatDateFr(dateStr) {
