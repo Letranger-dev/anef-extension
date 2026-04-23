@@ -1640,7 +1640,9 @@
   var ACTIVITY_BADGE = {
     first_seen:    { label: 'Nouveau',     css: 'badge-type-new' },
     step_change:   { label: 'Étape',       css: 'badge-type-step' },
-    status_change: { label: 'Progression', css: 'badge-type-progress' }
+    status_change: { label: 'Progression', css: 'badge-type-progress' },
+    deposit:       { label: 'Dépôt',       css: 'badge-type-deposit' },
+    interview:     { label: 'Entretien',   css: 'badge-type-interview' }
   };
 
   function renderActivityPage() {
@@ -1829,17 +1831,48 @@
   function showDossierHistory(hash, backTo) {
     var summary = findSummary(hash);
     var history = activityState.transitions
-      .filter(function(t) { return t.hash === hash; })
-      .sort(function(a, b) {
-        // Trier par date_statut ASC (chronologie réelle du dossier)
-        var dsA = a.date_statut || '', dsB = b.date_statut || '';
-        if (dsA !== dsB) return dsA < dsB ? -1 : 1;
-        // Même date_statut → trier par étape ASC
-        var stepDiff = (a.toStep || 0) - (b.toStep || 0);
-        if (stepDiff !== 0) return stepDiff;
-        // Fallback : created_at ASC
-        return new Date(a.created_at) - new Date(b.created_at);
-      });
+      .filter(function(t) { return t.hash === hash; });
+
+    // Injecter Dépôt et Entretien comme étapes synthétiques si les dates existent.
+    // Ces étapes n'existent pas comme snapshots ANEF mais sont des jalons clés
+    // pour le dossier (date officielle de dépôt + date de l'entretien).
+    if (summary) {
+      if (summary.dateDepot) {
+        history.push({
+          type: 'deposit', hash: hash,
+          toStep: 2, toStatut: 'dossier_depose',
+          toSousEtape: '2', toExplication: 'Dossier déposé',
+          fromStep: null, fromStatut: '', fromSousEtape: null, fromExplication: null,
+          date_statut: summary.dateDepot,
+          created_at: summary.dateDepot + 'T00:00:00',
+          daysForTransition: null,
+          source: 'synthetic'
+        });
+      }
+      if (summary.dateEntretien) {
+        history.push({
+          type: 'interview', hash: hash,
+          toStep: 7, toStatut: 'ea_en_attente_ea',
+          toSousEtape: '7', toExplication: "Entretien d'assimilation",
+          fromStep: null, fromStatut: '', fromSousEtape: null, fromExplication: null,
+          date_statut: summary.dateEntretien,
+          created_at: summary.dateEntretien + 'T00:00:00',
+          daysForTransition: null,
+          source: 'synthetic'
+        });
+      }
+    }
+
+    history.sort(function(a, b) {
+      // Trier par date_statut ASC (chronologie réelle du dossier)
+      var dsA = a.date_statut || '', dsB = b.date_statut || '';
+      if (dsA !== dsB) return dsA < dsB ? -1 : 1;
+      // Même date_statut → trier par étape ASC
+      var stepDiff = (a.toStep || 0) - (b.toStep || 0);
+      if (stepDiff !== 0) return stepDiff;
+      // Fallback : created_at ASC
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
 
     // Build timeline HTML
     var timelineHtml = '';
@@ -1875,7 +1908,13 @@
       }
 
       var desc;
-      if (t.type === 'first_seen') {
+      if (t.type === 'deposit') {
+        desc = '\uD83D\uDCE8 D\u00e9p\u00f4t du dossier' +
+          '<br><span class="history-detail">Date officielle de d\u00e9p\u00f4t enregistr\u00e9e par l\'ANEF</span>';
+      } else if (t.type === 'interview') {
+        desc = '\uD83D\uDDE3\uFE0F Entretien d\'assimilation' +
+          '<br><span class="history-detail">Date de l\'entretien d\'assimilation</span>';
+      } else if (t.type === 'first_seen') {
         desc = 'Premi\u00e8re observation \u2014 \u00e9tape ' + t.toSousEtape +
           '<br><span class="history-detail">' + U.escapeHtml(t.toExplication || '') + '</span>' +
           '<br><span class="statut-code">(' + U.escapeHtml(t.toStatut.toUpperCase()) + ')</span>';

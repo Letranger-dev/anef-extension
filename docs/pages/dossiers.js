@@ -313,10 +313,64 @@
 
   function buildStatusTimeline(snaps) {
     if (!snaps || !snaps.length) return '';
+
+    // Enrichir avec jalons synthétiques : Dépôt + Entretien (si dates connues).
+    // Un clone du tableau pour ne pas muter la source.
+    var events = snaps.slice();
+    var first = snaps[0] || {};
+    var dateDepot = first.date_depot || null;
+    var dateEntretien = null;
+    for (var ei = 0; ei < snaps.length; ei++) {
+      if (snaps[ei].date_entretien) { dateEntretien = snaps[ei].date_entretien; break; }
+    }
+    if (dateDepot) {
+      events.push({ _synthetic: 'deposit', date_statut: dateDepot, etape: 2 });
+    }
+    if (dateEntretien) {
+      events.push({ _synthetic: 'interview', date_statut: dateEntretien, etape: 7 });
+    }
+    events.sort(function(a, b) {
+      var da = a.date_statut || '', db = b.date_statut || '';
+      if (da !== db) return da < db ? -1 : 1;
+      return (a.etape || 0) - (b.etape || 0);
+    });
+
     var html = '<div style="margin-top:0.75rem;padding-top:0.6rem">' +
       '<div class="detail-history-header">Historique des statuts</div>';
-    for (var j = 0; j < snaps.length; j++) {
-      var snap = snaps[j];
+    for (var j = 0; j < events.length; j++) {
+      var snap = events[j];
+
+      if (snap._synthetic === 'deposit' || snap._synthetic === 'interview') {
+        var synthLabel = snap._synthetic === 'deposit' ? '📨 Dépôt du dossier' : '🗣️ Entretien d\'assimilation';
+        var synthExpl = snap._synthetic === 'deposit'
+          ? 'Date officielle de dépôt'
+          : 'Date de l\'entretien d\'assimilation';
+        var synthColor = snap._synthetic === 'deposit' ? '#06b6d4' : '#f472b6';
+        var synthDate = snap.date_statut ? U.formatDateFr(snap.date_statut) : '';
+        // Durée jusqu'au prochain événement
+        var synthDur = '';
+        if (j < events.length - 1) {
+          var nextEv = events[j + 1];
+          var dd = (snap.date_statut && nextEv.date_statut) ? U.daysDiff(snap.date_statut, nextEv.date_statut) : null;
+          if (dd !== null) {
+            synthDur = '<span class="ts-duration" style="color:var(--text-dim);background:rgba(148,163,184,0.1)">' + U.formatDuration(dd) + ' jusqu\'au suivant</span>';
+          }
+        }
+        html += '<div class="timeline-step">' +
+          '<div class="timeline-dot-col">' +
+            '<div class="timeline-dot" style="background:' + synthColor + '"></div>' +
+            (j < events.length - 1 ? '<div class="timeline-line"></div>' : '') +
+          '</div>' +
+          '<div class="timeline-content">' +
+            '<div class="ts-status" style="color:' + synthColor + '">' + synthLabel + '</div>' +
+            '<div class="ts-expl">' + synthExpl + '</div>' +
+            (synthDate ? '<div class="ts-date">' + synthDate + '</div>' : '') +
+            synthDur +
+          '</div>' +
+        '</div>';
+        continue;
+      }
+
       var statutKey = (snap.statut || '').toLowerCase();
       var info = C.STATUTS[statutKey];
       var stepColor = C.STEP_COLORS[snap.etape] || '#64748b';
@@ -324,8 +378,8 @@
       var sousEtape = info ? C.formatSubStep(info.rang) : String(snap.etape);
 
       var durationHtml = '';
-      if (j < snaps.length - 1) {
-        var nextSnap = snaps[j + 1];
+      if (j < events.length - 1) {
+        var nextSnap = events[j + 1];
         var days = null;
         if (snap.date_statut && nextSnap.date_statut) {
           days = U.daysDiff(snap.date_statut, nextSnap.date_statut);
@@ -361,7 +415,7 @@
       html += '<div class="timeline-step">' +
         '<div class="timeline-dot-col">' +
           '<div class="timeline-dot" style="background:' + stepColor + '"></div>' +
-          (j < snaps.length - 1 ? '<div class="timeline-line"></div>' : '') +
+          (j < events.length - 1 ? '<div class="timeline-line"></div>' : '') +
         '</div>' +
         '<div class="timeline-content">' +
           '<div class="ts-status">' + U.escapeHtml(sousEtape) + ' \u2014 ' + U.escapeHtml(statutKey) + '</div>' +
