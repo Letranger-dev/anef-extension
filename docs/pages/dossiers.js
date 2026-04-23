@@ -272,7 +272,6 @@
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
-            '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
@@ -480,7 +479,6 @@
 
     return '<div class="dossier-card" style="--card-accent:' + color + '">' +
       '<div class="dossier-header">' +
-        '<span class="dossier-hash">#' + U.escapeHtml(s.hash) + '</span>' +
         '<span class="dossier-step-badge" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
       '</div>' +
       '<div class="dossier-progress">' +
@@ -535,8 +533,8 @@
     var buckets = {};
 
     grouped.forEach(function(snaps) {
-      var hash = snaps[0] ? (snaps[0].dossier_hash || '').substring(0, 6) : '';
-      var fullHash = snaps[0] ? snaps[0].dossier_hash : '';
+      var k = snaps[0] ? (snaps[0].public_id || snaps[0].dossier_hash) : '';
+      var hash = D.displayIdForFullHash(k);
       for (var i = 0; i < snaps.length - 1; i++) {
         var curr = snaps[i];
         var next = snaps[i + 1];
@@ -554,7 +552,7 @@
 
         if (!buckets[key]) buckets[key] = { etape: Number(curr.etape), phase: phase, statut: statutLower, rang: rang, explication: info ? info.explication : '', days: [], dossiers: [] };
         buckets[key].days.push(days);
-        buckets[key].dossiers.push({ hash: hash, fullHash: fullHash, days: days, dateFrom: curr.date_statut, dateTo: next.date_statut });
+        buckets[key].dossiers.push({ hash: hash, days: days, dateFrom: curr.date_statut, dateTo: next.date_statut });
       }
     });
 
@@ -752,11 +750,10 @@
       var dColor = summary ? C.getStepColor(summary.currentStep) : color;
       var daysColor = d.days >= 60 ? '#ef4444' : d.days >= 30 ? '#f59e0b' : '#10b981';
 
-      listHtml += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(d.hash) + '" data-full-hash="' + U.escapeHtml(d.fullHash) + '" data-days="' + d.days + '">' +
+      listHtml += '<div class="mouvement-dossier-item" data-hash="' + U.escapeHtml(d.hash) + '" data-days="' + d.days + '">' +
         '<span class="activity-dot" style="background:' + dColor + ';flex-shrink:0"></span>' +
         '<div class="mouvement-dossier-content">' +
           '<div class="mouvement-dossier-top">' +
-            '<span class="activity-hash">#' + U.escapeHtml(d.hash) + '</span>' +
             '<span class="detail-badge" style="background:' + dColor + ';font-size:0.7rem;padding:0.1rem 0.4rem">' +
               (summary ? U.escapeHtml(summary.sousEtape) : sousEtape) +
             '</span>' +
@@ -835,9 +832,8 @@
     for (var j = 0; j < items.length; j++) {
       items[j].addEventListener('click', function(ev) {
         var hash = ev.currentTarget.getAttribute('data-hash');
-        var fullHash = ev.currentTarget.getAttribute('data-full-hash');
         modal.classList.remove('open');
-        showDurationDossierDetail(hash, fullHash, { durationStep: stepInfo });
+        showDurationDossierDetail(hash, { durationStep: stepInfo });
       });
     }
 
@@ -873,9 +869,9 @@
     return '<div class="dossier-detail-info">' + items.join('') + '</div>';
   }
 
-  function showDurationDossierDetail(hash, fullHash, backTo) {
+  function showDurationDossierDetail(hash, backTo) {
     var summary = findSummaryByHash(hash);
-    var snaps = state.grouped.get(fullHash) || [];
+    var snaps = summary ? (state.grouped.get(summary.fullHash) || []) : [];
 
     var infoHtml = buildDossierInfoHtml(summary);
     var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '<div class="detail-section-label" style="color:var(--text-dim)">Aucun historique disponible</div>';
@@ -896,7 +892,7 @@
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
           '<button class="history-back" title="Retour">\u2190</button>' +
-          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<h3>Détails du dossier</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list">' +

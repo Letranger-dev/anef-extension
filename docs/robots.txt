@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Disallow: /data/
+
+# Empêcher l'archivage des JSON de statistiques par Wayback / autres archives
+User-agent: ia_archiver
+Disallow: /
+User-agent: archive.org_bot
+Disallow: /
 
 Sitemap: https://letranger-dev.github.io/anef-extension/sitemap.xml

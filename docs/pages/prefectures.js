@@ -399,7 +399,7 @@
         var days = U.daysDiff(cur.date_statut, endDate);
         if (days === null || days < 0) continue;
 
-        var entry = { days: days, hash: hash.substring(0, 6) };
+        var entry = { days: days, hash: D.displayIdForFullHash(hash) };
         var sLower = cur.statut ? cur.statut.toLowerCase() : '';
         if (Number(cur.etape) === 9 && sLower && STEP9_STATUTS.indexOf(sLower) !== -1) {
           var sKey = pref + '|' + sLower;
@@ -517,9 +517,12 @@
   // ─── Dossier detail modal (for heatmap links) ──────────
 
   function showHmDossierDetail(hash) {
-    // Find all snapshots for this dossier
+    // `hash` est le displayId (token aléatoire per-session). Retrouver les
+    // snapshots en comparant leur displayId (dérivé de public_id ou fallback
+    // dossier_hash pour JSON legacy).
     var snaps = state.snapshots.filter(function(s) {
-      return s.dossier_hash && s.dossier_hash.substring(0, 6) === hash;
+      var k = s.public_id || s.dossier_hash;
+      return k && D.displayIdForFullHash(k) === hash;
     }).sort(function(a, b) {
       var stepDiff = Number(a.etape) - Number(b.etape);
       if (stepDiff !== 0) return stepDiff;
@@ -600,7 +603,7 @@
     modal.innerHTML =
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
-          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<h3>Détails du dossier</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list" style="padding:0.5rem 1rem">' +
@@ -641,8 +644,8 @@
         '<div class="hm-popover-step">' + U.escapeHtml(step) + '</div>' +
         '<div class="hm-popover-stats">' +
           '<div class="hm-popover-row"><span>Dur\u00e9e moyenne</span><strong>' + U.formatDuration(avg) + '</strong></div>' +
-          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(minHash) + '"><span>Plus rapide</span><strong>' + U.formatDuration(min) + ' <span class="hm-hash-link">#' + U.escapeHtml(minHash) + '</span></strong></div>' +
-          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(maxHash) + '"><span>Plus long</span><strong>' + U.formatDuration(max) + ' <span class="hm-hash-link">#' + U.escapeHtml(maxHash) + '</span></strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(minHash) + '"><span>Plus rapide</span><strong>' + U.formatDuration(min) + '</strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(maxHash) + '"><span>Plus long</span><strong>' + U.formatDuration(max) + '</strong></div>' +
           '<div class="hm-popover-row"><span>Dossiers</span><strong>' + count + '</strong></div>' +
         '</div>';
 

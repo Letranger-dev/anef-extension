@@ -54,7 +54,9 @@
   }
 
   /** Fetch all snapshots from Supabase REST API (with pagination) — fallback */
-  var _COLUMNS = 'dossier_hash,statut,etape,phase,date_depot,date_statut,date_entretien,prefecture,domicile_code_postal,lieu_entretien,numero_decret,has_complement,source,created_at,checked_at';
+  // public_id = HMAC(secret serveur, dossier_hash) — opaque, non-reversible.
+  // dossier_hash retiré du select public pour éviter rainbow tables sur les numéros de dossier.
+  var _COLUMNS = 'public_id,statut,etape,phase,date_depot,date_statut,date_entretien,prefecture,domicile_code_postal,lieu_entretien,numero_decret,has_complement,source,created_at,checked_at';
 
   async function fetchFromSupabase() {
     var PAGE_SIZE = 1000;
@@ -169,13 +171,18 @@
     return cleaned;
   }
 
-  /** Group snapshots by dossier_hash => Map<hash, snapshot[]> */
+  /** Clé d'identité de dossier : public_id (nouveau JSON) ou dossier_hash (legacy). */
+  function _dossierKey(s) { return s.public_id || s.dossier_hash; }
+
+  /** Group snapshots by dossier identity => Map<key, snapshot[]> */
   function groupByDossier(snapshots) {
     var map = new Map();
     for (var i = 0; i < snapshots.length; i++) {
       var s = snapshots[i];
-      if (!map.has(s.dossier_hash)) map.set(s.dossier_hash, []);
-      map.get(s.dossier_hash).push(s);
+      var k = _dossierKey(s);
+      if (!k) continue;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(s);
     }
     map.forEach(function(snaps, hash) {
       // Normaliser les statuts en minuscules pour éviter les doublons auto/manual
@@ -215,6 +222,33 @@
       map.set(hash, deduped);
     });
     return map;
+  }
+
+  // Identifiant d'affichage opaque (random per-session) pour éviter
+  // que le hash SHA-256 du dossier soit visible / reversible via l'UI.
+  // fullHash reste en interne (clé de state.grouped) mais n'est jamais
+  // rendu dans le DOM ni dans un attribut data-*.
+  var _displayIdByFullHash = Object.create(null);
+  function generateDisplayId() {
+    // 5 chars base36 : ~60M combinaisons, collisions négligeables (<10k dossiers)
+    var id;
+    do {
+      id = Math.random().toString(36).substring(2, 7).padEnd(5, '0');
+    } while (_displayIdExists(id));
+    return id;
+  }
+  function _displayIdExists(id) {
+    for (var k in _displayIdByFullHash) {
+      if (_displayIdByFullHash[k] === id) return true;
+    }
+    return false;
+  }
+  function displayIdForFullHash(fullHash) {
+    if (!fullHash) return '';
+    if (!_displayIdByFullHash[fullHash]) {
+      _displayIdByFullHash[fullHash] = generateDisplayId();
+    }
+    return _displayIdByFullHash[fullHash];
   }
 
   /** Compute dossier summaries from grouped data */
@@ -290,7 +324,7 @@
       }
 
       summaries.push({
-        hash: hash.substring(0, 6),
+        hash: displayIdForFullHash(hash),
         fullHash: hash,
         currentStep: latest.etape,
         currentPhase: latest.phase || PHASE_NAMES[latest.etape] || 'Inconnu',
@@ -400,9 +434,10 @@
     var byDossier = {};
     for (var i = 0; i < snapshots.length; i++) {
       var s = snapshots[i];
-      if (!s.date_depot || !s.date_statut || !s.dossier_hash) continue;
-      if (!byDossier[s.dossier_hash]) byDossier[s.dossier_hash] = [];
-      byDossier[s.dossier_hash].push(s);
+      var k = _dossierKey(s);
+      if (!s.date_depot || !s.date_statut || !k) continue;
+      if (!byDossier[k]) byDossier[k] = [];
+      byDossier[k].push(s);
     }
 
     // For each dossier, take the earliest date_statut per (step or step9-substatut)
@@ -618,19 +653,19 @@
         if (filters.complement === 'with' && !s.hasComplement) return false;
         if (filters.complement === 'without' && s.hasComplement) return false;
       }
-      // Search by hash
+      // Search by displayId (hash SHA-256 non recherchable — opaque pour privacy)
       if (filters.search) {
         var q = filters.search.toLowerCase();
-        if (s.hash.toLowerCase().indexOf(q) === -1 && s.fullHash.toLowerCase().indexOf(q) === -1) return false;
+        if (s.hash.toLowerCase().indexOf(q) === -1) return false;
       }
       return true;
     });
   }
 
-  /** Get snapshots for a set of hashes */
+  /** Get snapshots for a set of dossier keys (public_id ou dossier_hash legacy) */
   function getSnapshotsForHashes(snapshots, hashes) {
     var set = new Set(hashes);
-    return snapshots.filter(function(s) { return set.has(s.dossier_hash); });
+    return snapshots.filter(function(s) { return set.has(_dossierKey(s)); });
   }
 
   /** Get unique prefectures from summaries */
@@ -656,6 +691,7 @@
     applyFilters: applyFilters,
     getSnapshotsForHashes: getSnapshotsForHashes,
     getUniquePrefectures: getUniquePrefectures,
-    normalizePrefecture: normalizePrefecture
+    normalizePrefecture: normalizePrefecture,
+    displayIdForFullHash: displayIdForFullHash
   };
 })();

@@ -440,7 +440,6 @@
           '<span class="activity-dot" style="background:' + dColor + ';flex-shrink:0"></span>' +
           '<div class="mouvement-dossier-content">' +
             '<div class="mouvement-dossier-top">' +
-              '<span class="activity-hash">#' + U.escapeHtml(s.hash) + '</span>' +
               '<span class="detail-badge" style="background:' + dColor + ';font-size:0.7rem;padding:0.1rem 0.4rem">' + U.escapeHtml(s.sousEtape) + '</span>' +
             '</div>' +
             '<div class="mouvement-dossier-desc">' + U.escapeHtml(s.explication) + '</div>' +
@@ -687,7 +686,6 @@
       html += '<div class="dossier-row dossier-clickable" style="' + staleStyle + '--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
-            '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
             '<span class="' + badge.cls + '">' + U.escapeHtml(badge.text) + '</span>' +
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
@@ -954,7 +952,6 @@
       html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
-            '<span class="dossier-row-hash">#' + U.escapeHtml(s.hash) + '</span>' +
             '<span class="' + badgeClass + '">' + badgeText + '</span>' +
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
@@ -1182,7 +1179,11 @@
     }
   }
 
-  /** Construit un objet transition-like depuis un snapshot et son précédent */
+  /**
+   * Construit un objet transition-like depuis un snapshot et son précédent.
+   * `hash` = clé du Map grouped (public_id ou dossier_hash legacy).
+   * On stocke le displayId pour permettre le lookup via findSummary(displayId).
+   */
   function snapshotToTransition(snap, prevSnap, hash) {
     var toStatut = (snap.statut || '').toLowerCase();
     var fromStatut = prevSnap ? (prevSnap.statut || '').toLowerCase() : '';
@@ -1192,7 +1193,7 @@
     var type = prevSnap ? (snap.etape === prevSnap.etape ? 'status_change' : 'step_change') : 'step_change';
     return {
       type: type,
-      hash: hash.substring(0, 6),
+      hash: D.displayIdForFullHash(hash),
       fromStep: prevSnap ? prevSnap.etape : null,
       toStep: snap.etape,
       fromStatut: fromStatut,
@@ -1313,7 +1314,6 @@
         '<span class="activity-dot" style="background:' + color + ';flex-shrink:0"></span>' +
         '<div class="mouvement-dossier-content">' +
           '<div class="mouvement-dossier-top">' +
-            '<span class="activity-hash">#' + U.escapeHtml(t.hash) + '</span>' +
             '<span class="badge-type ' + badge.css + '">' + badge.label + '</span>' +
             durHtml +
           '</div>' +
@@ -1562,6 +1562,10 @@
     var transitions = [];
 
     grouped.forEach(function(snaps, hash) {
+      // `hash` est la clé du Map (public_id ou dossier_hash legacy).
+      // On stocke le displayId (token aléatoire per-session) pour faire le lookup
+      // depuis les click handlers qui passent eux aussi des displayIds.
+      var displayId = D.displayIdForFullHash(hash);
       for (var i = 1; i < snaps.length; i++) {
         var prev = snaps[i - 1], cur = snaps[i];
         var sameStep = cur.etape === prev.etape;
@@ -1577,7 +1581,7 @@
         var type = sameStep ? 'status_change' : 'step_change';
         transitions.push({
           type: type,
-          hash: hash.substring(0, 6),
+          hash: displayId,
           fromStep: prev.etape,
           toStep: cur.etape,
           fromStatut: prev.statut ? prev.statut.toLowerCase() : '',
@@ -1597,7 +1601,7 @@
         var firstInfo = snaps[0].statut ? C.STATUTS[snaps[0].statut.toLowerCase()] : null;
         transitions.push({
           type: 'first_seen',
-          hash: hash.substring(0, 6),
+          hash: displayId,
           fromStep: null,
           toStep: snaps[0].etape,
           fromStatut: '',
@@ -1705,7 +1709,6 @@
 
       html += '<li class="activity-item activity-clickable" data-hash="' + U.escapeHtml(t.hash) + '">' +
         '<span class="activity-dot" style="background:' + color + '"></span>' +
-        '<span class="activity-hash">#' + U.escapeHtml(t.hash) + '</span>' +
         '<span class="activity-text">' + badgeHtml + text + '</span>' +
         '<span class="activity-time">' + U.formatDateTimeFr(t.created_at) + '</span>' +
         '</li>';
@@ -1945,7 +1948,7 @@
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
           backBtnHtml +
-          '<h3>Dossier #' + U.escapeHtml(hash) + '</h3>' +
+          '<h3>Détails du dossier</h3>' +
           '<button class="history-close" title="Fermer">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list">' +

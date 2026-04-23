@@ -21,9 +21,11 @@ const PAGE_SIZE = 1000;
 const OUT_DIR = path.join(__dirname, '..', 'docs', 'data');
 const OUT_FILE = path.join(OUT_DIR, 'snapshots.json');
 
-// Only columns the site actually uses (data.js processing functions)
+// Only columns the site actually uses (data.js processing functions).
+// IMPORTANT : on expose public_id (HMAC serveur) mais PAS dossier_hash
+// (SHA-256 réversible par rainbow table sur les numéros de dossier).
 const COLUMNS = [
-  'dossier_hash', 'statut', 'etape', 'phase',
+  'public_id', 'statut', 'etape', 'phase',
   'date_depot', 'date_statut', 'date_entretien',
   'prefecture', 'domicile_code_postal', 'lieu_entretien',
   'numero_decret', 'has_complement', 'source',

@@ -156,7 +156,7 @@
       for (var p = 0; p < state.summaries.length; p++) {
         if (state.summaries[p].prefecture === pref) prefHashes[state.summaries[p].fullHash] = true;
       }
-      snaps = snaps.filter(function(s) { return prefHashes[s.dossier_hash]; });
+      snaps = snaps.filter(function(s) { return prefHashes[s.public_id || s.dossier_hash]; });
     }
 
     // Group days since deposit by rang

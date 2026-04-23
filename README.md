@@ -77,12 +77,13 @@ L'extension propose un **tableau de bord public** avec des statistiques anonymes
 La confidentialite de vos donnees est notre priorite absolue. Voici les garanties :
 
 - **Aucune donnee personnelle n'est collectee** : ni nom, ni email, ni numero de dossier en clair
-- **Hash SHA-256 irreversible** : votre numero de dossier est transforme en empreinte cryptographique a sens unique — il est mathematiquement impossible de retrouver le numero original
+- **Pseudonymisation renforcee** : le numero de dossier est remplace par un identifiant opaque non-reversible vers le numero d'origine
+- **Zero identifiant visible dans l'interface** : les dossiers sont affiches uniquement par leurs metadonnees (statut, prefecture, dates)
 - **Dates tronquees** : seul le jour est conserve (pas l'heure)
 - **Code source ouvert** : le code de collecte (`lib/anonymous-stats.js`) est entierement lisible et verifiable
 - **Aucun cookie, aucun tracking** : le site de stats n'utilise ni cookies ni outils d'analyse
 
-Les donnees collectees sont : empreinte SHA-256 du dossier, statut, etape, phase, prefecture, code postal et ville du domicile, type de demande, presence d'un complement, dates (depot, statut, entretien), lieu d'entretien, numero de decret, version de l'extension et horodatage de verification. La liste complete est detaillee dans [PRIVACY.md](PRIVACY.md).
+Les metadonnees collectees sont detaillees dans [PRIVACY.md](PRIVACY.md).
 
 ## Codes statut
 
