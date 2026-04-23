@@ -268,7 +268,7 @@
     }
     var decretKeys = Object.keys(decretMap);
     if (decretKeys.length > 0) {
-      decretKeys.sort();
+      decretKeys.sort(sortDecretNum);
       var lastDecret = decretKeys[decretKeys.length - 1];
       var lastDecretDossiers = decretMap[lastDecret];
       var card = document.getElementById('kpi-decret-card');
@@ -276,9 +276,43 @@
       U.setText('kpi-decret', lastDecret);
       var totalDossiers = 0;
       for (var dk = 0; dk < decretKeys.length; dk++) totalDossiers += decretMap[decretKeys[dk]].length;
-      U.setText('kpi-decret-sub', decretKeys.length + ' d\u00e9cret' + (decretKeys.length > 1 ? 's' : '') + ' \u2014 ' + totalDossiers + ' dossier' + (totalDossiers > 1 ? 's' : ''));
+      var lastPublished = isDecretPublished(lastDecretDossiers);
+      var lastBadgeCls = lastPublished ? 'decret-status decret-status-pub' : 'decret-status decret-status-pending';
+      var lastBadgeTxt = lastPublished ? 'Publi\u00e9 au JO' : 'En attente JO';
+      var countTxt = decretKeys.length + ' d\u00e9cret' + (decretKeys.length > 1 ? 's' : '') + ' \u2014 ' + totalDossiers + ' dossier' + (totalDossiers > 1 ? 's' : '');
+      var subEl = document.getElementById('kpi-decret-sub');
+      if (subEl) {
+        subEl.innerHTML =
+          '<span class="' + lastBadgeCls + '">' + lastBadgeTxt + '</span>' +
+          '<span class="kpi-decret-count">' + U.escapeHtml(countTxt) + '</span>';
+      }
       card.onclick = function() { showAllDecrets(decretMap); };
     }
+  }
+
+  // Un d\u00e9cret est publi\u00e9 au JO d\u00e8s qu'au moins un de ses dossiers
+  // atteint le statut "decret_naturalisation_publie" (ou variantes \u00e9tape 12).
+  function isDecretPublished(dossiers) {
+    if (!dossiers) return false;
+    for (var i = 0; i < dossiers.length; i++) {
+      var statut = String(dossiers[i].statut || '').toLowerCase();
+      if (statut === 'decret_naturalisation_publie' ||
+          statut === 'decret_naturalisation_publie_jo' ||
+          statut === 'decret_publie') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Tri naturel des num\u00e9ros de d\u00e9cret : "9" < "10" < "161".
+  function sortDecretNum(a, b) {
+    var na = parseInt(a, 10);
+    var nb = parseInt(b, 10);
+    var pureA = !isNaN(na) && String(na) === String(a);
+    var pureB = !isNaN(nb) && String(nb) === String(b);
+    if (pureA && pureB) return na - nb;
+    return String(a).localeCompare(String(b), 'fr', { numeric: true });
   }
 
   function renderTimeline(summaries) {
@@ -1948,17 +1982,22 @@
 
   function showAllDecrets(decretMap) {
     _allDecretMap = decretMap;
-    var keys = Object.keys(decretMap).sort().reverse(); // plus récent en premier
+    var keys = Object.keys(decretMap).sort(sortDecretNum).reverse(); // plus récent en premier
     var html = '';
 
     for (var k = 0; k < keys.length; k++) {
       var num = keys[k];
       var dossiers = decretMap[num];
-      html += '<div class="decret-list-item" data-decret="' + U.escapeHtml(num) + '">' +
+      var pub = isDecretPublished(dossiers);
+      var itemCls = pub ? 'decret-list-item is-published' : 'decret-list-item is-pending';
+      var badgeCls = pub ? 'decret-status decret-status-pub' : 'decret-status decret-status-pending';
+      var badgeTxt = pub ? 'Publi\u00e9 au JO' : 'En attente JO';
+      html += '<div class="' + itemCls + '" data-decret="' + U.escapeHtml(num) + '">' +
         '<div class="decret-list-left">' +
           '<span class="decret-list-num">' + U.escapeHtml(num) + '</span>' +
           '<span class="decret-list-count">' + dossiers.length + ' dossier' + (dossiers.length > 1 ? 's' : '') + '</span>' +
         '</div>' +
+        '<span class="decret-list-status-wrap"><span class="' + badgeCls + '">' + badgeTxt + '</span></span>' +
         '<span class="mouvement-chevron">\u203a</span>' +
       '</div>';
     }
