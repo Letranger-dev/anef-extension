@@ -336,6 +336,8 @@
       'verification_formelle_a_traiter': 'Re\u00e7u, tri', 'verification_formelle_en_cours': 'Tri en cours',
       'verification_formelle_mise_en_demeure': 'Mise en demeure', 'css_mise_en_demeure_a_affecter': 'CSS en cours',
       'css_mise_en_demeure_a_rediger': 'CSS r\u00e9daction',
+      'css_manuels_a_affecter': 'CSS manuel', 'css_manuels_a_rediger': 'CSS man. r\u00e9dac.',
+      'css_automatiques_a_affecter': 'CSS auto', 'css_automatiques_a_rediger': 'CSS auto r\u00e9dac.',
       'instruction_a_affecter': 'Recevable',
       'instruction_recepisse_completude_a_envoyer': 'Dossier complet',
       'instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter': 'Compl\u00e9ment re\u00e7u',

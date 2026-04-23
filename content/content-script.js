@@ -120,14 +120,7 @@
       // Lancer la connexion automatique
       case 'DO_AUTO_LOGIN':
         logger.info('🔐 Auto-login demandé');
-        injectAutoLoginScript();
-        setTimeout(() => {
-          window.postMessage({
-            source: 'ANEF_EXTENSION',
-            type: 'DO_AUTO_LOGIN',
-            credentials: message.credentials
-          }, window.location.origin);
-        }, 500);
+        postAutoLoginWhenReady(message.credentials);
         sendResponse({ started: true });
         return true;
 
@@ -156,6 +149,7 @@
   // ─────────────────────────────────────────────────────────────
 
   let autoLoginInjected = false;
+  let autoLoginReady = false;
 
   function injectAutoLoginScript() {
     if (autoLoginInjected) return;
@@ -170,6 +164,42 @@
     script.onerror = () => logger.error('Erreur injection auto-login');
 
     (document.documentElement || document.head || document.body).appendChild(script);
+  }
+
+  /**
+   * Poste DO_AUTO_LOGIN dès que le script auto-login a signalé AUTO_LOGIN_READY.
+   * Évite la race où le message partait avant que le listener soit installé
+   * (le setTimeout(500) précédent pouvait être trop court sur une page lente).
+   */
+  function postAutoLoginWhenReady(credentials) {
+    const post = () => window.postMessage({
+      source: 'ANEF_EXTENSION',
+      type: 'DO_AUTO_LOGIN',
+      credentials
+    }, window.location.origin);
+
+    injectAutoLoginScript();
+
+    if (autoLoginReady) { post(); return; }
+
+    // Timeout de sécurité : si AUTO_LOGIN_READY n'arrive jamais (script cassé),
+    // tenter quand même après 3s pour ne pas bloquer le service worker.
+    let timer = setTimeout(() => {
+      logger.warn('AUTO_LOGIN_READY non reçu après 3s, envoi forcé');
+      window.removeEventListener('message', onReady);
+      post();
+    }, 3000);
+
+    const onReady = (event) => {
+      if (event.source !== window) return;
+      if (event.data?.source !== 'ANEF_AUTO_LOGIN') return;
+      if (event.data.type !== 'AUTO_LOGIN_READY') return;
+      clearTimeout(timer);
+      autoLoginReady = true;
+      window.removeEventListener('message', onReady);
+      post();
+    };
+    window.addEventListener('message', onReady);
   }
 
   // Écouter les résultats du script auto-login

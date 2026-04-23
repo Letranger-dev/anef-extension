@@ -178,6 +178,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleFetchComplete(message.data);
       break;
 
+    // Signaux du script auto-login (relayés par content-script.js)
+    case 'LOGIN_CLICKED':
+    case 'LOGIN_SUBMITTED':
+    case 'LOGIN_SUCCESS':
+      logger.info('🔐 ' + message.type);
+      handleLoginSignal(message.type, message.data);
+      break;
+    case 'LOGIN_FAILED':
+    case 'NEED_CLICK_LOGIN':
+      logger.warn('🔐 ' + message.type + ':', message.data?.error);
+      handleLoginSignal(message.type, message.data);
+      break;
+
     // Récupérer le statut pour le popup
     case 'GET_STATUS':
       getStatusForPopup().then(sendResponse);
@@ -443,6 +456,21 @@ function handleFetchComplete(data) {
   };
 }
 
+/**
+ * Signal de résultat du script auto-login (LOGIN_CLICKED, LOGIN_SUBMITTED,
+ * LOGIN_SUCCESS, LOGIN_FAILED, NEED_CLICK_LOGIN). Permet à backgroundRefresh
+ * de réagir immédiatement au lieu d'attendre un sleep de 5-8s puis de boucler.
+ */
+let loginSignal = null;
+
+function handleLoginSignal(type, data) {
+  loginSignal = {
+    type,
+    reason: data?.error || null,
+    timestamp: Date.now()
+  };
+}
+
 /** Traite les notifications */
 async function handleNotifications(data) {
   if (!data) return;
@@ -604,6 +632,29 @@ function abortableSleep(ms, signal) {
   return new Promise(resolve => {
     const timer = setTimeout(resolve, ms);
     signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+  });
+}
+
+/**
+ * Attend jusqu'à `ms` OU jusqu'à ce que `check()` retourne truthy.
+ * Utilisé pour sortir rapidement quand un LOGIN_FAILED / LOGIN_SUCCESS
+ * arrive pendant un sleep post-login, au lieu d'attendre les 5-8s complets.
+ * Retourne 'signal' / 'aborted' / 'timeout'.
+ */
+function sleepUntilSignal(ms, signal, check) {
+  if (signal.aborted) return Promise.resolve('aborted');
+  return new Promise((resolve) => {
+    const start = Date.now();
+    let done = false;
+    const finish = (reason) => { if (!done) { done = true; resolve(reason); } };
+    signal.addEventListener('abort', () => finish('aborted'), { once: true });
+    const tick = () => {
+      if (done) return;
+      if (check()) return finish('signal');
+      if (Date.now() - start >= ms) return finish('timeout');
+      setTimeout(tick, 300);
+    };
+    tick();
   });
 }
 
@@ -799,11 +850,13 @@ async function backgroundRefresh() {
           needsLogin = true;
           loginAttempted.anef = true;
           fetchCompleteSignal = null; // Signal pré-login obsolète
+          loginSignal = null;         // Reset signal login pour ce tour
 
-          // Attendre que Angular soit prêt
-          await abortableSleep(3000, abortController.signal);
+          // Attendre que Angular soit prêt (MutationObserver côté auto-login)
+          await abortableSleep(1500, abortController.signal);
           if (abortController.signal.aborted) continue;
 
+          const sendRef = Date.now();
           try {
             await chrome.tabs.sendMessage(tabId, {
               type: 'DO_AUTO_LOGIN',
@@ -814,8 +867,14 @@ async function backgroundRefresh() {
             logger.warn('Erreur auto-login ANEF:', e.message);
           }
 
-          // Attendre la redirection vers SSO
-          await abortableSleep(5000, abortController.signal);
+          // Attendre la redirection ou un signal explicite du script auto-login.
+          // Sort tôt sur LOGIN_CLICKED / LOGIN_FAILED / NEED_CLICK_LOGIN.
+          const result = await sleepUntilSignal(5000, abortController.signal,
+            () => loginSignal && loginSignal.timestamp >= sendRef);
+          if (result === 'signal' && (loginSignal.type === 'LOGIN_FAILED' || loginSignal.type === 'NEED_CLICK_LOGIN')) {
+            logger.warn('⚠️ Login ANEF échoué:', loginSignal.reason);
+            break;
+          }
           continue;
         }
 
@@ -824,11 +883,13 @@ async function backgroundRefresh() {
           logger.info('🔐 Page SSO détectée');
           loginAttempted.sso = true;
           fetchCompleteSignal = null; // Signal pré-login obsolète
+          loginSignal = null;
 
-          // Attendre que le formulaire soit prêt
-          await abortableSleep(2000, abortController.signal);
+          // Attendre que le formulaire soit prêt (MutationObserver côté auto-login)
+          await abortableSleep(1000, abortController.signal);
           if (abortController.signal.aborted) continue;
 
+          const sendRef = Date.now();
           try {
             await chrome.tabs.sendMessage(tabId, {
               type: 'DO_AUTO_LOGIN',
@@ -839,8 +900,13 @@ async function backgroundRefresh() {
             logger.warn('Erreur auto-login SSO:', e.message);
           }
 
-          // Attendre la soumission et redirection
-          await abortableSleep(8000, abortController.signal);
+          // Attendre la soumission + redirection, ou sortir tôt sur échec.
+          const result = await sleepUntilSignal(8000, abortController.signal,
+            () => loginSignal && loginSignal.timestamp >= sendRef);
+          if (result === 'signal' && loginSignal.type === 'LOGIN_FAILED') {
+            logger.warn('⚠️ Login SSO échoué:', loginSignal.reason);
+            break;
+          }
           continue;
         }
 

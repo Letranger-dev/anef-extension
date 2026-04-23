@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.33.3';
+  var SITE_VERSION = '1.33.4';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -124,6 +124,26 @@
       phase: "Instruction", explication: "Compléments reçus, à vérifier", etape: 5, rang: 502,
       description: "Vous avez fourni des documents complémentaires suite à une demande de l'instructeur. L'agent vérifie leur conformité avant de poursuivre l'instruction de votre dossier.",
       icon: "\uD83D\uDCCB"
+    },
+    "css_manuels_a_affecter": {
+      phase: "Classement sans suite", explication: "Proposition de CSS manuel, à affecter", etape: 5, rang: 503,
+      description: "Un agent a proposé un classement sans suite de votre dossier (réponse à un complément jugée insuffisante, désistement présumé, ou autre motif). La proposition attend d'être affectée à un agent pour rédaction. Ce n'est pas encore une décision notifiée : contactez rapidement votre préfecture pour fournir les pièces manquantes ou clarifier votre situation.",
+      icon: "\u26A0\uFE0F"
+    },
+    "css_manuels_a_rediger": {
+      phase: "Classement sans suite", explication: "CSS manuel, rédaction en cours", etape: 5, rang: 504,
+      description: "La proposition de classement sans suite manuel est en cours de rédaction par un agent. Ce n'est pas encore une décision notifiée : contactez rapidement votre préfecture si vous avez transmis les pièces demandées.",
+      icon: "\u26A0\uFE0F"
+    },
+    "css_automatiques_a_affecter": {
+      phase: "Classement sans suite", explication: "Proposition de CSS automatique, à affecter", etape: 5, rang: 505,
+      description: "Le système a automatiquement proposé un classement sans suite (absence de réponse dans les délais impartis). La proposition attend d'être affectée à un agent pour rédaction. Contactez rapidement votre préfecture pour fournir les pièces manquantes.",
+      icon: "\u26A0\uFE0F"
+    },
+    "css_automatiques_a_rediger": {
+      phase: "Classement sans suite", explication: "CSS automatique, rédaction en cours", etape: 5, rang: 506,
+      description: "Un classement sans suite automatique (déclenché par le système) est en cours de rédaction. Contactez rapidement votre préfecture si vous avez transmis les pièces demandées.",
+      icon: "\u26A0\uFE0F"
     },
 
     // ── Étape 6 : Complétude & enquêtes ──────────────────────────

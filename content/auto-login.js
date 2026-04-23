@@ -23,15 +23,36 @@
   // Utilitaires
   // ─────────────────────────────────────────────────────────────
 
-  /** Attend qu'un élément soit présent dans le DOM */
-  async function waitForElement(selector, timeout = 15000) {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      const element = document.querySelector(selector);
-      if (element) return element;
-      await sleep(300);
-    }
-    return null;
+  /**
+   * Attend qu'un élément soit présent dans le DOM.
+   * Utilise MutationObserver (insensible au throttle setTimeout dans les
+   * fenêtres minimisées où backgroundRefresh s'exécute).
+   */
+  function waitForElement(selector, timeout = 15000) {
+    const immediate = document.querySelector(selector);
+    if (immediate) return Promise.resolve(immediate);
+
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (el) => {
+        if (done) return;
+        done = true;
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve(el);
+      };
+
+      const observer = new MutationObserver(() => {
+        const el = document.querySelector(selector);
+        if (el) finish(el);
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true, subtree: true
+      });
+
+      const timer = setTimeout(() => finish(document.querySelector(selector) || null), timeout);
+    });
   }
 
   /** Simule une saisie de texte */
@@ -216,5 +237,7 @@
   });
 
   log('Script auto-login chargé');
+  // Signal de disponibilité pour éviter la race avec le content-script
+  notifyExtension('AUTO_LOGIN_READY', {});
 
 })();
