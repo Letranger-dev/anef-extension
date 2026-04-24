@@ -219,6 +219,23 @@
           deduped.push(cur);
         }
       }
+      // Filet de sécurité contre la contamination cross-dossier (pre-v2.5.8) :
+      // l'étape ANEF est strictement monotone croissante. Toute entrée dont
+      // l'étape dépasse la dernière observation automatique est soit une
+      // rectification erronée, soit un snapshot phantom issu d'un autre dossier.
+      // On les retire pour éviter des transitions impossibles (ex: 11.1 → 8.1).
+      var lastAutoEtape = 0;
+      for (var ai = deduped.length - 1; ai >= 0; ai--) {
+        if (deduped[ai].source === 'auto' || !deduped[ai].source) {
+          lastAutoEtape = deduped[ai].etape || 0;
+          break;
+        }
+      }
+      if (lastAutoEtape > 0) {
+        deduped = deduped.filter(function(s) {
+          return (s.etape || 0) <= lastAutoEtape;
+        });
+      }
       map.set(hash, deduped);
     });
     return map;

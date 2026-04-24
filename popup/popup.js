@@ -167,6 +167,64 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   attachEventListeners();
   await loadData();
+  await checkDossierSwitchNotice();
+});
+
+// ─────────────────────────────────────────────────────────────
+// Bannière "changement de dossier détecté"
+// ─────────────────────────────────────────────────────────────
+
+async function checkDossierSwitchNotice() {
+  try {
+    const { dossierSwitchNotice } = await chrome.storage.local.get('dossierSwitchNotice');
+    if (!dossierSwitchNotice || dossierSwitchNotice.acknowledged) return;
+    showDossierSwitchBanner();
+  } catch (e) {
+    console.warn('[Popup] Erreur lecture dossierSwitchNotice:', e);
+  }
+}
+
+function showDossierSwitchBanner() {
+  const banner = document.getElementById('dossier-switch-banner');
+  if (!banner) return;
+  banner.classList.remove('hidden');
+
+  document.getElementById('btn-dossier-switch-dismiss')?.addEventListener('click', async () => {
+    await dismissDossierSwitchNotice();
+    banner.classList.add('hidden');
+  });
+
+  document.getElementById('btn-dossier-switch-analyze')?.addEventListener('click', async () => {
+    await dismissDossierSwitchNotice();
+    banner.classList.add('hidden');
+    refreshInBackground();
+  });
+}
+
+async function dismissDossierSwitchNotice() {
+  try {
+    const { dossierSwitchNotice } = await chrome.storage.local.get('dossierSwitchNotice');
+    if (dossierSwitchNotice) {
+      await chrome.storage.local.set({
+        dossierSwitchNotice: { ...dossierSwitchNotice, acknowledged: true }
+      });
+    }
+  } catch (e) {
+    console.warn('[Popup] Erreur dismiss notice:', e);
+  }
+}
+
+// Écoute en temps réel : si l'utilisateur est dans la popup quand un
+// changement de dossier est détecté par le service-worker, afficher
+// immédiatement la bannière.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.dossierSwitchNotice) return;
+  const notice = changes.dossierSwitchNotice.newValue;
+  if (notice && !notice.acknowledged) {
+    showDossierSwitchBanner();
+    // Recharger les données pour refléter le nouveau dossier
+    loadData().catch(() => {});
+  }
 });
 
 /** Attache les gestionnaires d'événements */

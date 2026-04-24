@@ -11,7 +11,7 @@
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
-import { sendAnonymousStats, sendManualStepDates } from '../lib/anonymous-stats.js';
+import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -326,6 +326,37 @@ async function handleDossierData(data) {
       await storage.saveApiData(apiData);
     }
 
+    // ── Détection de changement de dossier ──
+    // Si l'ID du dossier reçu diffère de celui stocké, on est sur un autre
+    // dossier (ex: utilisateur + conjoint sur le même navigateur). Sans reset,
+    // history / stepDates / lastStatus accumulent des entrées issues des DEUX
+    // dossiers → transitions impossibles (ex: 11.1 → 8.1) et contamination
+    // Supabase via sendManualStepDates.
+    const newId = data.id ? String(data.id) : null;
+    const oldId = apiData.dossierId ? String(apiData.dossierId) : null;
+    if (newId && oldId && oldId !== newId) {
+      logger.warn('🔀 Changement de dossier détecté, reset des données locales', { oldId, newId });
+      await storage.resetForNewDossier(newId);
+      // Flag consommé par la popup pour afficher une bannière explicative.
+      await chrome.storage.local.set({
+        dossierSwitchNotice: {
+          at: new Date().toISOString(),
+          previousId: oldId,
+          newId: newId,
+          acknowledged: false
+        }
+      });
+      // Notification de changement de dossier (l'utilisateur doit savoir que
+      // la popup affiche un autre dossier qu'avant)
+      await sendDossierChangedNotification(newId, oldId);
+      // Skip la notification de changement de statut — on est sur un NOUVEAU
+      // dossier, toute comparaison avec l'ancien lastStatus est invalide.
+      await storage.saveStatus(data);
+      await updateBadge(data.statut);
+      logger.info('✅ Nouveau dossier sauvegardé après reset');
+      return;
+    }
+
     // Vérifier si le statut a changé
     const hasChanged = await storage.hasStatusChanged(data);
     if (hasChanged) {
@@ -347,8 +378,24 @@ async function handleDossierData(data) {
 async function handleDossierStepper(data) {
   if (!data?.dossier?.id) return;
 
+  const newId = String(data.dossier.id);
   const apiData = await storage.getApiData() || {};
-  apiData.dossierId = data.dossier.id;
+  const oldId = apiData.dossierId ? String(apiData.dossierId) : null;
+
+  // Détection de changement de dossier : si l'ID actuel diffère du précédent,
+  // on wipe history / stepDates / lastStatus pour éviter le mélange entre
+  // deux dossiers (ex: utilisateur + conjoint sur le même navigateur).
+  // Sans ce reset, les transitions affichées sur le site peuvent être
+  // incohérentes (ex: 11.1 → 8.1) et les stepDates se mélangent.
+  if (oldId && oldId !== newId) {
+    logger.warn('🔀 Changement de dossier détecté, reset des données locales', {
+      oldId, newId
+    });
+    await storage.resetForNewDossier(newId);
+    return;
+  }
+
+  apiData.dossierId = newId;
   await storage.saveApiData(apiData);
 }
 
@@ -374,10 +421,33 @@ async function handleApiData(data) {
   await storage.saveApiData(apiData);
   logger.info('✅ Données API sauvegardées');
 
-  // Statistiques anonymes communautaires (fire-and-forget)
+  // Statistiques anonymes communautaires + rehydrate post-switch
   const lastStatus = await storage.getLastStatus();
   if (lastStatus) {
-    sendAnonymousStats(lastStatus, apiData).catch(() => {});
+    // Lit le flag dossierSwitchNotice.acknowledged=false pour déclencher
+    // la réhydratation complète depuis Supabase lors du changement de dossier.
+    const { dossierSwitchNotice } = await chrome.storage.local.get('dossierSwitchNotice');
+    const isPostSwitch = dossierSwitchNotice && !dossierSwitchNotice.rehydrated
+      && dossierSwitchNotice.newId === apiData.dossierId;
+
+    const result = await sendAnonymousStats(lastStatus, apiData).catch(e => {
+      logger.warn('sendAnonymousStats error', e.message);
+      return null;
+    });
+
+    // Rehydrate local depuis le serveur si on vient de basculer sur un dossier déjà connu
+    if (isPostSwitch && result?.history?.length) {
+      try {
+        const count = await rehydrateLocalHistoryFromServer(result.history);
+        logger.info('🔁 Rehydrate depuis Supabase post-switch', { entrees: count });
+        // Marquer comme rehydraté pour éviter de refaire la manip
+        await chrome.storage.local.set({
+          dossierSwitchNotice: { ...dossierSwitchNotice, rehydrated: true }
+        });
+      } catch (e) {
+        logger.warn('Rehydrate échoué', e.message);
+      }
+    }
   }
 }
 
@@ -499,10 +569,31 @@ async function sendStatusChangeNotification(data) {
 
 // Clic sur la notification → ouvre le popup
 chrome.notifications.onClicked.addListener((notifId) => {
-  if (notifId.startsWith('anef-status-')) {
+  if (notifId.startsWith('anef-status-') || notifId.startsWith('anef-dossier-switch-')) {
     chrome.notifications.clear(notifId);
   }
 });
+
+/** Notifie l'utilisateur qu'un autre dossier est en cours de suivi */
+async function sendDossierChangedNotification(newId, oldId) {
+  const settings = await storage.getSettings();
+  if (!settings.notificationsEnabled) return;
+  const notifId = 'anef-dossier-switch-' + Date.now();
+  try {
+    await chrome.notifications.create(notifId, {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL('assets/icon-128.png'),
+      title: 'Dossier ANEF changé',
+      message: 'Un nouveau dossier est désormais suivi. L\'historique local a été réinitialisé pour éviter le mélange de données.',
+      priority: 1,
+      silent: false,
+      requireInteraction: false
+    });
+    logger.info('Notification changement de dossier envoyée', { notifId, newId, oldId });
+  } catch (error) {
+    logger.error('Erreur notification dossier:', error.message);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Badge de l'extension

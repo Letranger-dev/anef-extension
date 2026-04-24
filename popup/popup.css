@@ -652,6 +652,68 @@ body {
   font-size: 0.85em;
 }
 
+/* ─── Dossier switch banner ────────────────────────────────── */
+
+.dossier-switch-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: 8px 12px 4px;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border: 1px solid #3b82f6;
+  border-radius: 10px;
+}
+
+.dossier-switch-banner.hidden { display: none; }
+
+.dossier-switch-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dossier-switch-banner-icon {
+  font-size: 1.4em;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.dossier-switch-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85em;
+  color: #1e3a8a;
+  line-height: 1.35;
+}
+
+.dossier-switch-banner-text strong {
+  font-size: 1em;
+  color: #1e40af;
+}
+
+.dossier-switch-banner-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85em;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #1e3a8a;
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
 /* ─── Step dates alert ─────────────────────────────────────── */
 
 .step-dates-alert {
