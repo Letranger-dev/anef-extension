@@ -142,6 +142,53 @@
       </div>
     </nav>
 
+    <!-- Bannière : erreur générique après refresh -->
+    <div id="refresh-error-banner" class="refresh-error-banner hidden">
+      <div class="refresh-error-banner-content">
+        <span class="refresh-error-banner-icon">⚠️</span>
+        <div class="refresh-error-banner-text">
+          <strong id="refresh-error-title">Actualisation échouée</strong>
+          <span id="refresh-error-message">—</span>
+        </div>
+      </div>
+      <div class="refresh-error-banner-actions">
+        <button id="btn-refresh-error-open-anef" class="btn btn-secondary btn-sm">Ouvrir ANEF</button>
+        <button id="btn-refresh-error-dismiss" class="btn btn-ghost btn-sm">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Bannière : pas d'identifiants enregistrés pour le primaire -->
+    <div id="no-creds-banner" class="no-creds-banner hidden">
+      <div class="no-creds-banner-content">
+        <span class="no-creds-banner-icon">🔑</span>
+        <div class="no-creds-banner-text">
+          <strong>Identifiants non enregistrés</strong>
+          <span>Si ta session ANEF expire, l'actualisation échouera. Enregistre-les pour l'auto-check.</span>
+        </div>
+      </div>
+      <button id="btn-no-creds-open-settings" class="btn btn-primary btn-sm">Configurer</button>
+    </div>
+
+    <!-- Bannière : refresh a ramené le mauvais dossier (session ANEF sur autre compte) -->
+    <div id="wrong-account-banner" class="wrong-account-banner hidden">
+      <div class="wrong-account-header">
+        <span class="wrong-account-icon">⚠️</span>
+        <div class="wrong-account-text">
+          <strong>Mauvais compte ANEF connecté</strong>
+          <div class="wrong-account-details">
+            Tu voulais actualiser <strong id="wrong-account-expected">—</strong> mais le site ANEF est connecté avec le dossier <strong id="wrong-account-fetched">—</strong>.
+          </div>
+          <div class="wrong-account-hint">
+            Pour actualiser le bon dossier, déconnecte-toi d'ANEF et reconnecte-toi avec les identifiants du dossier principal.
+          </div>
+        </div>
+      </div>
+      <div class="wrong-account-actions">
+        <button id="btn-wrong-account-logout" class="btn btn-primary btn-sm">Ouvrir ANEF pour se déconnecter</button>
+        <button id="btn-wrong-account-dismiss" class="btn btn-ghost btn-sm" title="Masquer">✕</button>
+      </div>
+    </div>
+
     <!-- Bannière : changement de dossier détecté -->
     <div id="dossier-switch-banner" class="dossier-switch-banner hidden">
       <div class="dossier-switch-banner-content">
@@ -152,7 +199,7 @@
         </div>
       </div>
       <div class="dossier-switch-banner-actions">
-        <button id="btn-dossier-switch-analyze" class="btn btn-primary btn-sm">Analyser maintenant</button>
+        <button id="btn-dossier-switch-analyze" class="btn btn-primary btn-sm">Voir ce dossier</button>
         <button id="btn-dossier-switch-dismiss" class="btn btn-ghost btn-sm" title="Masquer">✕</button>
       </div>
     </div>
@@ -244,15 +291,30 @@
 
       <!-- Actions spécifiques aux dossiers secondaires (cachées par défaut) -->
       <div id="secondary-actions" class="secondary-actions hidden">
-        <div class="secondary-actions-hint">
-          Dossier secondaire · actualisation automatique désactivée
+        <div class="secondary-actions-header">
+          <svg class="secondary-actions-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 1 0 10 10"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <div class="secondary-actions-text">
+            <strong>Dossier secondaire</strong>
+            <span>Actualisation automatique désactivée — gérable depuis le dossier principal</span>
+          </div>
         </div>
         <div class="secondary-actions-buttons">
-          <button id="btn-make-primary" class="btn btn-secondary btn-sm" title="Définir comme dossier principal (les identifiants enregistrés seront effacés)">
-            <span>⭐ Définir principal</span>
+          <button id="btn-make-primary" class="btn-pill btn-pill-primary" title="Définir comme dossier principal (les identifiants enregistrés seront effacés)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <span>Définir principal</span>
           </button>
-          <button id="btn-remove-dossier" class="btn btn-ghost btn-sm" title="Retirer ce dossier de ma liste locale (les données Supabase anonymes ne sont pas supprimées)">
-            <span>🗑 Retirer</span>
+          <button id="btn-remove-dossier" class="btn-pill btn-pill-danger" title="Retirer ce dossier de ma liste locale (les données Supabase anonymes ne sont pas supprimées)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            <span>Retirer</span>
           </button>
         </div>
       </div>

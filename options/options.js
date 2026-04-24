@@ -168,15 +168,14 @@ function attachEventListeners() {
 
 async function initDossierSelector() {
   const wrap = document.getElementById('dossier-selector-wrap');
-  const select = document.getElementById('dossier-selector');
-  const badge = document.getElementById('dossier-selector-badge');
-  if (!wrap || !select || !badge) return;
+  const pills = document.getElementById('dossier-pills');
+  if (!wrap || !pills) return;
 
   const dossiers = await storage.getDossiers();
   const primaryId = await storage.getPrimaryDossierId();
   const ids = Object.keys(dossiers);
 
-  // Moins de 2 dossiers → pas besoin du sélecteur
+  // Moins de 2 dossiers → pas besoin de la barre
   if (ids.length < 2) {
     wrap.classList.add('hidden');
     _selectedDossierId = null;
@@ -191,42 +190,43 @@ async function initDossierSelector() {
     _selectedDossierId = primaryId;
   }
 
-  // Construire les options (primaire en tête)
+  // Construire les pills (primaire en tête)
   const sorted = ids.slice().sort((a, b) => {
     if (a === primaryId) return -1;
     if (b === primaryId) return 1;
     return (dossiers[b].lastSeen || '').localeCompare(dossiers[a].lastSeen || '');
   });
 
-  select.innerHTML = sorted.map(id => {
+  pills.innerHTML = sorted.map(id => {
     const d = dossiers[id];
     const isPrimary = id === primaryId;
-    const label = isPrimary
-      ? '★ Mon dossier principal'
-      : 'Dossier ' + id.substring(0, 5);
+    const isActive = id === _selectedDossierId;
+    // Numéro national en priorité, fallback hash 5 chars
+    const num = d?.apiData?.numeroNational
+      ? String(d.apiData.numeroNational)
+      : 'N° ' + id.substring(0, 5);
     const etape = d.lastStatus?.statut ? getStatusExplanation(d.lastStatus.statut).etape : '?';
-    return `<option value="${escapeAttr(id)}" ${id === _selectedDossierId ? 'selected' : ''}>${escapeHtml(label)} (étape ${etape})</option>`;
+    const role = isPrimary ? 'Principal' : 'Secondaire';
+    const classes = ['dossier-pill', isActive ? 'active' : '', isPrimary ? 'primary' : 'secondary'].filter(Boolean).join(' ');
+    return `
+      <button class="${classes}" data-dossier-id="${escapeAttr(id)}" role="tab" aria-selected="${isActive}">
+        ${isPrimary ? '<span class="dossier-pill-star" title="Dossier principal">★</span>' : ''}
+        <span class="dossier-pill-num">${escapeHtml(num)}</span>
+        <span class="dossier-pill-etape" title="Étape ANEF">${escapeHtml(String(etape))}</span>
+        <span class="dossier-pill-role">${role}</span>
+      </button>
+    `;
   }).join('');
 
-  // Mise à jour du badge primaire/secondaire
-  updateDossierSelectorBadge();
-
-  select.addEventListener('change', async () => {
-    _selectedDossierId = select.value || null;
-    await applyDossierSelection();
+  // Bind clicks
+  pills.querySelectorAll('.dossier-pill').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      _selectedDossierId = btn.dataset.dossierId;
+      // Re-render pour mettre à jour l'état active
+      await initDossierSelector();
+      await applyDossierSelection();
+    });
   });
-}
-
-function updateDossierSelectorBadge() {
-  const badge = document.getElementById('dossier-selector-badge');
-  if (!badge) return;
-  if (_isViewingSecondary) {
-    badge.textContent = 'Lecture seule';
-    badge.className = 'dossier-selector-badge secondary';
-  } else {
-    badge.textContent = 'Actif';
-    badge.className = 'dossier-selector-badge primary';
-  }
 }
 
 /** Recharge toutes les sections en fonction du dossier sélectionné */
@@ -234,26 +234,24 @@ async function applyDossierSelection() {
   const primaryId = await storage.getPrimaryDossierId();
   _isViewingSecondary = _selectedDossierId && _selectedDossierId !== primaryId;
 
-  updateDossierSelectorBadge();
-
   // Bannière lecture seule
   const banner = document.getElementById('secondary-readonly-banner');
   if (banner) banner.classList.toggle('hidden', !_isViewingSecondary);
 
-  // Désactiver les boutons d'édition sur un secondaire
+  // Cacher complètement les boutons d'édition sur un secondaire
+  // (plus propre que juste disabled — pas de confusion possible)
   const editButtons = [
     elements.btnSaveDates, elements.btnPullDates
   ].filter(Boolean);
   for (const btn of editButtons) {
-    btn.disabled = _isViewingSecondary;
-    btn.title = _isViewingSecondary
-      ? 'Disponible uniquement sur le dossier principal'
-      : (btn.dataset.originalTitle || btn.title);
+    btn.style.display = _isViewingSecondary ? 'none' : '';
+    btn.disabled = _isViewingSecondary; // ceinture + bretelles
   }
 
   // Recharger toutes les sections avec le nouveau scope
   await loadHistory();
   await loadStepDates();
+  await loadCredentialStatus(); // credentials sont scopées au dossier
 }
 
 function escapeAttr(s) { return escapeHtml(s); }
@@ -296,7 +294,16 @@ async function loadHistory() {
   }
   const deduped = Object.values(byStatut);
   if (deduped.length < history.length || stepDatesForHistory.length) {
-    await storage.set({ history: deduped });
+    // N'écrire la déduplication QUE pour le dossier primaire. Pour un secondaire,
+    // on affiche la version dédupliquée en mémoire mais on ne mute pas le storage
+    // (lecture seule UX + évite d'écraser la history legacy du primaire).
+    if (!_isViewingSecondary) {
+      if (did) {
+        await storage.upsertDossier(did, { history: deduped });
+      } else {
+        await storage.set({ history: deduped });
+      }
+    }
     history = deduped;
   }
 
@@ -410,7 +417,8 @@ async function loadStepDates() {
     const isFuture = !isCurrent && stepRang > currentRang;
     const itemClass = (isCurrent ? 'current ' : '') + (isFuture ? 'future ' : '') + (isAuto ? 'auto' : (dateValue ? 'filled' : ''));
     const etapeLabel = step.sub ? `Étape ${step.sub}` : `Étape ${step.etape}`;
-    const disabled = (isAuto || isLocked || isFuture) ? 'disabled' : '';
+    // En mode lecture seule (dossier secondaire), tout est désactivé
+    const disabled = (isAuto || isLocked || isFuture || _isViewingSecondary) ? 'disabled' : '';
 
     let badgeHtml = '';
     if (hasManualOverride) {
@@ -421,9 +429,9 @@ async function loadStepDates() {
       badgeHtml = '<span class="step-date-badge manual">Manuel</span>';
     }
 
-    // Bouton modifier pour les auto non verrouillés et non futurs
+    // Bouton modifier : masqué en mode lecture seule
     let editBtn = '';
-    if (disabled && !isLocked && !isFuture) {
+    if (disabled && !isLocked && !isFuture && !_isViewingSecondary) {
       editBtn = '<button class="step-date-edit-btn" title="Rectifier la date">✏️</button>';
     }
 
@@ -716,14 +724,27 @@ async function handleResetSettings() {
 // ─────────────────────────────────────────────────────────────
 
 async function loadCredentialStatus() {
-  const hasCredentials = await storage.hasCredentials();
+  const did = currentDossierId();
+  const hasCredentials = await storage.hasCredentials(did);
+
+  // Afficher le label avec le numéro du dossier courant
+  const label = await _dossierLabelForCreds(did);
+  const labelEl = document.getElementById('credentials-dossier-label');
+  const pillEl = document.getElementById('credentials-dossier-pill');
+  if (labelEl) labelEl.textContent = label;
+
+  // Afficher le pill uniquement si >= 2 dossiers (sinon le contexte est implicite)
+  if (pillEl) {
+    const dossiers = await storage.getDossiers();
+    pillEl.classList.toggle('hidden', Object.keys(dossiers).length < 2);
+  }
 
   if (hasCredentials) {
     elements.credentialIndicator?.classList.add('active');
     if (elements.credentialStatusText) {
-      elements.credentialStatusText.textContent = 'Identifiants enregistrés';
+      elements.credentialStatusText.textContent = 'Identifiants enregistrés pour ' + label;
     }
-    const creds = await storage.getCredentials();
+    const creds = await storage.getCredentials(did);
     if (creds?.username && elements.settingUsername) {
       elements.settingUsername.value = creds.username;
       elements.settingPassword.value = '••••••••';
@@ -732,9 +753,23 @@ async function loadCredentialStatus() {
   } else {
     elements.credentialIndicator?.classList.remove('active');
     if (elements.credentialStatusText) {
-      elements.credentialStatusText.textContent = 'Aucun identifiant enregistré';
+      elements.credentialStatusText.textContent = 'Aucun identifiant pour ' + label;
+    }
+    // Vider les champs pour le dossier courant
+    if (elements.settingUsername) elements.settingUsername.value = '';
+    if (elements.settingPassword) {
+      elements.settingPassword.value = '';
+      elements.settingPassword.dataset.hasPassword = 'false';
     }
   }
+}
+
+/** Label lisible du dossier pour l'UI credentials */
+async function _dossierLabelForCreds(did) {
+  const d = await storage.getDossier(did) || await storage.getPrimaryDossier();
+  if (!d) return 'ce dossier';
+  const num = d.apiData?.numeroNational;
+  return num ? String(num) : ('Dossier ' + (d.apiData?.dossierId || '').substring(0, 5));
 }
 
 async function togglePasswordVisibility() {
@@ -744,7 +779,7 @@ async function togglePasswordVisibility() {
   if (passwordInput.type === 'password') {
     // Charger le vrai mot de passe si placeholder affiché
     if (passwordInput.value === '••••••••' && passwordInput.dataset.hasPassword === 'true') {
-      const creds = await storage.getCredentials();
+      const creds = await storage.getCredentials(currentDossierId());
       if (creds?.password) {
         passwordInput.value = creds.password;
       }
@@ -760,12 +795,13 @@ async function togglePasswordVisibility() {
 }
 
 async function handleSaveCredentials() {
+  const did = currentDossierId();
   const username = elements.settingUsername?.value?.trim();
   let password = elements.settingPassword?.value;
 
   // Garder le mot de passe existant si placeholder
   if (password === '••••••••' && elements.settingPassword?.dataset.hasPassword === 'true') {
-    const existingCreds = await storage.getCredentials();
+    const existingCreds = await storage.getCredentials(did);
     password = existingCreds?.password;
   }
 
@@ -775,7 +811,7 @@ async function handleSaveCredentials() {
   }
 
   try {
-    await storage.saveCredentials(username, password);
+    await storage.saveCredentials(username, password, did);
     elements.settingPassword.dataset.hasPassword = 'true';
     await loadCredentialStatus();
 
@@ -785,17 +821,20 @@ async function handleSaveCredentials() {
     } catch (e) { /* ignore */ }
     await loadAutoCheckStatus();
 
-    showToast('Identifiants enregistrés', 'success');
+    const label = await _dossierLabelForCreds(did);
+    showToast('Identifiants enregistrés pour ' + label, 'success');
   } catch (error) {
     showToast('Erreur lors de la sauvegarde', 'error');
   }
 }
 
 async function handleClearCredentials() {
-  if (!confirm('Supprimer vos identifiants ?')) return;
+  const did = currentDossierId();
+  const label = await _dossierLabelForCreds(did);
+  if (!confirm('Supprimer les identifiants de ' + label + ' ?')) return;
 
   try {
-    await storage.clearCredentials();
+    await storage.clearCredentials(did);
     if (elements.settingUsername) elements.settingUsername.value = '';
     if (elements.settingPassword) {
       elements.settingPassword.value = '';

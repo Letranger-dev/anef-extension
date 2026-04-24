@@ -219,23 +219,29 @@
           deduped.push(cur);
         }
       }
-      // Filet de sécurité contre la contamination cross-dossier (pre-v2.5.8) :
-      // l'étape ANEF est strictement monotone croissante. Toute entrée dont
-      // l'étape dépasse la dernière observation automatique est soit une
-      // rectification erronée, soit un snapshot phantom issu d'un autre dossier.
-      // On les retire pour éviter des transitions impossibles (ex: 11.1 → 8.1).
-      var lastAutoEtape = 0;
-      for (var ai = deduped.length - 1; ai >= 0; ai--) {
-        if (deduped[ai].source === 'auto' || !deduped[ai].source) {
-          lastAutoEtape = deduped[ai].etape || 0;
-          break;
-        }
+      // Filet de sécurité ciblé contre la contamination cross-dossier
+      // (cas 2213db6be...) : on retire UNIQUEMENT un "pic d'étape" isolé —
+      // un snapshot dont l'étape est strictement supérieure à ses voisins
+      // ET dont la transition aller-retour est physiquement impossible
+      // (ex: étape 11 suivie d'étape < 10 = régression vers contrôle/préf).
+      //
+      // Cas préservés (légitimes) :
+      // - Rectification manuelle en avance sur l'auto (user annonce sa publication)
+      // - Backtracking ANEF normal entre steps 9 ↔ 10 (préparation décret)
+      // - Fin de trajectoire (dernier snapshot, pas de "suivant")
+      var out = [];
+      for (var ci = 0; ci < deduped.length; ci++) {
+        var cur2 = deduped[ci];
+        var prev2 = ci > 0 ? deduped[ci - 1] : null;
+        var next2 = ci < deduped.length - 1 ? deduped[ci + 1] : null;
+        // Pic suspect = étape bien plus haute que prev ET suivie d'une régression profonde
+        var isPhantomPeak = prev2 && next2
+          && (cur2.etape || 0) >= 11
+          && (next2.etape || 0) < 10
+          && (cur2.etape - prev2.etape) >= 3;
+        if (!isPhantomPeak) out.push(cur2);
       }
-      if (lastAutoEtape > 0) {
-        deduped = deduped.filter(function(s) {
-          return (s.etape || 0) <= lastAutoEtape;
-        });
-      }
+      deduped = out;
       map.set(hash, deduped);
     });
     return map;

@@ -665,13 +665,14 @@ async function updateBadge(statut) {
 
 /** Récupère toutes les données pour le popup */
 async function getStatusForPopup() {
-  const [lastStatus, lastCheck, lastCheckAttempt, apiData, history, settings] = await Promise.all([
+  const [lastStatus, lastCheck, lastCheckAttempt, apiData, history, settings, primaryHasCredentials] = await Promise.all([
     storage.getLastStatus(),
     storage.getLastCheck(),
     storage.getLastCheckAttempt(),
     storage.getApiData(),
     storage.getHistory(),
-    storage.getSettings()
+    storage.getSettings(),
+    storage.hasCredentials()  // primaire
   ]);
 
   return {
@@ -682,7 +683,8 @@ async function getStatusForPopup() {
     historyCount: history.length,
     settings,
     inMaintenance: apiData?.inMaintenance || false,
-    passwordExpired: apiData?.passwordExpired || false
+    passwordExpired: apiData?.passwordExpired || false,
+    primaryHasCredentials
   };
 }
 
@@ -783,6 +785,13 @@ async function backgroundRefresh() {
   isRefreshing = true;
   logger.info('🔄 Démarrage actualisation...');
 
+  // v2.6.1 multi-dossier : snapshot du primaire avant refresh
+  // pour détecter si le fetch ramène un autre dossier (user connecté sur un
+  // compte différent sur ANEF).
+  const expectedPrimaryId = await storage.getPrimaryDossierId();
+  const beforePrimaryLastCheck = expectedPrimaryId
+    ? (await storage.getLastCheck(expectedPrimaryId)) : null;
+
   // Configuration des délais
   const TIMEOUT_MS = 45000;       // Timeout sans login
   const LOGIN_TIMEOUT_MS = 90000; // Timeout avec login (SSO + ANEF)
@@ -817,6 +826,14 @@ async function backgroundRefresh() {
   // Snapshots avant le refresh pour détecter les nouvelles données
   const beforeCheck = await storage.getLastCheck();
   const beforeApiUpdate = preApiData?.lastUpdate;
+
+  // v2.6.1 : snapshot des lastCheck de TOUS les dossiers, pour détecter
+  // qu'un autre dossier (secondaire) a été fetched à la place du primaire.
+  const beforeLastChecksByDossier = {};
+  const _dossiersBefore = await storage.getDossiers();
+  for (const id in _dossiersBefore) {
+    beforeLastChecksByDossier[id] = _dossiersBefore[id].lastCheck || null;
+  }
 
   const credentials = await storage.getCredentials();
   const hasCredentials = !!(credentials?.username && credentials?.password);
@@ -995,8 +1012,9 @@ async function backgroundRefresh() {
           continue;
         }
 
-        // Session expirée sans identifiants
-        if (isAnefLogin && !hasCredentials && elapsed > 10000) {
+        // Session expirée sans identifiants — bail après 5s (au lieu de 10s)
+        // car on ne pourra pas auto-login de toute façon
+        if (isAnefLogin && !hasCredentials && elapsed > 5000) {
           logger.warn('🔒 Session expirée, pas d\'identifiants');
           needsLogin = true;
           break;
@@ -1033,14 +1051,27 @@ async function backgroundRefresh() {
         }
       }
 
-      // Vérifier si les données sont arrivées
+      // Vérifier si les données sont arrivées (primaire OU un secondaire)
       const currentCheck = await storage.getLastCheck();
-      if (currentCheck && (!beforeCheck || currentCheck > beforeCheck)) {
-        if (!dossierReceived) {
-          logger.info('✅ Données dossier reçues !');
-          dossierReceived = true;
-          dossierTime = Date.now();
+      let anyDossierUpdated = currentCheck && (!beforeCheck || currentCheck > beforeCheck);
+      // v2.6.1 : vérifier aussi si un SECONDAIRE a reçu des données (user connecté
+      // sur un autre compte ANEF que le primaire)
+      if (!anyDossierUpdated) {
+        const currentDossiers = await storage.getDossiers();
+        for (const id in currentDossiers) {
+          const prevLc = beforeLastChecksByDossier[id] || '';
+          const curLc = currentDossiers[id].lastCheck || '';
+          if (curLc && curLc > prevLc) {
+            anyDossierUpdated = true;
+            break;
+          }
         }
+      }
+
+      if (anyDossierUpdated && !dossierReceived) {
+        logger.info('✅ Données dossier reçues !');
+        dossierReceived = true;
+        dossierTime = Date.now();
       }
 
       // Attendre aussi les données API si possible
@@ -1079,10 +1110,55 @@ async function backgroundRefresh() {
       return { success: false, aborted: true, error: 'Annulée (nouvelle actualisation demandée)' };
     }
 
+    // ── Helper : détecter un dossier secondaire fetched pendant ce refresh ──
+    // Priorité sur toutes les autres conclusions (maintenance, timeout, ...)
+    // car ça résout explicitement un cas concret : user connecté sur un autre
+    // compte ANEF que le primaire de l'extension.
+    async function _detectUnexpectedDossier() {
+      if (!expectedPrimaryId) return null;
+      try {
+        const dossiers = await storage.getDossiers();
+        let fetchedId = null;
+        let mostRecent = '';
+        for (const id in dossiers) {
+          if (id === expectedPrimaryId) continue;
+          const prevLc = beforeLastChecksByDossier[id] || '';
+          const curLc = dossiers[id].lastCheck || '';
+          if (curLc && curLc > prevLc && curLc > mostRecent) {
+            mostRecent = curLc;
+            fetchedId = id;
+          }
+        }
+        if (!fetchedId) return null;
+        return {
+          fetchedId,
+          fetchedNumero: dossiers[fetchedId]?.apiData?.numeroNational || null,
+          expectedId: expectedPrimaryId,
+          expectedNumero: dossiers[expectedPrimaryId]?.apiData?.numeroNational || null
+        };
+      } catch (e) {
+        logger.warn('_detectUnexpectedDossier failed:', e.message);
+        return null;
+      }
+    }
+
+    // v2.6.1 : check prioritaire — un secondaire a-t-il été fetched ?
+    const unexpected = await _detectUnexpectedDossier();
+
     // ── Résultat ──
     if (dataReceived) {
       logger.info('✅ Actualisation réussie');
+      if (unexpected) {
+        return { success: true, unexpectedDossier: unexpected };
+      }
       return { success: true };
+    }
+
+    // Si on a reçu des données pour un autre dossier mais le loop a timeout
+    // → c'est quand même un "mauvais compte", pas une vraie maintenance
+    if (unexpected) {
+      logger.info('✅ Autre dossier fetched (user connecté sur autre compte ANEF)');
+      return { success: true, unexpectedDossier: unexpected };
     }
 
     // Vérifier si c'est une maintenance
@@ -1378,6 +1454,15 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     if (migrated) logger.info('✅ Migration v2.6.0 multi-dossier effectuée');
   } catch (e) {
     logger.error('Migration multi-dossier échouée:', e.message);
+  }
+
+  // v2.6.2+ safety net : si les creds ont disparu (bug antérieur ou migration
+  // ratée), essayer de les restaurer depuis le backup pré-migration.
+  try {
+    const recovered = await storage.recoverCredentialsIfLost();
+    if (recovered) logger.warn('⚠️ Credentials restaurées depuis backup pré-migration');
+  } catch (e) {
+    logger.error('Recovery credentials échoué:', e.message);
   }
 
   if (details.reason === 'install') {

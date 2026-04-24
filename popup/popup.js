@@ -212,11 +212,11 @@ async function renderDossierTabs() {
       const isPrimary = id === primaryDossierId;
       const isActive = id === _activeViewDossierId;
       const etape = d.lastStatus?.statut ? getEtapeBadge(d.lastStatus.statut) : '?';
-      const label = isPrimary ? 'Mon dossier' : shortId(id);
+      const label = dossierLabel(d, id);
       return `
         <button class="dossier-tab ${isActive ? 'active' : ''}" data-dossier-id="${escapeAttr(id)}" role="tab" aria-selected="${isActive}">
           ${isPrimary ? '<span class="dossier-tab-primary-star" title="Dossier principal">★</span>' : ''}
-          <span>${escapeHtml(label)}</span>
+          <span class="dossier-tab-label">${escapeHtml(label)}</span>
           <span class="dossier-tab-etape">${escapeHtml(etape)}</span>
         </button>
       `;
@@ -244,9 +244,13 @@ function getEtapeBadge(statut) {
   } catch { return '?'; }
 }
 
-/** Id court pour l'affichage (5 premiers chars du hash dossier) */
-function shortId(id) {
-  return 'Dossier ' + (id || '').toString().substring(0, 5);
+/** Label affiché dans l'onglet : numéro national si dispo, sinon ID court.
+ *  Ex : "2024/01234" ou fallback "Dossier ABCDE". */
+function dossierLabel(d, id) {
+  const num = d?.apiData?.numeroNational;
+  if (num) return String(num);
+  // Fallback : 5 premiers chars de l'ID (hash) si pas encore de numéro national
+  return 'Dossier ' + String(id || '').substring(0, 5);
 }
 
 function escapeHtml(s) {
@@ -289,9 +293,20 @@ function showDossierSwitchBanner() {
   });
 
   document.getElementById('btn-dossier-switch-analyze')?.addEventListener('click', async () => {
+    // Bascule l'onglet popup sur le dossier nouvellement détecté (ses données
+    // sont déjà fraîches côté storage — pas besoin de relancer un refresh).
+    try {
+      const { dossierSwitchNotice } = await chrome.storage.local.get('dossierSwitchNotice');
+      if (dossierSwitchNotice?.newId) {
+        _activeViewDossierId = dossierSwitchNotice.newId;
+        await renderDossierTabs();
+        await loadData();
+      }
+    } catch (e) {
+      console.warn('[Popup] Erreur bascule nouveau dossier:', e);
+    }
     await dismissDossierSwitchNotice();
     banner.classList.add('hidden');
-    refreshInBackground();
   });
 }
 
@@ -372,8 +387,8 @@ async function handleMakePrimary() {
   if (!_activeViewDossierId) return;
   const ok = confirm(
     'Définir ce dossier comme principal ?\n\n' +
-    '⚠️ Les identifiants de connexion enregistrés seront effacés. ' +
-    'Tu devras les re-saisir pour que l\'auto-check fonctionne sur ce nouveau dossier.'
+    "L'auto-check utilisera les identifiants enregistrés pour ce dossier " +
+    '(ou aucun si tu n\'en as pas encore saisi — gère-les dans Paramètres).'
   );
   if (!ok) return;
 
@@ -387,6 +402,58 @@ async function handleMakePrimary() {
     await loadData();
   } else {
     alert('Erreur : ' + (response?.error || 'impossible de changer le principal'));
+  }
+}
+
+function showRefreshErrorBanner(title, message) {
+  const banner = document.getElementById('refresh-error-banner');
+  if (!banner) return;
+  const titleEl = document.getElementById('refresh-error-title');
+  const msgEl = document.getElementById('refresh-error-message');
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  banner.classList.remove('hidden');
+
+  const openBtn = document.getElementById('btn-refresh-error-open-anef');
+  const dismissBtn = document.getElementById('btn-refresh-error-dismiss');
+  if (openBtn && !openBtn.dataset.bound) {
+    openBtn.dataset.bound = '1';
+    openBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ type: 'OPEN_ANEF', page: 'mon-compte' });
+      window.close();
+    });
+  }
+  if (dismissBtn && !dismissBtn.dataset.bound) {
+    dismissBtn.dataset.bound = '1';
+    dismissBtn.addEventListener('click', () => banner.classList.add('hidden'));
+  }
+}
+
+function showWrongAccountBanner(info) {
+  const banner = document.getElementById('wrong-account-banner');
+  if (!banner) return;
+  const expectedEl = document.getElementById('wrong-account-expected');
+  const fetchedEl = document.getElementById('wrong-account-fetched');
+  if (expectedEl) expectedEl.textContent = info.expectedNumero || ('Dossier ' + (info.expectedId || '').substring(0, 5));
+  if (fetchedEl) fetchedEl.textContent = info.fetchedNumero || ('Dossier ' + (info.fetchedId || '').substring(0, 5));
+  banner.classList.remove('hidden');
+
+  // Bind actions (idempotent)
+  const logoutBtn = document.getElementById('btn-wrong-account-logout');
+  const dismissBtn = document.getElementById('btn-wrong-account-dismiss');
+  if (logoutBtn && !logoutBtn.dataset.bound) {
+    logoutBtn.dataset.bound = '1';
+    logoutBtn.addEventListener('click', () => {
+      // Ouvre ANEF dans un nouvel onglet actif → user peut se déconnecter
+      chrome.runtime.sendMessage({ type: 'OPEN_ANEF', page: 'mon-compte' });
+      window.close();
+    });
+  }
+  if (dismissBtn && !dismissBtn.dataset.bound) {
+    dismissBtn.dataset.bound = '1';
+    dismissBtn.addEventListener('click', () => {
+      banner.classList.add('hidden');
+    });
   }
 }
 
@@ -498,6 +565,23 @@ async function loadData() {
     displayStatus(lastStatus, apiData, lastCheck);
     displayLastCheck(lastCheck, lastCheckAttempt);
     showView('status');
+
+    // Avertissement si primaire sans creds (et qu'on est en train de voir le primaire)
+    const noCredsBanner = document.getElementById('no-creds-banner');
+    if (noCredsBanner) {
+      const showBanner = response.primaryHasCredentials === false && !isViewingSecondary;
+      noCredsBanner.classList.toggle('hidden', !showBanner);
+      if (showBanner) {
+        const btn = document.getElementById('btn-no-creds-open-settings');
+        if (btn && !btn.dataset.bound) {
+          btn.dataset.bound = '1';
+          btn.addEventListener('click', () => {
+            chrome.runtime.openOptionsPage();
+            window.close();
+          });
+        }
+      }
+    }
 
   } catch (error) {
     console.error('[Popup] Erreur chargement:', error);
@@ -873,7 +957,21 @@ async function refreshInBackground() {
     const result = await chrome.runtime.sendMessage({ type: 'BACKGROUND_REFRESH' });
 
     if (result?.needsLogin) {
-      showView('notConnected');
+      // Session ANEF expirée + pas d'identifiants → on revient au status
+      // mais on affiche la bannière d'erreur explicite (et la bannière no-creds)
+      await loadData();
+      showRefreshErrorBanner(
+        'Non connecté à ANEF',
+        'Ta session ANEF a expiré et aucun identifiant n\'est enregistré. Connecte-toi manuellement sur ANEF ou configure tes identifiants.'
+      );
+      return;
+    }
+
+    // v2.6.1 : priorité au cas "mauvais compte" avant maintenance —
+    // si on a reçu des données pour un autre dossier, c'est PAS une maintenance
+    if (result?.unexpectedDossier) {
+      showWrongAccountBanner(result.unexpectedDossier);
+      await loadData();
       return;
     }
 
@@ -882,9 +980,22 @@ async function refreshInBackground() {
       return;
     }
 
+    if (result?.passwordExpired) {
+      showView('passwordExpired');
+      return;
+    }
+
     if (result?.success) {
       updateLoadingStep(4);
       await new Promise(r => setTimeout(r, 500));
+    } else if (!result?.aborted) {
+      // Échec générique (timeout, login échoué, erreur réseau…) → message explicite
+      await loadData();
+      showRefreshErrorBanner(
+        'Actualisation impossible',
+        result?.error || 'Impossible de récupérer les données. Vérifie ta connexion et tes identifiants.'
+      );
+      return;
     }
 
     await loadData();

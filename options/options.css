@@ -67,61 +67,163 @@ body {
   margin: 0 auto;
 }
 
-/* ─── Sélecteur multi-dossier (v2.6.0+) ─────────────────────── */
-.dossier-selector-wrap {
-  margin-left: auto;
+/* ─── Barre multi-dossier (v2.6.0+) ─────────────────────────── */
+.dossier-bar {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 0 0 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dossier-bar.hidden { display: none; }
+
+.dossier-bar-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--gray-500);
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
 }
 
-.dossier-selector-wrap.hidden { display: none; }
-
-.dossier-selector-label {
-  font-size: 0.85em;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 500;
+.dossier-bar-label svg {
+  color: var(--gray-400);
 }
 
-.dossier-selector {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.85em;
-  font-family: inherit;
-  cursor: pointer;
-  min-width: 160px;
+.dossier-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.dossier-selector:focus {
-  outline: 2px solid #fff;
-  outline-offset: 1px;
-}
-
-.dossier-selector-badge {
-  font-size: 0.7em;
-  padding: 2px 6px;
+.dossier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  font-size: 0.9em;
   font-weight: 500;
-  white-space: nowrap;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  position: relative;
 }
 
-.dossier-selector-badge.primary {
-  background: #f59e0b;
-  color: #422006;
+.dossier-pill:hover {
+  background: var(--white);
+  border-color: var(--gray-300);
+  transform: translateY(-1px);
 }
 
-.dossier-selector-badge.secondary {
-  background: rgba(255, 255, 255, 0.25);
+.dossier-pill.active {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+}
+
+.dossier-pill.active.primary {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-color: var(--warning);
+  color: #78350f;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+}
+
+.dossier-pill-star {
+  color: var(--warning);
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.dossier-pill-num {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dossier-pill-etape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--gray-200);
+  color: var(--gray-700);
+  border-radius: 6px;
+  font-size: 0.78em;
+  font-weight: 700;
+}
+
+.dossier-pill.active .dossier-pill-etape {
+  background: var(--primary);
   color: #fff;
+}
+
+.dossier-pill.active.primary .dossier-pill-etape {
+  background: var(--warning);
+  color: #fff;
+}
+
+.dossier-pill-role {
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-500);
+  padding: 2px 6px;
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+.dossier-pill.active.primary .dossier-pill-role {
+  background: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+}
+
+.dossier-pill.active:not(.primary) .dossier-pill-role {
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--primary-dark);
+}
+
+/* Header de groupe de paramètres (avec badge dossier) */
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.settings-group-header h3 {
+  margin: 0;
+}
+
+.credentials-dossier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #f59e0b;
+  border-radius: 20px;
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #78350f;
+}
+
+.credentials-dossier-pill.hidden { display: none; }
+
+.credentials-dossier-pill svg {
+  color: #b45309;
 }
 
 /* Bannière lecture seule pour dossiers secondaires */

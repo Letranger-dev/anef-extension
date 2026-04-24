@@ -15,14 +15,19 @@
           <h1>ANEF Status Tracker</h1>
           <p class="subtitle">Paramètres et historique</p>
         </div>
-        <!-- Sélecteur dossier (affiché si >= 2 dossiers observés) -->
-        <div id="dossier-selector-wrap" class="dossier-selector-wrap hidden">
-          <label for="dossier-selector" class="dossier-selector-label">Dossier :</label>
-          <select id="dossier-selector" class="dossier-selector"></select>
-          <span id="dossier-selector-badge" class="dossier-selector-badge"></span>
-        </div>
       </div>
     </header>
+
+    <!-- Barre de dossiers (globale — affichée si >= 2 dossiers observés) -->
+    <div id="dossier-selector-wrap" class="dossier-bar hidden">
+      <div class="dossier-bar-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Mes dossiers</span>
+      </div>
+      <div id="dossier-pills" class="dossier-pills" role="tablist"></div>
+    </div>
 
     <!-- Navigation tabs -->
     <nav class="tabs">
@@ -124,8 +129,16 @@
         <h2>Paramètres</h2>
 
         <div class="settings-group">
-          <h3>Connexion automatique</h3>
-          <p class="settings-description">Enregistrez vos identifiants ANEF pour permettre l'actualisation automatique même si votre session a expiré.</p>
+          <div class="settings-group-header">
+            <h3>Connexion automatique</h3>
+            <span id="credentials-dossier-pill" class="credentials-dossier-pill hidden">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span id="credentials-dossier-label">ce dossier</span>
+            </span>
+          </div>
+          <p class="settings-description">Enregistrez des identifiants ANEF <strong>par dossier</strong> — chaque dossier garde ses propres credentials. L'auto-check utilise celles du dossier principal.</p>
 
           <div class="credential-form">
             <div class="setting-item">
