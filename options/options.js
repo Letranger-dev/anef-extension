@@ -19,6 +19,12 @@ import { getStatusExplanation, formatDate, formatDateShort, formatDuration, days
 let tabs, tabContents;
 const elements = {};
 
+// ─────────────────────────────────────────────────────────────
+// État multi-dossier (v2.6.0+) — dossier sélectionné dans le dropdown
+// ─────────────────────────────────────────────────────────────
+let _selectedDossierId = null;        // null = primaire
+let _isViewingSecondary = false;      // true si on consulte un secondaire
+
 function initializeElements() {
   tabs = document.querySelectorAll('.tab');
   tabContents = document.querySelectorAll('.tab-content');
@@ -86,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeElements();
   initTabs();
   initVersion();
+  await initDossierSelector(); // multi-dossier v2.6.0
 
   await loadHistory();
   await loadStepDates();
@@ -156,16 +163,118 @@ function attachEventListeners() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Sélecteur multi-dossier (v2.6.0+)
+// ─────────────────────────────────────────────────────────────
+
+async function initDossierSelector() {
+  const wrap = document.getElementById('dossier-selector-wrap');
+  const select = document.getElementById('dossier-selector');
+  const badge = document.getElementById('dossier-selector-badge');
+  if (!wrap || !select || !badge) return;
+
+  const dossiers = await storage.getDossiers();
+  const primaryId = await storage.getPrimaryDossierId();
+  const ids = Object.keys(dossiers);
+
+  // Moins de 2 dossiers → pas besoin du sélecteur
+  if (ids.length < 2) {
+    wrap.classList.add('hidden');
+    _selectedDossierId = null;
+    _isViewingSecondary = false;
+    return;
+  }
+
+  wrap.classList.remove('hidden');
+
+  // Par défaut : primaire
+  if (!_selectedDossierId || !dossiers[_selectedDossierId]) {
+    _selectedDossierId = primaryId;
+  }
+
+  // Construire les options (primaire en tête)
+  const sorted = ids.slice().sort((a, b) => {
+    if (a === primaryId) return -1;
+    if (b === primaryId) return 1;
+    return (dossiers[b].lastSeen || '').localeCompare(dossiers[a].lastSeen || '');
+  });
+
+  select.innerHTML = sorted.map(id => {
+    const d = dossiers[id];
+    const isPrimary = id === primaryId;
+    const label = isPrimary
+      ? '★ Mon dossier principal'
+      : 'Dossier ' + id.substring(0, 5);
+    const etape = d.lastStatus?.statut ? getStatusExplanation(d.lastStatus.statut).etape : '?';
+    return `<option value="${escapeAttr(id)}" ${id === _selectedDossierId ? 'selected' : ''}>${escapeHtml(label)} (étape ${etape})</option>`;
+  }).join('');
+
+  // Mise à jour du badge primaire/secondaire
+  updateDossierSelectorBadge();
+
+  select.addEventListener('change', async () => {
+    _selectedDossierId = select.value || null;
+    await applyDossierSelection();
+  });
+}
+
+function updateDossierSelectorBadge() {
+  const badge = document.getElementById('dossier-selector-badge');
+  if (!badge) return;
+  if (_isViewingSecondary) {
+    badge.textContent = 'Lecture seule';
+    badge.className = 'dossier-selector-badge secondary';
+  } else {
+    badge.textContent = 'Actif';
+    badge.className = 'dossier-selector-badge primary';
+  }
+}
+
+/** Recharge toutes les sections en fonction du dossier sélectionné */
+async function applyDossierSelection() {
+  const primaryId = await storage.getPrimaryDossierId();
+  _isViewingSecondary = _selectedDossierId && _selectedDossierId !== primaryId;
+
+  updateDossierSelectorBadge();
+
+  // Bannière lecture seule
+  const banner = document.getElementById('secondary-readonly-banner');
+  if (banner) banner.classList.toggle('hidden', !_isViewingSecondary);
+
+  // Désactiver les boutons d'édition sur un secondaire
+  const editButtons = [
+    elements.btnSaveDates, elements.btnPullDates
+  ].filter(Boolean);
+  for (const btn of editButtons) {
+    btn.disabled = _isViewingSecondary;
+    btn.title = _isViewingSecondary
+      ? 'Disponible uniquement sur le dossier principal'
+      : (btn.dataset.originalTitle || btn.title);
+  }
+
+  // Recharger toutes les sections avec le nouveau scope
+  await loadHistory();
+  await loadStepDates();
+}
+
+function escapeAttr(s) { return escapeHtml(s); }
+
+/** Retourne le dossierId actuel pour les reads (null = primaire par défaut) */
+function currentDossierId() {
+  return _selectedDossierId || null;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Historique
 // ─────────────────────────────────────────────────────────────
 
 async function loadHistory() {
-  let history = await storage.getHistory();
-  const lastCheck = await storage.getLastCheck();
+  const did = currentDossierId();
+  let history = await storage.getHistory(did);
+  const lastCheck = await storage.getLastCheck(did);
 
   // Dédupliquer : une seule entrée par statut
   // stepDates (rectifications) ont priorité sur l'historique
-  const stepDatesForHistory = await storage.getStepDates();
+  const stepDatesForHistory = await storage.getStepDates(did);
   const sdMap = {};
   for (const sd of stepDatesForHistory) {
     sdMap[(sd.statut || '').toLowerCase()] = (sd.date_statut || '').substring(0, 10);
@@ -247,7 +356,8 @@ async function loadHistory() {
 // ─────────────────────────────────────────────────────────────
 
 async function loadStepDates() {
-  const apiData = await storage.getApiData();
+  const did = currentDossierId();
+  const apiData = await storage.getApiData(did);
   if (!apiData?.dossierId) {
     elements.stepDatesSection?.classList.add('hidden');
     return;
@@ -255,9 +365,9 @@ async function loadStepDates() {
 
   elements.stepDatesSection?.classList.remove('hidden');
 
-  const history = await storage.getHistory();
-  const stepDates = await storage.getStepDates();
-  const lastStatus = await storage.getLastStatus();
+  const history = await storage.getHistory(did);
+  const stepDates = await storage.getStepDates(did);
+  const lastStatus = await storage.getLastStatus(did);
   const currentInfo = lastStatus ? getStatusExplanation(lastStatus.statut) : null;
   const currentEtape = currentInfo ? currentInfo.etape : 0;
   const currentRang = currentInfo ? currentInfo.rang : 0;

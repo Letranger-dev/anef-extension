@@ -67,6 +67,83 @@ body {
   margin: 0 auto;
 }
 
+/* ─── Sélecteur multi-dossier (v2.6.0+) ─────────────────────── */
+.dossier-selector-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dossier-selector-wrap.hidden { display: none; }
+
+.dossier-selector-label {
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.dossier-selector {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85em;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 160px;
+}
+
+.dossier-selector:focus {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.dossier-selector-badge {
+  font-size: 0.7em;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dossier-selector-badge.primary {
+  background: #f59e0b;
+  color: #422006;
+}
+
+.dossier-selector-badge.secondary {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Bannière lecture seule pour dossiers secondaires */
+.secondary-readonly-banner {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0;
+  color: #78350f;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.secondary-readonly-banner.hidden { display: none; }
+
+.secondary-readonly-banner-icon {
+  font-size: 1.2em;
+}
+
 .header .flag {
   font-size: 40px;
 }

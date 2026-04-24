@@ -15,6 +15,12 @@
           <h1>ANEF Status Tracker</h1>
           <p class="subtitle">Paramètres et historique</p>
         </div>
+        <!-- Sélecteur dossier (affiché si >= 2 dossiers observés) -->
+        <div id="dossier-selector-wrap" class="dossier-selector-wrap hidden">
+          <label for="dossier-selector" class="dossier-selector-label">Dossier :</label>
+          <select id="dossier-selector" class="dossier-selector"></select>
+          <span id="dossier-selector-badge" class="dossier-selector-badge"></span>
+        </div>
       </div>
     </header>
 
@@ -60,6 +66,17 @@
         <div id="check-log-section" class="check-log-section hidden">
           <h3 class="check-log-title">Vérifications du jour</h3>
           <div id="check-log-list" class="check-log-list"></div>
+        </div>
+
+        <!-- Bannière lecture seule pour dossier secondaire -->
+        <div id="secondary-readonly-banner" class="secondary-readonly-banner hidden">
+          <span class="secondary-readonly-banner-icon">👁️</span>
+          <div>
+            <strong>Dossier secondaire — lecture seule</strong>
+            <div style="font-size: 0.85em; opacity: 0.9; margin-top: 2px;">
+              Les rectifications de dates et l'actualisation ne sont disponibles que pour le dossier principal.
+            </div>
+          </div>
         </div>
 
         <!-- Timeline des étapes (saisie manuelle) -->
