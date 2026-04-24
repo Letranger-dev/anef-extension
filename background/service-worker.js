@@ -288,6 +288,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true;
 
+    // Multi-dossier : définir un nouveau dossier principal
+    case 'SET_PRIMARY_DOSSIER':
+      (async () => {
+        try {
+          await storage.setPrimaryDossier(message.dossierId);
+          const newPrimary = await storage.getPrimaryDossier();
+          if (newPrimary?.lastStatus?.statut) {
+            await updateBadge(newPrimary.lastStatus.statut);
+          }
+          logger.info('⭐ Dossier principal changé:', message.dossierId);
+          // Reprogrammer l'auto-check (creds effacées par setPrimaryDossier → désactivé)
+          await scheduleAutoCheck();
+          sendResponse({ success: true });
+        } catch (e) {
+          logger.error('SET_PRIMARY_DOSSIER error:', e.message);
+          sendResponse({ success: false, error: e.message });
+        }
+      })();
+      return true;
+
+    // Multi-dossier : retirer un dossier secondaire de la liste locale
+    // ⚠️ Ne supprime JAMAIS côté Supabase — règle absolue.
+    case 'REMOVE_DOSSIER':
+      (async () => {
+        try {
+          const removed = await storage.removeDossier(message.dossierId);
+          logger.info('🗑 Dossier retiré (local only):', message.dossierId);
+          sendResponse({ success: !!removed });
+        } catch (e) {
+          logger.error('REMOVE_DOSSIER error:', e.message);
+          sendResponse({ success: false, error: e.message });
+        }
+      })();
+      return true;
+
     // Récupérer les stepDates depuis chrome.storage.sync (backup auto multi-appareils)
     // → remplace l'ancien lookup Supabase pour éviter l'exposition par hash.
     case 'PULL_STEP_DATES':
@@ -326,48 +361,49 @@ async function handleDossierData(data) {
       await storage.saveApiData(apiData);
     }
 
-    // ── Détection de changement de dossier ──
-    // Si l'ID du dossier reçu diffère de celui stocké, on est sur un autre
-    // dossier (ex: utilisateur + conjoint sur le même navigateur). Sans reset,
-    // history / stepDates / lastStatus accumulent des entrées issues des DEUX
-    // dossiers → transitions impossibles (ex: 11.1 → 8.1) et contamination
-    // Supabase via sendManualStepDates.
+    // ── Routage multi-dossier (v2.6.0+) ──
+    // Chaque dossier a son propre record dans `dossiers[id]`. Pas de wipe :
+    // on écrit dans le record correspondant à data.id. Si c'est un nouveau
+    // dossier, il est ajouté comme secondaire (sauf si aucun primaire défini,
+    // auquel cas upsertDossier le promeut automatiquement).
     const newId = data.id ? String(data.id) : null;
-    const oldId = apiData.dossierId ? String(apiData.dossierId) : null;
-    if (newId && oldId && oldId !== newId) {
-      logger.warn('🔀 Changement de dossier détecté, reset des données locales', { oldId, newId });
-      await storage.resetForNewDossier(newId);
-      // Flag consommé par la popup pour afficher une bannière explicative.
+    const primaryId = await storage.getPrimaryDossierId();
+    const knownDossiers = await storage.getDossiers();
+    const isKnown = newId && knownDossiers[newId];
+    const isNewSecondary = newId && !isKnown && primaryId && newId !== primaryId;
+
+    // Comparaison de statut SCOPED au dossier reçu (pas le primaire)
+    const prevStatus = newId ? (await storage.getLastStatus(newId)) : null;
+    const hasChanged = !prevStatus
+      || prevStatus.date_statut !== data.date_statut
+      || (prevStatus.statut || '').toLowerCase() !== (data.statut || '').toLowerCase();
+
+    // Écrire les données dans le bon record (saveStatus route via data.id)
+    await storage.saveStatus(data);
+    logger.info('✅ Statut sauvegardé', { dossierId: newId, isNew: isNewSecondary });
+
+    if (isNewSecondary) {
+      // Nouveau dossier détecté → notification informative (pas de wipe)
       await chrome.storage.local.set({
         dossierSwitchNotice: {
           at: new Date().toISOString(),
-          previousId: oldId,
+          previousId: primaryId,
           newId: newId,
-          acknowledged: false
+          acknowledged: false,
+          isNewSecondary: true
         }
       });
-      // Notification de changement de dossier (l'utilisateur doit savoir que
-      // la popup affiche un autre dossier qu'avant)
-      await sendDossierChangedNotification(newId, oldId);
-      // Skip la notification de changement de statut — on est sur un NOUVEAU
-      // dossier, toute comparaison avec l'ancien lastStatus est invalide.
-      await storage.saveStatus(data);
-      await updateBadge(data.statut);
-      logger.info('✅ Nouveau dossier sauvegardé après reset');
-      return;
-    }
-
-    // Vérifier si le statut a changé
-    const hasChanged = await storage.hasStatusChanged(data);
-    if (hasChanged) {
+      await sendDossierChangedNotification(newId, primaryId);
+    } else if (hasChanged && newId === primaryId) {
+      // Changement de statut sur le primaire → notification standard
       logger.info('🔔 Changement de statut détecté !', { nouveau: data.statut });
       await sendStatusChangeNotification(data);
     }
 
-    // Sauvegarder et mettre à jour le badge
-    await storage.saveStatus(data);
-    await updateBadge(data.statut);
-    logger.info('✅ Statut sauvegardé');
+    // Mettre à jour le badge seulement pour le primaire (ou premier dossier)
+    if (!primaryId || newId === primaryId) {
+      await updateBadge(data.statut);
+    }
 
   } catch (error) {
     logger.error('Erreur traitement dossier:', error.message);
@@ -422,7 +458,10 @@ async function handleApiData(data) {
   logger.info('✅ Données API sauvegardées');
 
   // Statistiques anonymes communautaires + rehydrate post-switch
-  const lastStatus = await storage.getLastStatus();
+  // `lastStatus` doit être celui du dossier dont on traite les données,
+  // pas du primaire (en multi-dossier, les secondaires mettent à jour aussi
+  // leurs snapshots Supabase quand l'user les visite).
+  const lastStatus = await storage.getLastStatus(apiData.dossierId);
   if (lastStatus) {
     // Lit le flag dossierSwitchNotice.acknowledged=false pour déclencher
     // la réhydratation complète depuis Supabase lors du changement de dossier.
@@ -438,8 +477,8 @@ async function handleApiData(data) {
     // Rehydrate local depuis le serveur si on vient de basculer sur un dossier déjà connu
     if (isPostSwitch && result?.history?.length) {
       try {
-        const count = await rehydrateLocalHistoryFromServer(result.history);
-        logger.info('🔁 Rehydrate depuis Supabase post-switch', { entrees: count });
+        const count = await rehydrateLocalHistoryFromServer(result.history, apiData.dossierId);
+        logger.info('🔁 Rehydrate depuis Supabase post-switch', { entrees: count, dossierId: apiData.dossierId });
         // Marquer comme rehydraté pour éviter de refaire la manip
         await chrome.storage.local.set({
           dossierSwitchNotice: { ...dossierSwitchNotice, rehydrated: true }
@@ -1331,6 +1370,15 @@ async function getAutoCheckInfo() {
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   logger.info('🚀 Extension installée:', details.reason);
+
+  // Migration multi-dossier v2.6.0 : encapsuler les données v2.5.x dans
+  // dossiers[id]. Idempotent — ne fait rien si déjà migré ou rien à migrer.
+  try {
+    const migrated = await storage.migrateToMultiDossier();
+    if (migrated) logger.info('✅ Migration v2.6.0 multi-dossier effectuée');
+  } catch (e) {
+    logger.error('Migration multi-dossier échouée:', e.message);
+  }
 
   if (details.reason === 'install') {
     // Générer un jitter aléatoire unique pour cette installation (0-60 min)

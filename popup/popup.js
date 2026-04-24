@@ -166,8 +166,102 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   attachEventListeners();
+  await renderDossierTabs(); // barre d'onglets multi-dossier
   await loadData();
   await checkDossierSwitchNotice();
+});
+
+// ─────────────────────────────────────────────────────────────
+// Multi-dossier — barre d'onglets
+// ─────────────────────────────────────────────────────────────
+
+let _activeViewDossierId = null; // null = primaire
+
+async function renderDossierTabs() {
+  const tabs = document.getElementById('dossier-tabs');
+  const scroll = document.getElementById('dossier-tabs-scroll');
+  if (!tabs || !scroll) return;
+
+  try {
+    const { dossiers = {}, primaryDossierId } = await chrome.storage.local.get(['dossiers', 'primaryDossierId']);
+    const ids = Object.keys(dossiers);
+
+    // Moins de 2 dossiers → pas d'onglets (UI simple)
+    if (ids.length < 2) {
+      tabs.classList.add('hidden');
+      _activeViewDossierId = null;
+      return;
+    }
+
+    tabs.classList.remove('hidden');
+
+    // Si aucun onglet actif, on active le primaire
+    if (!_activeViewDossierId || !dossiers[_activeViewDossierId]) {
+      _activeViewDossierId = primaryDossierId || ids[0];
+    }
+
+    // Trier : primaire en premier, puis par lastSeen desc
+    const sorted = ids.slice().sort((a, b) => {
+      if (a === primaryDossierId) return -1;
+      if (b === primaryDossierId) return 1;
+      return (dossiers[b].lastSeen || '').localeCompare(dossiers[a].lastSeen || '');
+    });
+
+    scroll.innerHTML = sorted.map(id => {
+      const d = dossiers[id];
+      const isPrimary = id === primaryDossierId;
+      const isActive = id === _activeViewDossierId;
+      const etape = d.lastStatus?.statut ? getEtapeBadge(d.lastStatus.statut) : '?';
+      const label = isPrimary ? 'Mon dossier' : shortId(id);
+      return `
+        <button class="dossier-tab ${isActive ? 'active' : ''}" data-dossier-id="${escapeAttr(id)}" role="tab" aria-selected="${isActive}">
+          ${isPrimary ? '<span class="dossier-tab-primary-star" title="Dossier principal">★</span>' : ''}
+          <span>${escapeHtml(label)}</span>
+          <span class="dossier-tab-etape">${escapeHtml(etape)}</span>
+        </button>
+      `;
+    }).join('');
+
+    // Bind clicks
+    scroll.querySelectorAll('.dossier-tab').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        _activeViewDossierId = btn.dataset.dossierId;
+        await renderDossierTabs();
+        await loadData();
+      });
+    });
+  } catch (e) {
+    console.warn('[Popup] renderDossierTabs error:', e);
+    tabs.classList.add('hidden');
+  }
+}
+
+/** Extrait le badge d'étape courte (ex: "8.1", "11") pour affichage onglet */
+function getEtapeBadge(statut) {
+  try {
+    const info = getStatusExplanation(statut);
+    return formatSubStep(info.rang) || String(info.etape);
+  } catch { return '?'; }
+}
+
+/** Id court pour l'affichage (5 premiers chars du hash dossier) */
+function shortId(id) {
+  return 'Dossier ' + (id || '').toString().substring(0, 5);
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// Re-render quand le storage change (nouveau dossier observé, primaire changé)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.dossiers || changes.primaryDossierId) {
+    renderDossierTabs().catch(() => {});
+  }
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -268,6 +362,54 @@ function attachEventListeners() {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
   });
+
+  // Multi-dossier : actions secondaires
+  document.getElementById('btn-make-primary')?.addEventListener('click', handleMakePrimary);
+  document.getElementById('btn-remove-dossier')?.addEventListener('click', handleRemoveDossier);
+}
+
+async function handleMakePrimary() {
+  if (!_activeViewDossierId) return;
+  const ok = confirm(
+    'Définir ce dossier comme principal ?\n\n' +
+    '⚠️ Les identifiants de connexion enregistrés seront effacés. ' +
+    'Tu devras les re-saisir pour que l\'auto-check fonctionne sur ce nouveau dossier.'
+  );
+  if (!ok) return;
+
+  const response = await chrome.runtime.sendMessage({
+    type: 'SET_PRIMARY_DOSSIER',
+    dossierId: _activeViewDossierId
+  });
+  if (response?.success) {
+    _activeViewDossierId = null; // reset → pointe vers nouveau primaire
+    await renderDossierTabs();
+    await loadData();
+  } else {
+    alert('Erreur : ' + (response?.error || 'impossible de changer le principal'));
+  }
+}
+
+async function handleRemoveDossier() {
+  if (!_activeViewDossierId) return;
+  const ok = confirm(
+    'Retirer ce dossier de ta liste locale ?\n\n' +
+    'Les données anonymes côté serveur ne sont pas supprimées — seule ta liste locale est nettoyée. ' +
+    'Tu pourras le retrouver en te reconnectant à ce dossier sur ANEF.'
+  );
+  if (!ok) return;
+
+  const response = await chrome.runtime.sendMessage({
+    type: 'REMOVE_DOSSIER',
+    dossierId: _activeViewDossierId
+  });
+  if (response?.success) {
+    _activeViewDossierId = null;
+    await renderDossierTabs();
+    await loadData();
+  } else {
+    alert('Erreur : ' + (response?.error || 'impossible de retirer'));
+  }
 }
 
 /** Copie le code statut dans le presse-papier */
@@ -311,7 +453,7 @@ async function handleExportLogs() {
 // Chargement des données
 // ─────────────────────────────────────────────────────────────
 
-/** Charge les données depuis le service worker */
+/** Charge les données depuis le service worker (ou depuis dossiers[id] si onglet secondaire actif) */
 async function loadData() {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
@@ -331,7 +473,22 @@ async function loadData() {
       return;
     }
 
-    const { lastStatus, lastCheck, lastCheckAttempt, apiData } = response;
+    // Si on a un onglet secondaire actif, on bypasse GET_STATUS et on lit
+    // directement le record dans chrome.storage.local.dossiers[id]
+    let { lastStatus, lastCheck, lastCheckAttempt, apiData } = response;
+    const { dossiers = {}, primaryDossierId } = await chrome.storage.local.get(['dossiers', 'primaryDossierId']);
+    const isViewingSecondary = _activeViewDossierId && _activeViewDossierId !== primaryDossierId;
+
+    if (isViewingSecondary && dossiers[_activeViewDossierId]) {
+      const d = dossiers[_activeViewDossierId];
+      lastStatus = d.lastStatus;
+      apiData = d.apiData;
+      lastCheck = d.lastCheck;
+      lastCheckAttempt = null; // pas de tentative pour un secondaire
+    }
+
+    // Toggle UI : boutons actualiser (primaire) vs actions secondaires
+    toggleSecondaryActionsUI(isViewingSecondary);
 
     if (!lastStatus) {
       showView('noData');
@@ -350,6 +507,14 @@ async function loadData() {
     loadAutoCheckNext();
     checkStepDatesAlert();
   }
+}
+
+/** Bascule l'UI entre mode primaire et mode secondaire */
+function toggleSecondaryActionsUI(isSecondary) {
+  const refreshBtn = document.getElementById('btn-refresh');
+  const secondaryActions = document.getElementById('secondary-actions');
+  if (refreshBtn) refreshBtn.style.display = isSecondary ? 'none' : '';
+  if (secondaryActions) secondaryActions.classList.toggle('hidden', !isSecondary);
 }
 
 // ─────────────────────────────────────────────────────────────

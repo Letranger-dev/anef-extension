@@ -135,6 +135,13 @@
       </div>
     </div>
 
+    <!-- Barre d'onglets multi-dossier (affichée uniquement si >=2 dossiers) -->
+    <nav id="dossier-tabs" class="dossier-tabs hidden" role="tablist" aria-label="Mes dossiers">
+      <div id="dossier-tabs-scroll" class="dossier-tabs-scroll">
+        <!-- Rempli dynamiquement par popup.js -->
+      </div>
+    </nav>
+
     <!-- Bannière : changement de dossier détecté -->
     <div id="dossier-switch-banner" class="dossier-switch-banner hidden">
       <div class="dossier-switch-banner-content">
@@ -233,6 +240,21 @@
           </svg>
           <span>Mon REX</span>
         </button>
+      </div>
+
+      <!-- Actions spécifiques aux dossiers secondaires (cachées par défaut) -->
+      <div id="secondary-actions" class="secondary-actions hidden">
+        <div class="secondary-actions-hint">
+          Dossier secondaire · actualisation automatique désactivée
+        </div>
+        <div class="secondary-actions-buttons">
+          <button id="btn-make-primary" class="btn btn-secondary btn-sm" title="Définir comme dossier principal (les identifiants enregistrés seront effacés)">
+            <span>⭐ Définir principal</span>
+          </button>
+          <button id="btn-remove-dossier" class="btn btn-ghost btn-sm" title="Retirer ce dossier de ma liste locale (les données Supabase anonymes ne sont pas supprimées)">
+            <span>🗑 Retirer</span>
+          </button>
+        </div>
       </div>
 
       <!-- Stats -->
