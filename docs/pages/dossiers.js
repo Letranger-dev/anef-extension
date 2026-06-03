@@ -49,6 +49,12 @@
       state.snapshots = snapshots;
       state.grouped = D.groupByDossier(snapshots);
       state.summaries = D.computeDossierSummaries(state.grouped);
+      // Index hash → summary : lookups O(1) au lieu d'un scan O(N) par appel
+      // (le modal d'étape pouvait faire O(dossiers × N) = O(N²)).
+      state.summaryByHash = new Map();
+      for (var _si = 0; _si < state.summaries.length; _si++) {
+        state.summaryByHash.set(state.summaries[_si].hash, state.summaries[_si]);
+      }
 
       var urlFilters = F.readFiltersFromURL();
       if (urlFilters.sort) state.sort = urlFilters.sort;
@@ -205,13 +211,28 @@
     });
   }
 
+  // Liste filtrée+triée mise en cache par signature (filtres dossier + tri).
+  // La pagination ne dépend QUE de state.page/pageSize → pas besoin de re-filtrer
+  // ni re-trier 5000+ dossiers à chaque clic de page. Recalcul seulement si la
+  // signature change (un filtre ou le tri a bougé).
+  function getFilteredSorted(allSummaries) {
+    var tf = state.dossierFilters;
+    var sig = [tf.statut, tf.prefecture, tf.history, tf.depotMin, tf.depotMax,
+               tf.statutDateMin, tf.statutDateMax, state.sort].join('|');
+    if (state._sortedCache && state._sortedSig === sig) return state._sortedCache;
+    var sorted = getSorted(applyDossierFilters(allSummaries));
+    state._sortedCache = sorted;
+    state._sortedSig = sig;
+    return sorted;
+  }
+
   function renderDossiers(allSummaries) {
-    var dossierData = applyDossierFilters(allSummaries);
+    var sorted = getFilteredSorted(allSummaries);
     var toolbar = document.getElementById('dossier-toolbar');
     var grid = document.getElementById('dossier-grid');
     var list = document.getElementById('dossier-list');
 
-    if (!dossierData.length) {
+    if (!sorted.length) {
       toolbar.style.display = 'none';
       grid.innerHTML = '';
       grid.style.display = 'none';
@@ -220,7 +241,6 @@
       return;
     }
 
-    var sorted = getSorted(dossierData);
     var totalPages = Math.max(1, Math.ceil(sorted.length / state.pageSize));
     state.page = Math.min(state.page, totalPages);
 
@@ -572,8 +592,7 @@
       if (state.page > 1) { state.page--; renderAll(); }
     });
     document.getElementById('btn-next').addEventListener('click', function() {
-      var dossierData = applyDossierFilters(state.summaries);
-      var totalPages = Math.ceil(dossierData.length / state.pageSize);
+      var totalPages = Math.ceil(getFilteredSorted(state.summaries).length / state.pageSize);
       if (state.page < totalPages) { state.page++; renderAll(); }
     });
   }
@@ -647,7 +666,10 @@
     var noData = document.getElementById('duration-no-data');
     var container = document.getElementById('duration-chart-container');
     var statsDiv = document.getElementById('duration-stats');
-    var data = computeDurationAtStep(state.grouped);
+    // grouped est constant après le chargement → calcul mis en cache (était
+    // recalculé à chaque pagination/tri/filtre via renderAll).
+    if (!state.durationAtStep) state.durationAtStep = computeDurationAtStep(state.grouped);
+    var data = state.durationAtStep;
 
     data = data.filter(function(d) { return d.median_days > 0 && d.count >= 2 && d.etape >= 2; });
 
@@ -743,10 +765,7 @@
   // ─── Duration Step → Dossier List Modal ────────────────────
 
   function findSummaryByHash(hash) {
-    for (var i = 0; i < state.summaries.length; i++) {
-      if (state.summaries[i].hash === hash) return state.summaries[i];
-    }
-    return null;
+    return (state.summaryByHash && state.summaryByHash.get(hash)) || null;
   }
 
   function showDurationStepDossiers(stepInfo) {
@@ -995,6 +1014,14 @@
   }
 
   function renderHistogram(allSummaries) {
+    // L'histogramme ne dépend que de histogramFilters (allSummaries = state.summaries,
+    // constant). On évite de reconstruire le chart Chart.js sur chaque pagination/tri/
+    // filtre dossier qui ne touche pas l'histogramme. Le re-coloriage thème passe par
+    // recolorInstance (charts.js), pas par cette fonction → skip sans risque.
+    var sig = state.histogramFilters.statut + '|' + state.histogramFilters.prefecture;
+    if (state._histogramSig === sig) return;
+    state._histogramSig = sig;
+
     var canvas = document.getElementById('histogram-chart');
     var noData = document.getElementById('histogram-no-data');
     var statsDiv = document.getElementById('histogram-stats');

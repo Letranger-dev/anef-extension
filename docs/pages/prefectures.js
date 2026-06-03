@@ -91,13 +91,27 @@
     renderAll();
   }
 
+  // Signature des filtres actifs : sert de clé de cache pour les dérivés coûteux
+  // (filtered, prefStats, matrice heatmap). Tri/pagination ne changent PAS le
+  // filtre → on réutilise le cache au lieu de tout recalculer.
+  function filterSig() {
+    var p = state.filters.prefecture;
+    return state.filters.statut + '||' + (Array.isArray(p) ? p.slice().sort().join(',') : p);
+  }
+
   function getFiltered() {
-    return D.applyFilters(state.summaries, state.filters);
+    var sig = filterSig();
+    if (state._derivedSig !== sig) {
+      state._filtered = D.applyFilters(state.summaries, state.filters);
+      state._prefStats = D.computePrefectureStats(state._filtered);
+      state._derivedSig = sig;
+    }
+    return state._filtered;
   }
 
   function renderAll() {
     var filtered = getFiltered();
-    var prefStats = D.computePrefectureStats(filtered);
+    var prefStats = state._prefStats;
 
     var countEl = document.getElementById('filter-count');
     if (filtered.length === 0) {
@@ -228,10 +242,9 @@
       if (state.tablePage > 1) { state.tablePage--; renderAll(); }
     });
     document.getElementById('ranking-btn-next').addEventListener('click', function() {
-      var filtered = getFiltered();
-      var prefStats = D.computePrefectureStats(filtered);
+      getFiltered(); // assure le cache state._prefStats
       var pageSize = state.tablePageSize;
-      var totalPages = pageSize > 0 ? Math.ceil(prefStats.length / pageSize) : 1;
+      var totalPages = pageSize > 0 ? Math.ceil(state._prefStats.length / pageSize) : 1;
       if (state.tablePage < totalPages) { state.tablePage++; renderAll(); }
     });
   }
@@ -376,7 +389,14 @@
 
     // Build matrix: prefecture x (step or statut for step 9) => days spent AT each step
     // Use state.grouped (already deduplicated and sorted by groupByDossier)
-    var matrix = {};
+    // Matrice préfecture×étape : ne dépend que du filtre. Cache par signature pour
+    // éviter de re-scanner ~9000 snapshots (regex + daysDiff) sur pagination/tri.
+    var _hmSig = filterSig();
+    var matrix, globalMax;
+    if (state._hmSig === _hmSig && state._hmMatrix) {
+      matrix = state._hmMatrix; globalMax = state._hmMax;
+    } else {
+    matrix = {};
     var allHashes = new Set(filtered.map(function(s) { return s.fullHash; }));
 
     var today = new Date();
@@ -418,13 +438,15 @@
     });
 
     // Find global max for color scaling
-    var globalMax = 0;
+    globalMax = 0;
     var mKeys = Object.keys(matrix);
     for (var k = 0; k < mKeys.length; k++) {
       var arr = matrix[mKeys[k]];
       var sum = 0; for (var s2 = 0; s2 < arr.length; s2++) sum += arr[s2].days;
       var avg = sum / arr.length;
       if (avg > globalMax) globalMax = avg;
+    }
+    state._hmMatrix = matrix; state._hmMax = globalMax; state._hmSig = _hmSig;
     }
 
     var prefs = prefStats.map(function(p) { return p.prefecture; });

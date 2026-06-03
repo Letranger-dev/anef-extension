@@ -6,10 +6,11 @@
 
   window.ANEF = window.ANEF || {};
 
-  /** Percentile (p entre 0 et 100) */
-  function percentile(arr, p) {
-    if (!arr.length) return 0;
-    var sorted = arr.slice().sort(function(a, b) { return a - b; });
+  var _numAsc = function(a, b) { return a - b; };
+
+  /** Percentile sur un tableau DÉJÀ trié croissant (évite de re-trier). */
+  function percentileSorted(sorted, p) {
+    if (!sorted.length) return 0;
     var idx = (p / 100) * (sorted.length - 1);
     var lo = Math.floor(idx);
     var hi = Math.ceil(idx);
@@ -17,27 +18,40 @@
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
   }
 
-  /** Quartiles => {min, q1, median, q3, max} */
-  function quartiles(arr) {
-    if (!arr.length) return { min: 0, q1: 0, median: 0, q3: 0, max: 0 };
-    var sorted = arr.slice().sort(function(a, b) { return a - b; });
+  /** Percentile (p entre 0 et 100) */
+  function percentile(arr, p) {
+    if (!arr.length) return 0;
+    return percentileSorted(arr.slice().sort(_numAsc), p);
+  }
+
+  /** Quartiles depuis un tableau DÉJÀ trié. */
+  function quartilesSorted(sorted) {
+    if (!sorted.length) return { min: 0, q1: 0, median: 0, q3: 0, max: 0 };
     return {
       min: sorted[0],
-      q1: percentile(arr, 25),
-      median: percentile(arr, 50),
-      q3: percentile(arr, 75),
+      q1: percentileSorted(sorted, 25),
+      median: percentileSorted(sorted, 50),
+      q3: percentileSorted(sorted, 75),
       max: sorted[sorted.length - 1]
     };
   }
 
+  /** Quartiles => {min, q1, median, q3, max} */
+  function quartiles(arr) {
+    if (!arr.length) return { min: 0, q1: 0, median: 0, q3: 0, max: 0 };
+    // Un seul tri partagé au lieu de 4 (1 ici + 3 dans percentile).
+    return quartilesSorted(arr.slice().sort(_numAsc));
+  }
+
   /** Box plot data with outliers */
   function boxPlotData(arr) {
-    var q = quartiles(arr);
+    // Un seul tri réutilisé pour quartiles ET le calcul des outliers (était 5 tris).
+    var sorted = arr.slice().sort(_numAsc);
+    var q = quartilesSorted(sorted);
     var iqr = q.q3 - q.q1;
     var lowerFence = q.q1 - 1.5 * iqr;
     var upperFence = q.q3 + 1.5 * iqr;
     var outliers = [];
-    var sorted = arr.slice().sort(function(a, b) { return a - b; });
     var whiskerMin = q.max;
     var whiskerMax = q.min;
     for (var i = 0; i < sorted.length; i++) {
@@ -120,9 +134,10 @@
         days = data.daysByPref[prefecture];
       }
 
-      totalP25 += percentile(days, 25);
-      totalP50 += percentile(days, 50);
-      totalP75 += percentile(days, 75);
+      var sortedDays = days.slice().sort(_numAsc);
+      totalP25 += percentileSorted(sortedDays, 25);
+      totalP50 += percentileSorted(sortedDays, 50);
+      totalP75 += percentileSorted(sortedDays, 75);
       if (days.length < minSample) minSample = days.length;
       totalSample += days.length;
       stepsCount++;
@@ -190,6 +205,7 @@
   function survivalCurve(summaries, snapshots, grouped, targetStep) {
     // Find dossiers that were at targetStep at some point
     var durations = [];
+    var now = new Date(); // hoisté hors de la boucle (était re-alloué par dossier)
 
     grouped.forEach(function(snaps, hash) {
       var atStep = [];
@@ -216,7 +232,7 @@
           d = ANEF.utils.daysDiff(entryDate, exitDate);
         } else {
           // Still at this step
-          d = ANEF.utils.daysDiff(entryDate, new Date());
+          d = ANEF.utils.daysDiff(entryDate, now);
         }
         if (d !== null && d >= 0) {
           durations.push({ days: d, censored: !exitDate });

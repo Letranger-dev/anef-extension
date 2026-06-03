@@ -82,16 +82,32 @@
     renderAll();
   }
 
-  function getFiltered() {
-    // Exclude finished dossiers (step ≥ 11 or negative outcome) from all stats —
-    // they skew averages toward longer durations.
-    return D.applyFilters(state.summaries, state.filters)
-      .filter(function(s) { return !s.isFinished; });
+  // Signature des filtres → cache des dérivés. Le toggle "détails" rappelle
+  // renderAll sans changer les filtres : on réutilise alors filtered/grouped.
+  function filterSig() {
+    var f = state.filters;
+    var p = f.prefecture;
+    // Inclut TOUS les champs lus par applyFilters (statut/step/prefecture/outcome/
+    // complement/search), même ceux sans UI sur cette page : sig complète par contrat.
+    return [f.statut || '', f.step || '', f.outcome || '', f.complement || '',
+            f.search || '', (Array.isArray(p) ? p.slice().sort().join(',') : (p || ''))
+           ].join('||');
   }
 
-  function getFilteredSnapshots(filtered) {
-    var hashes = filtered.map(function(s) { return s.fullHash; });
-    return D.getSnapshotsForHashes(state.snapshots, hashes);
+  function getFiltered() {
+    var sig = filterSig();
+    if (state._sig !== sig) {
+      // Exclude finished dossiers (step ≥ 11 or negative outcome) from all stats —
+      // they skew averages toward longer durations.
+      state._filtered = D.applyFilters(state.summaries, state.filters)
+        .filter(function(s) { return !s.isFinished; });
+      var hashes = state._filtered.map(function(s) { return s.fullHash; });
+      state._filteredGrouped = getFilteredGrouped(hashes);
+      // Snapshots BRUTS pour computeDurationByStatus (cf. note dans data.js).
+      state._filteredSnapshots = D.getSnapshotsForHashes(state.snapshots, hashes);
+      state._sig = sig;
+    }
+    return state._filtered;
   }
 
   function getFilteredGrouped(filteredHashes) {
@@ -106,8 +122,7 @@
 
   function renderAll() {
     var filtered = getFiltered();
-    var filteredSnapshots = getFilteredSnapshots(filtered);
-    var filteredGrouped = getFilteredGrouped(filtered.map(function(s) { return s.fullHash; }));
+    var filteredGrouped = state._filteredGrouped;
 
     var countEl = document.getElementById('filter-count');
     if (filtered.length === 0) {
@@ -116,8 +131,8 @@
       countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '') + ' en cours';
     }
 
-    // Chart: cumulative time since deposit (first arrival at each step)
-    var durations = D.computeDurationByStatus(filteredSnapshots)
+    // Chart: cumulative time since deposit (first arrival at each step).
+    var durations = D.computeDurationByStatus(state._filteredSnapshots)
       .filter(function(d) { return d.etape >= 2 && d.count >= 3; });
 
     // Table: time SPENT at each step (observed transitions only)

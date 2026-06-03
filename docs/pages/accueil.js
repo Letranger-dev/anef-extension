@@ -1010,7 +1010,12 @@
   var SDANF_STATUTS = { 'controle_a_affecter': true, 'controle_a_effectuer': true };
   var SCEC_STATUTS = { 'controle_en_attente_pec': true, 'controle_pec_a_faire': true };
 
+  var _dailyMovCache = {};
   function computeDailyMovements(transitions, periodDays, grouped) {
+    // Mémoïsation par période : transitions/grouped sont constants sur la page,
+    // seul periodDays (0/7/30) varie. Évite jusqu'à 5 passes sur grouped
+    // (sonde hasAny + sélection période + rendu des cartes).
+    if (_dailyMovCache[periodDays]) return _dailyMovCache[periodDays];
     var now = new Date();
     var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     var cutoff;
@@ -1075,7 +1080,9 @@
       });
     }
 
-    return { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9, arrivedDecret: arrivedDecret };
+    var result = { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9, arrivedDecret: arrivedDecret };
+    _dailyMovCache[periodDays] = result;
+    return result;
   }
 
   function renderMouvements(transitions, grouped) {

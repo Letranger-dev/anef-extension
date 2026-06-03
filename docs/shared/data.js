@@ -252,19 +252,16 @@
   // fullHash reste en interne (clé de state.grouped) mais n'est jamais
   // rendu dans le DOM ni dans un attribut data-*.
   var _displayIdByFullHash = Object.create(null);
+  var _usedDisplayIds = new Set();
   function generateDisplayId() {
     // 5 chars base36 : ~60M combinaisons, collisions négligeables (<10k dossiers)
+    // Unicité vérifiée via un Set => O(1) par génération (évite un scan O(D²)).
     var id;
     do {
       id = Math.random().toString(36).substring(2, 7).padEnd(5, '0');
-    } while (_displayIdExists(id));
+    } while (_usedDisplayIds.has(id));
+    _usedDisplayIds.add(id);
     return id;
-  }
-  function _displayIdExists(id) {
-    for (var k in _displayIdByFullHash) {
-      if (_displayIdByFullHash[k] === id) return true;
-    }
-    return false;
   }
   function displayIdForFullHash(fullHash) {
     if (!fullHash) return '';
@@ -450,6 +447,9 @@
     };
   }
 
+  // NB: opère sur les snapshots BRUTS (non dédupliqués) — comportement historique,
+  // distinct de computeStepWaitTimes qui prend le Map dédupliqué. Ne pas « optimiser »
+  // en passant le grouped : la déduplication changerait les statistiques affichées.
   function computeDurationByStatus(snapshots) {
     var buckets = {};
 
@@ -569,15 +569,14 @@
         var prev = snaps[i - 1];
         var curr = snaps[i];
         if (!prev.date_statut || !curr.date_statut) continue;
-        var prevKey = _bucketKeyFor(prev).key;
+        var prevMeta = _bucketKeyFor(prev); // calculé une seule fois (était 2×)
         var currKey = _bucketKeyFor(curr).key;
-        if (prevKey === currKey) continue; // same bucket, not a transition
+        if (prevMeta.key === currKey) continue; // same bucket, not a transition
         var days = ANEF.utils.daysDiff(prev.date_statut, curr.date_statut);
         if (days === null || days < 0) continue;
 
-        var meta = _bucketKeyFor(prev);
-        if (!buckets[meta.key]) buckets[meta.key] = { etape: Number(prev.etape), phase: meta.phase, statut: meta.statut, rang: meta.rang, days: [] };
-        buckets[meta.key].days.push(days);
+        if (!buckets[prevMeta.key]) buckets[prevMeta.key] = { etape: Number(prev.etape), phase: prevMeta.phase, statut: prevMeta.statut, rang: prevMeta.rang, days: [] };
+        buckets[prevMeta.key].days.push(days);
       }
     });
 
