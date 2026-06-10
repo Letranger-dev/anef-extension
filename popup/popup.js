@@ -7,7 +7,7 @@
  * - Les détails du dossier
  */
 
-import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, isPositiveStatus, isNegativeStatus, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, daysBetween, isPositiveStatus, isNegativeStatus, isClosedStatus, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
 import { downloadLogs } from '../lib/logger.js';
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
@@ -118,6 +118,13 @@ function initializeElements() {
     statusDescription: document.getElementById('status-description'),
     statusDate: document.getElementById('status-date'),
     progressFill: document.getElementById('progress-fill'),
+
+    // Bannière de clôture (procédure terminée)
+    closureBanner: document.getElementById('closure-banner'),
+    closureTotalValue: document.getElementById('closure-total-value'),
+    closureDecretFigure: document.getElementById('closure-decret-figure'),
+    closureDecretNum: document.getElementById('closure-decret-num'),
+    closureDepotDate: document.getElementById('closure-depot-date'),
 
     // Statistiques temporelles
     statsSection: document.getElementById('stats-section'),
@@ -618,6 +625,8 @@ function showView(viewName) {
 function displayStatus(statusData, apiData, lastCheck) {
   const { statut, date_statut } = statusData;
   const statusInfo = getStatusExplanation(statut);
+  // Procédure clôturée : décret de naturalisation publié → on fige les compteurs
+  const closed = isClosedStatus(statut);
 
   // Icône et phase
   if (elements.statusIcon) elements.statusIcon.textContent = statusInfo.icon || '📋';
@@ -648,9 +657,14 @@ function displayStatus(statusData, apiData, lastCheck) {
       }
 
       if (earliestDate) {
-        const days = daysSince(earliestDate);
-        const duration = formatDuration(days);
-        elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
+        if (closed) {
+          // Procédure terminée → on n'affiche plus de durée qui s'incrémente
+          elements.statusDate.textContent = formatDate(earliestDate);
+        } else {
+          const days = daysSince(earliestDate);
+          const duration = formatDuration(days);
+          elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
+        }
       } else {
         elements.statusDate.textContent = '—';
       }
@@ -694,18 +708,59 @@ function displayStatus(statusData, apiData, lastCheck) {
     }
   }
 
-  displayTemporalStats(statusData, apiData);
+  displayClosureBanner(statusData, apiData, closed);
+  displayTemporalStats(statusData, apiData, closed);
   displayDetails(statusData, apiData);
 }
 
+/** Affiche la bannière de clôture quand la procédure est terminée (décret publié).
+ *  Remplace les stats temporelles « vivantes » par un récap figé et festif. */
+function displayClosureBanner(statusData, apiData, closed) {
+  const banner = elements.closureBanner;
+  if (!banner) return;
+
+  if (!closed) {
+    banner.classList.add('hidden');
+    elements.statsSection?.classList.remove('hidden');
+    return;
+  }
+
+  const dateDepot = apiData?.dateDepot || apiData?.rawTaxePayee?.date_consommation;
+  // Fin de procédure : date d'enregistrement du statut « décret publié » côté ANEF
+  const dateFin = statusData?.date_statut;
+
+  // Durée totale figée : dépôt → fin de procédure
+  if (elements.closureTotalValue) {
+    const total = (dateDepot && dateFin) ? daysBetween(dateDepot, dateFin) : null;
+    elements.closureTotalValue.textContent = (total != null) ? formatDuration(total) : '—';
+  }
+  // Numéro de décret (donnée fiable de l'API) ; on masque la figure s'il est absent
+  if (elements.closureDecretFigure) {
+    const numDecret = apiData?.numeroDecret;
+    if (numDecret) {
+      if (elements.closureDecretNum) elements.closureDecretNum.textContent = numDecret;
+      elements.closureDecretFigure.classList.remove('hidden');
+    } else {
+      elements.closureDecretFigure.classList.add('hidden');
+    }
+  }
+  if (elements.closureDepotDate) {
+    elements.closureDepotDate.textContent = dateDepot ? formatDate(dateDepot) : '—';
+  }
+
+  banner.classList.remove('hidden');
+  // La procédure est terminée : on masque les compteurs qui continueraient à courir
+  elements.statsSection?.classList.add('hidden');
+}
+
 /** Affiche les statistiques temporelles */
-function displayTemporalStats(statusData, apiData) {
+function displayTemporalStats(statusData, apiData, closed = false) {
   const dateDepot = apiData?.dateDepot || apiData?.rawTaxePayee?.date_consommation;
   const dateEntretien = apiData?.dateEntretien || apiData?.rawEntretien?.date_rdv;
 
-  // Depuis le dépôt
+  // Depuis le dépôt (figé à la date du décret si la procédure est terminée)
   if (dateDepot && elements.statDepot) {
-    const days = daysSince(dateDepot);
+    const days = closed ? daysBetween(dateDepot, statusData?.date_statut) : daysSince(dateDepot);
     elements.statDepotValue.textContent = formatDuration(days);
     elements.statDepotDate.textContent = formatDate(dateDepot, true);
     elements.statDepot.classList.remove('hidden');

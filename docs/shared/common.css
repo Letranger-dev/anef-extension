@@ -2817,6 +2817,31 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   padding: 0.12rem 0.4rem;
   border-radius: 4px;
 }
+/* Naturalisé(e) : badge festif (décret publié au JO) */
+.badge-naturalise {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--green), color-mix(in srgb, var(--green) 65%, #34d399));
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+}
+/* Bannière festive « procédure terminée » dans le détail d'un dossier naturalisé */
+.dossier-naturalise-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--green) 18%, transparent), color-mix(in srgb, var(--green) 6%, transparent));
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+}
+.dossier-naturalise-banner .dnb-confetti { font-size: 1.5rem; line-height: 1; }
+.dossier-naturalise-banner .dnb-text { display: flex; flex-direction: column; gap: 2px; }
+.dossier-naturalise-banner .dnb-text strong { color: var(--green); font-size: 0.85rem; }
+.dossier-naturalise-banner .dnb-text span { color: var(--text-dim); font-size: 0.75rem; }
 
 /* ─── Mouvement section header (collapsible) ──────────────── */
 

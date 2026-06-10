@@ -295,7 +295,13 @@
       var sansEntretien = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
       var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
       // Badge "Terminé/Clôturé" uniquement si vraiment clôturé (pas pour IDD étape 11)
-      var finishedBadge = (s.isFinished && s.currentStep !== 11) ? (C.isPositiveStatus(s.statut) ? ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>' : ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>') : '';
+      // Naturalis\u00e9(e) \u2192 badge festif d\u00e9di\u00e9 ; positif non-naturalis\u00e9 \u2192 "Termin\u00e9" ; n\u00e9gatif \u2192 "Cl\u00f4tur\u00e9"
+      var finishedBadge = '';
+      if (s.isFinished && s.currentStep !== 11) {
+        if (C.isNaturalise(s.statut)) finishedBadge = ' <span class="badge-naturalise">\ud83c\udf89 Naturalis\u00e9(e)</span>';
+        else if (C.isPositiveStatus(s.statut)) finishedBadge = ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>';
+        else finishedBadge = ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>';
+      }
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
         '<div class="dossier-row-main">' +
@@ -505,7 +511,19 @@
     var snaps = state.grouped.get(s.fullHash) || [];
     var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '';
 
-    return '<div class="dossier-progress">' +
+    // Bannière festive pour les dossiers naturalisés (décret publié au JO)
+    var naturaliseBanner = '';
+    if (C.isNaturalise(s.statut)) {
+      naturaliseBanner = '<div class="dossier-naturalise-banner">' +
+        '<span class="dnb-confetti">🎉</span>' +
+        '<div class="dnb-text"><strong>Naturalisé(e) — procédure terminée</strong>' +
+        '<span>Décret publié au Journal Officiel' +
+        (s.daysSinceDeposit != null ? ' · ' + U.formatDuration(s.daysSinceDeposit) + ' au total' : '') +
+        '</span></div></div>';
+    }
+
+    return naturaliseBanner +
+      '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
         '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</div>' +
       '</div>' +
@@ -548,7 +566,20 @@
     var sansEntretienCard = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
     var sansEntretienBadgeCard = sansEntretienCard ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
 
-    var daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
+    // Badge de fin (coh\u00E9rent avec la vue liste) : festif si naturalis\u00E9(e)
+    var finishedBadgeCard = '';
+    if (s.isFinished && s.currentStep !== 11) {
+      if (C.isNaturalise(s.statut)) finishedBadgeCard = ' <span class="badge-naturalise">\uD83C\uDF89 Naturalis\u00E9(e)</span>';
+      else if (C.isPositiveStatus(s.statut)) finishedBadgeCard = ' <span class="badge-finished-ok">\u2713 Termin\u00E9</span>';
+      else finishedBadgeCard = ' <span class="badge-finished-ko">\u2717 Cl\u00F4tur\u00E9</span>';
+    }
+
+    // \u00C9tape 11 (IDD) : "finished" mais encore en cours (attente JO) \u2192 afficher comme en cours
+    var cardFinished = s.isFinished && s.currentStep !== 11;
+    var daysAtStatus = cardFinished
+      ? (s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00E9')
+      : (s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014');
+    var daysAtStatusLabel = cardFinished ? 'Finalis\u00E9 le' : 'Au statut actuel';
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
@@ -566,10 +597,10 @@
       '</div>' +
       '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + sansEntretienBadgeCard + '</div>' +
+        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + sansEntretienBadgeCard + finishedBadgeCard + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
-        '<div class="duration-item"><span class="duration-label">Au statut actuel</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">' + daysAtStatusLabel + '</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
         '<div class="duration-item"><span class="duration-label">Depuis le dépôt</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +

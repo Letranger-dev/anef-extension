@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.34.2';
+  var SITE_VERSION = '1.34.3';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -355,6 +355,16 @@
     return ['decret_naturalisation_publie', 'decret_naturalisation_publie_jo', 'decret_publie', 'demande_traitee'].indexOf(code) !== -1;
   }
 
+  /**
+   * Naturalisé(e) : décret de naturalisation publié au JO (phase NATURALISE(E)).
+   * Sous-ensemble strict de isPositiveStatus (exclut demande_traitee, ambigu).
+   * Sert au marquage festif « procédure terminée » côté UI.
+   */
+  function isNaturalise(statutCode) {
+    var code = String(statutCode || '').toLowerCase().trim();
+    return ['decret_naturalisation_publie', 'decret_naturalisation_publie_jo', 'decret_publie'].indexOf(code) !== -1;
+  }
+
   var NEGATIVE_STATUSES = [
     'decision_negative_en_delais_recours', 'decision_notifiee',
     'irrecevabilite_manifeste', 'irrecevabilite_manifeste_en_delais_recours',
@@ -447,6 +457,7 @@
     STEP_RANGES: STEP_RANGES,
     STATUTS: STATUTS,
     isPositiveStatus: isPositiveStatus,
+    isNaturalise: isNaturalise,
     isNegativeStatus: isNegativeStatus,
     isFinished: isFinished,
     getStepColor: getStepColor,
