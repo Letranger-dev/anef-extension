@@ -419,6 +419,17 @@ QJNdXtE3G7SjkDOn36yZSaXp
     '.fr-tabs__list button, .fr-tabs__list li, li[role="presentation"] a, ' +
     '.p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li';
 
+  // Le portail ANEF est multilingue : le libellé de l'onglet dépend de la langue
+  // choisie par l'usager (FR « Nationalité Française », EN « French Nationality
+  // application », …). On matche donc sur la racine « national » insensible à la
+  // casse et aux accents, ce qui couvre le français comme l'anglais sans lister
+  // chaque locale. Sans ça, un usager en anglais ne trouve jamais l'onglet, le
+  // fetch expire et l'extension conclut à tort « Site en maintenance ».
+  const _normalize = (s) => (s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // enlève les accents
+    .toLowerCase();
+  const _matchesNationality = (s) => _normalize(s).includes('national');
+
   function findNationalityTab() {
     const tabs = document.querySelectorAll(TAB_SELECTOR);
     if (tabs.length > 0 && !_tabsLoggedOnce) {
@@ -426,10 +437,8 @@ QJNdXtE3G7SjkDOn36yZSaXp
       log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
     }
     return Array.from(tabs).find(
-      el => el.textContent?.includes("Nationalité Française") ||
-            el.textContent?.includes("Nationalité") ||
-            el.textContent?.includes("nationalité") ||
-            el.getAttribute('aria-label')?.includes("Nationalité")
+      el => _matchesNationality(el.textContent) ||
+            _matchesNationality(el.getAttribute('aria-label'))
     ) || null;
   }
 
