@@ -7,6 +7,9 @@
   window.ANEF = window.ANEF || {};
   window.ANEF.ui = window.ANEF.ui || {};
 
+  // i18n helper — _t(key, frenchFallback). Used for the dropdown's own labels.
+  function _t(k, d) { return (window.ANEF && ANEF.t) ? ANEF.t(k) : d; }
+
   /**
    * Create a searchable status select dropdown
    * @param {string} containerId - ID of the container element
@@ -33,7 +36,7 @@
       for (var fs = 0; fs < filterStatuses.length; fs++) statusSet[filterStatuses[fs]] = true;
     }
     var onChange = options.onChange || function() {};
-    var placeholder = options.placeholder || 'Rechercher un statut...';
+    var placeholder = options.placeholder || _t('filter.search_status', 'Rechercher un statut...');
 
     var STATUTS = ANEF.constants.STATUTS;
     var PHASE_NAMES = ANEF.constants.PHASE_NAMES;
@@ -51,7 +54,7 @@
     statutList.sort(function(a, b) { return a.rang - b.rang; });
 
     // Find display text for default value
-    var defaultText = 'Toutes les étapes';
+    var defaultText = _t('filter.all_steps', 'Toutes les étapes');
     if (defaultValue !== 'all') {
       for (var j = 0; j < statutList.length; j++) {
         if (statutList[j].code === defaultValue) {
@@ -73,7 +76,7 @@
 
     if (includeAll) {
       var allSelected = defaultValue === 'all' ? ' selected' : '';
-      html += '<div class="status-select-option status-select-all' + allSelected + '" data-value="all" data-step="">Toutes les étapes</div>';
+      html += '<div class="status-select-option status-select-all' + allSelected + '" data-value="all" data-step="">' + escapeHtml(_t('filter.all_steps', 'Toutes les étapes')) + '</div>';
     }
 
     // Group by etape
@@ -139,7 +142,7 @@
       option.classList.add('selected');
 
       // Update trigger text
-      textSpan.textContent = value === 'all' ? 'Toutes les étapes' : option.textContent;
+      textSpan.textContent = value === 'all' ? _t('filter.all_steps', 'Toutes les étapes') : option.textContent;
 
       close();
       onChange(value, step);
@@ -194,7 +197,7 @@
         if (!noResults) {
           noResults = document.createElement('div');
           noResults.className = 'status-select-no-results';
-          noResults.textContent = 'Aucun statut trouvé';
+          noResults.textContent = _t('filter.no_status', 'Aucun statut trouvé');
           optionsContainer.appendChild(noResults);
         }
         noResults.style.display = '';
@@ -215,7 +218,7 @@
           options[i].classList.remove('selected');
           if (options[i].dataset.value === value) {
             options[i].classList.add('selected');
-            textSpan.textContent = value === 'all' ? 'Toutes les étapes' : options[i].textContent;
+            textSpan.textContent = value === 'all' ? _t('filter.all_steps', 'Toutes les étapes') : options[i].textContent;
           }
         }
       }

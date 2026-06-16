@@ -26,7 +26,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('delais.no_data_available') + '</p></div>';
         return;
       }
 
@@ -52,7 +52,7 @@
       }
 
     } catch (error) {
-      loading.innerHTML = '<div class="error-msg"><p>Erreur: ' + U.escapeHtml(error.message) + '</p></div>';
+      loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('common.error') + ' : ' + U.escapeHtml(error.message) + '</p></div>';
     }
   });
 
@@ -126,9 +126,9 @@
 
     var countEl = document.getElementById('filter-count');
     if (filtered.length === 0) {
-      countEl.textContent = 'Aucun dossier ne correspond aux filtres';
+      countEl.textContent = ANEF.t('delais.no_match');
     } else {
-      countEl.textContent = filtered.length + ' dossier' + (filtered.length > 1 ? 's' : '') + ' en cours';
+      countEl.textContent = ANEF.tn('delais.dossiers_ongoing', filtered.length);
     }
 
     // Chart: cumulative time since deposit (first arrival at each step).
@@ -152,7 +152,7 @@
     ANEF.ui.createStatusSelect('estimator-status-container', {
       includeAll: false,
       defaultValue: 'verification_formelle_a_traiter',
-      placeholder: 'Rechercher votre statut...',
+      placeholder: ANEF.t('delais.search_status'),
       onChange: function(statusCode) {
         estimatorStatut = statusCode;
         updateEstimator();
@@ -162,7 +162,7 @@
     F.createSearchablePrefectureDropdown('estimator-prefecture-container', prefectures, '', function(v) {
       estimatorPrefecture = v;
       updateEstimator();
-    }, { allLabel: 'Toutes' });
+    }, { allLabel: ANEF.t('delais.all_prefectures') });
 
     updateEstimator();
   }
@@ -214,7 +214,7 @@
       U.setText('est-p25', '\u2014');
       U.setText('est-p50', '\u2014');
       U.setText('est-p75', '\u2014');
-      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de donn\u00e9es pour cette estimation';
+      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> ' + ANEF.t('delais.not_enough_data');
       return;
     }
 
@@ -241,7 +241,7 @@
       U.setText('est-p25', '\u2014');
       U.setText('est-p50', '\u2014');
       U.setText('est-p75', '\u2014');
-      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> Pas assez de donn\u00e9es pour cette estimation';
+      confEl.innerHTML = '<span class="confidence-dot confidence-low"></span> ' + ANEF.t('delais.not_enough_data');
       return;
     }
 
@@ -256,18 +256,22 @@
     var totalSample = currentDays.length + targetDays.length;
     var confidence = totalSample >= 15 ? 'high' : totalSample >= 6 ? 'medium' : 'low';
     var cls = confidence === 'high' ? 'confidence-high' : confidence === 'medium' ? 'confidence-medium' : 'confidence-low';
-    var label = confidence === 'high' ? 'Fiabilit\u00e9 \u00e9lev\u00e9e' : confidence === 'medium' ? 'Fiabilit\u00e9 moyenne' : 'Fiabilit\u00e9 faible';
+    var label = confidence === 'high' ? ANEF.t('delais.confidence_high')
+              : confidence === 'medium' ? ANEF.t('delais.confidence_medium')
+              : ANEF.t('delais.confidence_low');
     confEl.innerHTML = '<span class="confidence-dot ' + cls + '"></span> ' + label +
-      ' \u2014 bas\u00e9 sur ' + currentDays.length + ' dossier' + (currentDays.length > 1 ? 's' : '') +
-      ' \u00e0 votre statut et ' + targetDays.length + ' dossier' + (targetDays.length > 1 ? 's' : '') + ' plus avanc\u00e9' + (targetDays.length > 1 ? 's' : '');
+      ' \u2014 ' + ANEF.t('delais.confidence_basis', {
+        current: ANEF.tn('delais.dossiers_at_status', currentDays.length),
+        target: ANEF.tn('delais.dossiers_more_advanced', targetDays.length)
+      });
   }
 
-  // Short names for step 9 sub-statuts
+  // Short names for step 9 sub-statuts (acronyms SDANF/SCEC kept, descriptor i18n)
   var STEP9_SHORT = {
-    'controle_a_affecter': 'SDANF aff.',
-    'controle_a_effectuer': 'SDANF ctrl',
-    'controle_en_attente_pec': 'SCEC trans.',
-    'controle_pec_a_faire': 'SCEC v\u00e9rif.'
+    'controle_a_affecter': 'SDANF ' + ANEF.t('delais.step9_affect'),
+    'controle_a_effectuer': 'SDANF ' + ANEF.t('delais.step9_control'),
+    'controle_en_attente_pec': 'SCEC ' + ANEF.t('delais.step9_transmit'),
+    'controle_pec_a_faire': 'SCEC ' + ANEF.t('delais.step9_verify')
   };
 
   /** Build label — for step 9 sub-statuts show detailed name */
@@ -327,7 +331,7 @@
 
     var datasets = [
       {
-        label: 'Moyenne',
+        label: ANEF.t('delais.legend_average'),
         data: avgValues,
         backgroundColor: colors.map(function(c) { return c + '99'; }),
         borderColor: colors,
@@ -335,7 +339,7 @@
         borderRadius: 4
       },
       {
-        label: 'Habituel',
+        label: ANEF.t('delais.legend_median'),
         data: medValues,
         backgroundColor: '#f59e0b55',
         borderColor: '#f59e0b',
@@ -344,14 +348,15 @@
       }
     ];
 
-    var config = CH.barConfig(chartLabels, datasets, { suffix: 'j', ySuffix: 'j', datalabels: false });
+    var daySuffix = ANEF.t('dur.day_short');
+    var config = CH.barConfig(chartLabels, datasets, { suffix: daySuffix, ySuffix: daySuffix, datalabels: false });
 
     // Horizontal layout: step labels on Y-axis (readable, no rotation),
     // days on X-axis. One row per step — scales nicely for 12+ bars.
     config.options.indexAxis = 'y';
     config.options.scales = {
       x: {
-        ticks: { color: '#94a3b8', callback: function(v) { return v + ' j'; } },
+        ticks: { color: '#94a3b8', callback: function(v) { return v + ' ' + daySuffix; } },
         grid: { color: '#1e293b' },
         beginAtZero: true
       },
@@ -377,7 +382,7 @@
   function renderPercentileTable(durations) {
     var tbody = document.getElementById('percentile-tbody');
     if (!durations.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="no-data">Pas de donn\u00e9es</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="no-data">' + ANEF.t('delais.no_data') + '</td></tr>';
       return;
     }
 

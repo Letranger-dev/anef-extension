@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Suivi naturalisation française en temps réel</title>
-  <meta name="description" content="Suivez les délais de naturalisation française en temps réel grâce aux données anonymes de la communauté. Statistiques par préfecture, étapes SDANF/SCEC, durées moyennes et mouvements quotidiens.">
+  <title data-i18n="meta.accueil.title">ANEF Stats — Suivi naturalisation française en temps réel</title>
+  <meta name="description" data-i18n-attr="content:meta.accueil.desc" content="Suivez les délais de naturalisation française en temps réel grâce aux données anonymes de la communauté. Statistiques par préfecture, étapes SDANF/SCEC, durées moyennes et mouvements quotidiens.">
   <meta name="keywords" content="naturalisation française, ANEF, délais naturalisation, SDANF, SCEC, suivi dossier, préfecture, décret naturalisation">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ANEF Stats — Suivi naturalisation française en temps réel">
-  <meta property="og:description" content="Statistiques communautaires sur les délais de naturalisation française. Données anonymes par préfecture, étapes et durées.">
+  <meta property="og:title" data-i18n-attr="content:meta.accueil.title" content="ANEF Stats — Suivi naturalisation française en temps réel">
+  <meta property="og:description" data-i18n-attr="content:meta.accueil.desc" content="Statistiques communautaires sur les délais de naturalisation française. Données anonymes par préfecture, étapes et durées.">
   <meta property="og:url" content="https://letranger-dev.github.io/anef-extension/">
   <meta property="og:locale" content="fr_FR">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="ANEF Stats — Suivi naturalisation française">
-  <meta name="twitter:description" content="Statistiques communautaires sur les délais de naturalisation française en temps réel.">
+  <meta name="twitter:title" data-i18n-attr="content:meta.accueil.title" content="ANEF Stats — Suivi naturalisation française">
+  <meta name="twitter:description" data-i18n-attr="content:meta.accueil.desc" content="Statistiques communautaires sur les délais de naturalisation française en temps réel.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/">
   <script>
     /* Apply theme before first paint to avoid flash. Reads localStorage
        then falls back to OS preference. Failures are silent (private mode). */
@@ -26,6 +32,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Reads localStorage, falls back to the browser language, then 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch(e){} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -83,20 +105,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -104,22 +126,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -127,17 +149,17 @@
   <!-- SEO fallback for search engines -->
   <noscript>
     <div style="max-width:800px;margin:2rem auto;padding:1rem;color:#e2e8f0">
-      <h2>Statistiques de naturalisation française — ANEF Status Tracker</h2>
-      <p>ANEF Status Tracker collecte des données anonymes auprès de sa communauté d'utilisateurs pour fournir des statistiques en temps réel sur les délais de naturalisation française.</p>
-      <p>Consultez les durées moyennes par préfecture, suivez les étapes du processus (instruction, entretien d'assimilation, décision préfecture, contrôle SDANF, vérification SCEC, décret) et visualisez les mouvements quotidiens dans le pipeline.</p>
-      <p>L'extension Chrome est disponible gratuitement sur le Chrome Web Store.</p>
+      <h2 data-i18n="noscript.title">Statistiques de naturalisation française — ANEF Status Tracker</h2>
+      <p data-i18n="noscript.p1">ANEF Status Tracker collecte des données anonymes auprès de sa communauté d'utilisateurs pour fournir des statistiques en temps réel sur les délais de naturalisation française.</p>
+      <p data-i18n="noscript.p2">Consultez les durées moyennes par préfecture, suivez les étapes du processus (instruction, entretien d'assimilation, décision préfecture, contrôle SDANF, vérification SCEC, décret) et visualisez les mouvements quotidiens dans le pipeline.</p>
+      <p data-i18n="noscript.p3">L'extension Chrome est disponible gratuitement sur le Chrome Web Store.</p>
     </div>
   </noscript>
 
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
     <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des statistiques...</p>
+    <p class="text-base" data-i18n="loading.stats">Chargement des statistiques...</p>
   </div>
 
   <!-- Main Content -->
@@ -147,18 +169,18 @@
     <div class="section" id="kpi-section">
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Dossiers suivis</div>
+          <div class="kpi-label" data-i18n="kpi.dossiers_label">Dossiers suivis</div>
           <div class="kpi-value" id="kpi-dossiers">&mdash;</div>
-          <div class="kpi-sub" id="kpi-dossiers-sub">dans la communauté</div>
+          <div class="kpi-sub" id="kpi-dossiers-sub" data-i18n="kpi.dossiers_sub">dans la communauté</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Durée moyenne</div>
+          <div class="kpi-label" data-i18n="kpi.avg_label">Durée moyenne</div>
           <div class="kpi-value orange" id="kpi-avg-days">&mdash;</div>
-          <div class="kpi-sub" id="kpi-avg-sub">depuis le dépôt</div>
+          <div class="kpi-sub" id="kpi-avg-sub" data-i18n="kpi.avg_sub">depuis le dépôt</div>
         </div>
         <div class="kpi-card kpi-timer-card">
-          <div class="timer-tooltip">Les statistiques sont actualisées automatiquement ~11 fois par jour à partir des données anonymes envoyées par les utilisateurs de l'extension.</div>
-          <div class="kpi-label">Dernière actualisation</div>
+          <div class="timer-tooltip" data-i18n="kpi.refresh_tooltip">Les statistiques sont actualisées automatiquement ~11 fois par jour à partir des données anonymes envoyées par les utilisateurs de l'extension.</div>
+          <div class="kpi-label" data-i18n="kpi.refresh_label">Dernière actualisation</div>
           <div class="kpi-freshness" id="kpi-freshness">
             <span class="freshness-dot" id="freshness-dot"></span>
             <span class="freshness-text" id="freshness-text">&mdash;</span>
@@ -166,7 +188,7 @@
           <div class="kpi-sub" id="kpi-updated-sub"></div>
         </div>
         <div class="kpi-card" id="kpi-decret-card" style="cursor:pointer;display:none">
-          <div class="kpi-label">Dernier d&eacute;cret</div>
+          <div class="kpi-label" data-i18n="kpi.decret_label">Dernier d&eacute;cret</div>
           <div class="kpi-value violet" id="kpi-decret" style="font-size:1.1rem">&mdash;</div>
           <div class="kpi-sub" id="kpi-decret-sub"></div>
         </div>
@@ -175,15 +197,15 @@
 
     <!-- Metro Timeline -->
     <div class="section" id="timeline-section">
-      <h2>Timeline globale</h2>
-      <p class="section-subtitle">Cliquez sur un statut pour voir les dossiers concern&eacute;s</p>
+      <h2 data-i18n="section.timeline_title">Timeline globale</h2>
+      <p class="section-subtitle" data-i18n="section.timeline_sub">Cliquez sur un statut pour voir les dossiers concern&eacute;s</p>
       <div class="timeline-wrapper" id="timeline-wrapper"></div>
     </div>
 
     <!-- Mouvements du jour -->
     <div class="section" id="mouvements-section">
-      <h2>Mouvements du jour</h2>
-      <p class="section-subtitle">Transitions observées dans le pipeline SDANF / SCEC</p>
+      <h2 data-i18n="section.mouvements_title">Mouvements du jour</h2>
+      <p class="section-subtitle" data-i18n="section.mouvements_sub">Transitions observées dans le pipeline SDANF / SCEC</p>
       <div class="mouvements-period" id="mouvements-period"></div>
       <div class="mouvements-grid" id="mouvements-grid"></div>
     </div>
@@ -192,10 +214,10 @@
     <div class="section" id="mouvements-chart-section" style="display:none">
       <div class="mouv-section-header" id="mouvements-chart-toggle">
         <div class="mouv-section-title">
-          <h2>Historique des mouvements</h2>
-          <p class="section-subtitle">Évolution des transitions SDANF / SCEC</p>
+          <h2 data-i18n="section.mouv_hist_title">Historique des mouvements</h2>
+          <p class="section-subtitle" data-i18n="section.mouv_hist_sub">Évolution des transitions SDANF / SCEC</p>
         </div>
-        <button class="mouv-expand-btn" aria-label="Déplier">
+        <button class="mouv-expand-btn" aria-label="Déplier" data-i18n-attr="aria-label:common.expand">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
       </div>
@@ -206,16 +228,16 @@
           </div>
           <div class="mouv-chart-row mouv-chart-filters">
             <div class="mouv-filter-group">
-              <label>De</label>
+              <label data-i18n="common.from">De</label>
               <input type="date" id="mouv-date-from" class="mouv-date-input">
             </div>
             <div class="mouv-filter-group">
-              <label>À</label>
+              <label data-i18n="common.to">À</label>
               <input type="date" id="mouv-date-to" class="mouv-date-input">
             </div>
             <div class="mouv-granularity-toggles">
-              <button class="mouv-gran-btn active" data-gran="week">Semaine</button>
-              <button class="mouv-gran-btn" data-gran="month">Mois</button>
+              <button class="mouv-gran-btn active" data-gran="week" data-i18n="common.week">Semaine</button>
+              <button class="mouv-gran-btn" data-gran="month" data-i18n="common.month">Mois</button>
             </div>
           </div>
         </div>
@@ -227,26 +249,26 @@
 
     <!-- Attente SDANF -->
     <div class="section" id="sdanf-wait-section">
-      <h2>Contrôle SDANF & SCEC</h2>
-      <p class="section-subtitle">Dossiers en cours de contrôle et d'insertion au décret (étapes 9 à 11)</p>
+      <h2 data-i18n="section.sdanf_title">Contrôle SDANF & SCEC</h2>
+      <p class="section-subtitle" data-i18n="section.sdanf_sub">Dossiers en cours de contrôle et d'insertion au décret (étapes 9 à 11)</p>
       <div id="sdanf-statut-pills" class="sdanf-statut-pills"></div>
       <div class="dossier-toolbar" id="sdanf-toolbar" style="display:none">
         <span class="dossier-count" id="sdanf-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="sdanf-sort" class="page-size-select" title="Trier">
-            <option value="days-desc">Attente &darr;</option>
-            <option value="days-asc">Attente &uarr;</option>
-            <option value="pref">Préfecture</option>
+          <select id="sdanf-sort" class="page-size-select" title="Trier" data-i18n-attr="title:toolbar.sort">
+            <option value="days-desc" data-i18n="toolbar.wait_desc">Attente &darr;</option>
+            <option value="days-asc" data-i18n="toolbar.wait_asc">Attente &uarr;</option>
+            <option value="pref" data-i18n="toolbar.pref">Préfecture</option>
           </select>
           <div id="sdanf-pref-filter-container"></div>
-          <label class="toggle-filter" id="sdanf-changed-label" title="Afficher uniquement les dossiers dont le statut a changé">
+          <label class="toggle-filter" id="sdanf-changed-label" title="Afficher uniquement les dossiers dont le statut a changé" data-i18n-attr="title:toolbar.changed_tip">
             <input type="checkbox" id="sdanf-changed-filter">
-            <span class="toggle-filter-text">Modifiés</span>
+            <span class="toggle-filter-text" data-i18n="toolbar.modified">Modifiés</span>
           </label>
-          <select id="sdanf-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 / page</option>
-            <option value="10">10 / page</option>
-            <option value="20">20 / page</option>
+          <select id="sdanf-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:toolbar.per_page_title">
+            <option value="5" selected data-i18n="toolbar.per_page_5">5 / page</option>
+            <option value="10" data-i18n="toolbar.per_page_10">10 / page</option>
+            <option value="20" data-i18n="toolbar.per_page_20">20 / page</option>
           </select>
         </div>
         <div class="pagination">
@@ -261,37 +283,37 @@
 
     <!-- Entretien pipeline -->
     <div class="section" id="entretien-section">
-      <h2>Phase entretien &amp; décision préfecture</h2>
-      <p class="section-subtitle">Dossiers entre la convocation d'entretien et le passage en SDANF</p>
+      <h2 data-i18n="section.entretien_title">Phase entretien &amp; décision préfecture</h2>
+      <p class="section-subtitle" data-i18n="section.entretien_sub">Dossiers entre la convocation d'entretien et le passage en SDANF</p>
       <div class="dossier-toolbar" id="entretien-toolbar" style="display:none">
         <span class="dossier-count" id="entretien-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="entretien-sort" class="page-size-select" title="Trier">
-            <option value="days-desc">Ancienneté &darr;</option>
-            <option value="days-asc">Ancienneté &uarr;</option>
-            <option value="step-desc">Étape &darr;</option>
-            <option value="step-asc">Étape &uarr;</option>
-            <option value="entretien-desc">Entretien récent &darr;</option>
-            <option value="entretien-asc">Entretien ancien &uarr;</option>
+          <select id="entretien-sort" class="page-size-select" title="Trier" data-i18n-attr="title:toolbar.sort">
+            <option value="days-desc" data-i18n="toolbar.age_desc">Ancienneté &darr;</option>
+            <option value="days-asc" data-i18n="toolbar.age_asc">Ancienneté &uarr;</option>
+            <option value="step-desc" data-i18n="toolbar.step_desc">Étape &darr;</option>
+            <option value="step-asc" data-i18n="toolbar.step_asc">Étape &uarr;</option>
+            <option value="entretien-desc" data-i18n="toolbar.interview_recent">Entretien récent &darr;</option>
+            <option value="entretien-asc" data-i18n="toolbar.interview_old">Entretien ancien &uarr;</option>
           </select>
-          <select id="entretien-filter" class="page-size-select" title="Entretien">
-            <option value="">Entretien : tous</option>
-            <option value="passed">Passé</option>
-            <option value="pending">En attente</option>
-            <option value="sans-entretien">⚠ Décision sans entretien</option>
+          <select id="entretien-filter" class="page-size-select" title="Entretien" data-i18n-attr="title:toolbar.interview">
+            <option value="" data-i18n="toolbar.interview_all">Entretien : tous</option>
+            <option value="passed" data-i18n="toolbar.interview_passed">Passé</option>
+            <option value="pending" data-i18n="toolbar.interview_pending">En attente</option>
+            <option value="sans-entretien" data-i18n="toolbar.interview_none">⚠ Décision sans entretien</option>
           </select>
-          <select id="entretien-statut-filter" class="page-size-select" title="Statut">
-            <option value="">Statut : tous</option>
+          <select id="entretien-statut-filter" class="page-size-select" title="Statut" data-i18n-attr="title:toolbar.status">
+            <option value="" data-i18n="toolbar.status_all">Statut : tous</option>
           </select>
           <div id="entretien-pref-filter-container"></div>
-          <label class="toggle-filter" id="entretien-changed-label" title="Afficher uniquement les dossiers dont le statut a changé">
+          <label class="toggle-filter" id="entretien-changed-label" title="Afficher uniquement les dossiers dont le statut a changé" data-i18n-attr="title:toolbar.changed_tip">
             <input type="checkbox" id="entretien-changed-filter">
-            <span class="toggle-filter-text">Modifiés</span>
+            <span class="toggle-filter-text" data-i18n="toolbar.modified">Modifiés</span>
           </label>
-          <select id="entretien-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 / page</option>
-            <option value="10">10 / page</option>
-            <option value="20">20 / page</option>
+          <select id="entretien-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:toolbar.per_page_title">
+            <option value="5" selected data-i18n="toolbar.per_page_5">5 / page</option>
+            <option value="10" data-i18n="toolbar.per_page_10">10 / page</option>
+            <option value="20" data-i18n="toolbar.per_page_20">20 / page</option>
           </select>
         </div>
         <div class="pagination">
@@ -306,22 +328,22 @@
 
     <!-- Recent Activity -->
     <div class="section" id="activity-section">
-      <h2>Activité récente</h2>
-      <p class="section-subtitle">Historique des changements observés</p>
+      <h2 data-i18n="section.activity_title">Activité récente</h2>
+      <p class="section-subtitle" data-i18n="section.activity_sub">Historique des changements observés</p>
       <div class="dossier-toolbar" id="activity-toolbar" style="display:none">
         <span class="dossier-count" id="activity-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="activity-type-filter" class="page-size-select" title="Type">
-            <option value="all" selected>Tous types</option>
-            <option value="first_seen">Nouveaux</option>
-            <option value="step_change">Étapes</option>
-            <option value="status_change">Progressions</option>
+          <select id="activity-type-filter" class="page-size-select" title="Type" data-i18n-attr="title:toolbar.type">
+            <option value="all" selected data-i18n="toolbar.type_all">Tous types</option>
+            <option value="first_seen" data-i18n="toolbar.type_new">Nouveaux</option>
+            <option value="step_change" data-i18n="toolbar.type_steps">Étapes</option>
+            <option value="status_change" data-i18n="toolbar.type_progress">Progressions</option>
           </select>
-          <select id="activity-page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 par page</option>
-            <option value="10">10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="50">50 par page</option>
+          <select id="activity-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:toolbar.per_page_title">
+            <option value="5" selected data-i18n="toolbar.per_page_5b">5 par page</option>
+            <option value="10" data-i18n="toolbar.per_page_10b">10 par page</option>
+            <option value="20" data-i18n="toolbar.per_page_20b">20 par page</option>
+            <option value="50" data-i18n="toolbar.per_page_50b">50 par page</option>
           </select>
         </div>
         <div class="pagination">
@@ -335,12 +357,12 @@
 
     <!-- Privacy -->
     <div class="privacy">
-      <h3>Confidentialité et anonymat</h3>
+      <h3 data-i18n="privacy.title">Confidentialité et anonymat</h3>
       <ul>
-        <li>Le numéro de dossier est remplacé par un hash SHA-256 irréversible</li>
-        <li>Les dates sont tronquées au jour (pas d'heure ni de minute)</li>
-        <li>Aucune donnée personnelle n'est collectée (pas de nom, email, adresse)</li>
-        <li>Le partage est activé par défaut et peut être désactivé dans les paramètres</li>
+        <li data-i18n="privacy.item1">Le numéro de dossier est remplacé par un hash SHA-256 irréversible</li>
+        <li data-i18n="privacy.item2">Les dates sont tronquées au jour (pas d'heure ni de minute)</li>
+        <li data-i18n="privacy.item3">Aucune donnée personnelle n'est collectée (pas de nom, email, adresse)</li>
+        <li data-i18n="privacy.item4">Le partage est activé par défaut et peut être désactivé dans les paramètres</li>
       </ul>
     </div>
 
@@ -348,10 +370,17 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
   <script src="shared/constants.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/stats-math.js"></script>

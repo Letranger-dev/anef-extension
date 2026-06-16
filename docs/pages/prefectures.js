@@ -38,7 +38,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('prefectures.no_data_available') + '</p></div>';
         return;
       }
 
@@ -61,7 +61,7 @@
       renderAll();
 
     } catch (error) {
-      loading.innerHTML = '<div class="error-msg"><p>Erreur: ' + U.escapeHtml(error.message) + '</p></div>';
+      loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('common.error') + ': ' + U.escapeHtml(error.message) + '</p></div>';
     }
   });
 
@@ -115,9 +115,12 @@
 
     var countEl = document.getElementById('filter-count');
     if (filtered.length === 0) {
-      countEl.textContent = 'Aucun dossier ne correspond aux filtres';
+      countEl.textContent = ANEF.t('prefectures.no_match');
     } else {
-      countEl.textContent = filtered.length + ' dossiers, ' + prefStats.length + ' préfectures';
+      countEl.textContent = ANEF.t('prefectures.count_summary', {
+        dossiers: ANEF.tn('common.dossier_count', filtered.length),
+        prefs: ANEF.tn('prefectures.pref_count', prefStats.length)
+      });
     }
 
     renderRankingTable(prefStats);
@@ -133,7 +136,7 @@
     var tbody = document.getElementById('ranking-tbody');
     if (!prefStats.length) {
       toolbar.style.display = 'none';
-      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Aucune préfecture</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-data">' + ANEF.t('prefectures.no_pref') + '</td></tr>';
       return;
     }
 
@@ -157,7 +160,7 @@
     var pageData = pageSize > 0 ? data.slice((state.tablePage - 1) * pageSize, state.tablePage * pageSize) : data;
 
     toolbar.style.display = 'flex';
-    document.getElementById('ranking-count').textContent = total + ' préfecture' + (total > 1 ? 's' : '');
+    document.getElementById('ranking-count').textContent = ANEF.tn('prefectures.pref_count', total);
     document.getElementById('ranking-page-info').textContent = state.tablePage + '/' + totalPages;
     document.getElementById('ranking-btn-prev').disabled = state.tablePage <= 1;
     document.getElementById('ranking-btn-next').disabled = state.tablePage >= totalPages;
@@ -183,8 +186,8 @@
       html += '<tr>' +
         '<td>' + U.escapeHtml(p.prefecture) + '</td>' +
         '<td class="num">' + p.total + '</td>' +
-        '<td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem"><span>' + (p.avg_days != null ? p.avg_days + ' j' : '\u2014') + '</span><div style="width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="width:' + barPct + '%;height:100%;background:' + barColor + ';border-radius:3px"></div></div></div></td>' +
-        '<td class="num">' + (p.median_days != null ? p.median_days + ' j' : '\u2014') + '</td>' +
+        '<td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem"><span>' + (p.avg_days != null ? p.avg_days + ' ' + ANEF.t('dur.day_short') : '\u2014') + '</span><div style="width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="width:' + barPct + '%;height:100%;background:' + barColor + ';border-radius:3px"></div></div></div></td>' +
+        '<td class="num">' + (p.median_days != null ? p.median_days + ' ' + ANEF.t('dur.day_short') : '\u2014') + '</td>' +
         '<td class="num">' + p.avg_step + '/12</td>' +
         '<td class="num">' + p.favorable_pct + '%</td>' +
         '<td class="num">' + p.complement_pct + '%</td>' +
@@ -286,7 +289,7 @@
     var pageData = ps > 0 ? withDays.slice((state.barPage - 1) * ps, state.barPage * ps) : withDays;
 
     toolbar.style.display = 'flex';
-    document.getElementById('bar-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('bar-count').textContent = ANEF.tn('prefectures.pref_count', total);
     document.getElementById('bar-page-info').textContent = state.barPage + '/' + totalPages;
     document.getElementById('bar-btn-prev').disabled = state.barPage <= 1;
     document.getElementById('bar-btn-next').disabled = state.barPage >= totalPages;
@@ -317,7 +320,7 @@
     var totalH = Math.max(300, pageData.length * barHeight);
     container.style.minHeight = totalH + 'px';
 
-    var config = CH.horizontalBarConfig(labels, values, colors, { suffix: 'j' });
+    var config = CH.horizontalBarConfig(labels, values, colors, { suffix: ANEF.t('dur.day_short') });
 
     if (isMobile) {
       config.options.scales.y.ticks.font = { size: 10 };
@@ -327,7 +330,7 @@
         font: { size: 9, weight: 'bold' },
         anchor: 'end',
         align: 'right',
-        formatter: function(v) { return v + 'j'; }
+        formatter: function(v) { return v + ANEF.t('dur.day_short'); }
       };
       config.plugins = [ChartDataLabels];
     }
@@ -359,23 +362,28 @@
 
   // Heatmap columns: steps 1-8, then 4 sub-statuts for step 9, then 10-12
   var STEP9_STATUTS = D.STEP9_STATUTS;
-  var HEATMAP_COLS = [
-    { key: 1, label: 'Brouillon', title: C.PHASE_NAMES[1] },
-    { key: 2, label: 'D\u00e9p\u00f4t', title: C.PHASE_NAMES[2] },
-    { key: 3, label: 'V\u00e9rif.', title: C.PHASE_NAMES[3] },
-    { key: 4, label: 'Affect.', title: C.PHASE_NAMES[4] },
-    { key: 5, label: 'Instruct.', title: C.PHASE_NAMES[5] },
-    { key: 6, label: 'Compl\u00e9t.', title: C.PHASE_NAMES[6] },
-    { key: 7, label: 'Entretien', title: C.PHASE_NAMES[7] },
-    { key: 8, label: 'D\u00e9cision', title: C.PHASE_NAMES[8] },
-    { key: 'controle_a_affecter', label: 'CAA', title: 'Arriv\u00e9 \u00e0 la SDANF, attente affectation' },
-    { key: 'controle_a_effectuer', label: 'CAE', title: 'Contr\u00f4le minist\u00e9riel en cours' },
-    { key: 'controle_en_attente_pec', label: 'CEAP', title: 'Transmis au SCEC de Nantes' },
-    { key: 'controle_pec_a_faire', label: 'CPAF', title: 'V\u00e9rification d\u2019\u00e9tat civil en cours' },
-    { key: 10, label: 'D\u00e9cret', title: C.PHASE_NAMES[10] },
-    { key: 11, label: 'Publi.', title: C.PHASE_NAMES[11] },
-    { key: 12, label: 'Cl\u00f4ture', title: C.PHASE_NAMES[12] }
-  ];
+  // Construit dynamiquement pour refl\u00e9ter la langue active (les libell\u00e9s courts
+  // et titres des sous-statuts SDANF/SCEC sont traduits ; les titres d'\u00e9tapes
+  // viennent de C.PHASE_NAMES, d\u00e9j\u00e0 localis\u00e9s ailleurs).
+  function buildHeatmapCols() {
+    return [
+      { key: 1, label: ANEF.t('prefectures.hm_brouillon'), title: C.PHASE_NAMES[1] },
+      { key: 2, label: ANEF.t('prefectures.hm_depot'), title: C.PHASE_NAMES[2] },
+      { key: 3, label: ANEF.t('prefectures.hm_verif'), title: C.PHASE_NAMES[3] },
+      { key: 4, label: ANEF.t('prefectures.hm_affect'), title: C.PHASE_NAMES[4] },
+      { key: 5, label: ANEF.t('prefectures.hm_instruct'), title: C.PHASE_NAMES[5] },
+      { key: 6, label: ANEF.t('prefectures.hm_complet'), title: C.PHASE_NAMES[6] },
+      { key: 7, label: ANEF.t('prefectures.hm_entretien'), title: C.PHASE_NAMES[7] },
+      { key: 8, label: ANEF.t('prefectures.hm_decision'), title: C.PHASE_NAMES[8] },
+      { key: 'controle_a_affecter', label: 'CAA', title: ANEF.t('prefectures.hm_caa_title') },
+      { key: 'controle_a_effectuer', label: 'CAE', title: ANEF.t('prefectures.hm_cae_title') },
+      { key: 'controle_en_attente_pec', label: 'CEAP', title: ANEF.t('prefectures.hm_ceap_title') },
+      { key: 'controle_pec_a_faire', label: 'CPAF', title: ANEF.t('prefectures.hm_cpaf_title') },
+      { key: 10, label: ANEF.t('prefectures.hm_decret'), title: C.PHASE_NAMES[10] },
+      { key: 11, label: ANEF.t('prefectures.hm_publi'), title: C.PHASE_NAMES[11] },
+      { key: 12, label: ANEF.t('prefectures.hm_cloture'), title: C.PHASE_NAMES[12] }
+    ];
+  }
 
   function renderHeatmap(filtered, prefStats) {
     var toolbar = document.getElementById('hm-toolbar');
@@ -383,7 +391,7 @@
 
     if (!prefStats.length) {
       toolbar.style.display = 'none';
-      container.innerHTML = '<p class="no-data">Pas de donn\u00e9es</p>';
+      container.innerHTML = '<p class="no-data">' + ANEF.t('prefectures.no_data') + '</p>';
       return;
     }
 
@@ -452,7 +460,7 @@
     var prefs = prefStats.map(function(p) { return p.prefecture; });
 
     // Filter out columns with no data at all
-    var activeCols = HEATMAP_COLS.filter(function(col) {
+    var activeCols = buildHeatmapCols().filter(function(col) {
       for (var p = 0; p < prefs.length; p++) {
         if (matrix[prefs[p] + '|' + col.key]) return true;
       }
@@ -485,7 +493,7 @@
 
     if (!activeCols.length || !activePrefs.length) {
       toolbar.style.display = 'none';
-      container.innerHTML = '<p class="no-data">Pas assez de donn\u00e9es pour la heatmap</p>';
+      container.innerHTML = '<p class="no-data">' + ANEF.t('prefectures.no_data_heatmap') + '</p>';
       return;
     }
 
@@ -497,7 +505,7 @@
     var pagePrefs = ps > 0 ? activePrefs.slice((state.hmPage - 1) * ps, state.hmPage * ps) : activePrefs;
 
     toolbar.style.display = 'flex';
-    document.getElementById('hm-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('hm-count').textContent = ANEF.tn('prefectures.pref_count', total);
     document.getElementById('hm-page-info').textContent = state.hmPage + '/' + totalPages;
     document.getElementById('hm-btn-prev').disabled = state.hmPage <= 1;
     document.getElementById('hm-btn-next').disabled = state.hmPage >= totalPages;
@@ -528,8 +536,9 @@
           var r = Math.round(intensity * 239 + (1 - intensity) * 16);
           var g = Math.round((1 - intensity) * 185 + intensity * 68);
           var b2 = Math.round((1 - intensity) * 129 + intensity * 68);
-          var tipLabel = activeCols[c2].title || ('\u00e9tape ' + colKey);
-          html += '<td class="hm-cell hm-clickable" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff;cursor:pointer" title="' + U.escapeHtml(pagePrefs[p]) + ' ' + U.escapeHtml(tipLabel) + ': ' + cellAvg + 'j (n=' + cellData.length + ')" data-pref="' + U.escapeHtml(pagePrefs[p]) + '" data-step="' + U.escapeHtml(tipLabel) + '" data-avg="' + cellAvg + '" data-min="' + cellMin + '" data-max="' + cellMax + '" data-min-hash="' + minHash + '" data-max-hash="' + maxHash + '" data-count="' + cellData.length + '">' + cellAvg + '</td>';
+          var tipLabel = activeCols[c2].title || ANEF.t('prefectures.hm_step', { n: colKey });
+          var cellTip = ANEF.t('prefectures.hm_cell_tip', { pref: pagePrefs[p], step: tipLabel, avg: cellAvg, n: cellData.length });
+          html += '<td class="hm-cell hm-clickable" style="background:rgba(' + r + ',' + g + ',' + b2 + ',0.7);color:#fff;cursor:pointer" title="' + U.escapeHtml(cellTip) + '" data-pref="' + U.escapeHtml(pagePrefs[p]) + '" data-step="' + U.escapeHtml(tipLabel) + '" data-avg="' + cellAvg + '" data-min="' + cellMin + '" data-max="' + cellMax + '" data-min-hash="' + minHash + '" data-max-hash="' + maxHash + '" data-count="' + cellData.length + '">' + cellAvg + '</td>';
         } else {
           html += '<td class="hm-cell" style="background:rgba(255,255,255,0.03);color:var(--text-dim)">\u2014</td>';
         }
@@ -582,10 +591,10 @@
       var snap = events[j];
 
       if (snap._synthetic === 'deposit' || snap._synthetic === 'interview') {
-        var synthLabel = snap._synthetic === 'deposit' ? '📨 Dépôt du dossier' : '🗣️ Entretien d\'assimilation';
+        var synthLabel = snap._synthetic === 'deposit' ? ANEF.t('prefectures.deposit_label') : ANEF.t('prefectures.interview_label');
         var synthExpl = snap._synthetic === 'deposit'
-          ? 'Date officielle de dépôt'
-          : 'Date de l\'entretien d\'assimilation';
+          ? ANEF.t('prefectures.deposit_expl')
+          : ANEF.t('prefectures.interview_expl');
         var synthColor = snap._synthetic === 'deposit' ? '#06b6d4' : '#f472b6';
         var synthDate = snap.date_statut ? U.formatDateFr(snap.date_statut) : '';
         var synthDur = '';
@@ -593,7 +602,7 @@
           var nextEv = events[j + 1];
           var dd = (snap.date_statut && nextEv.date_statut) ? U.daysDiff(snap.date_statut, nextEv.date_statut) : null;
           if (dd !== null) {
-            synthDur = '<span class="ts-duration" style="color:var(--text-dim);background:rgba(148,163,184,0.1)">' + U.formatDuration(dd) + ' jusqu\'au suivant</span>';
+            synthDur = '<span class="ts-duration" style="color:var(--text-dim);background:rgba(148,163,184,0.1)">' + ANEF.t('prefectures.until_next', { dur: U.formatDuration(dd) }) + '</span>';
           }
         }
         timelineHtml += '<div class="timeline-step">' +
@@ -625,19 +634,19 @@
           var dColor = days >= 60 ? 'var(--red);background:rgba(239,68,68,0.12)' :
                        days >= 30 ? 'var(--orange);background:rgba(245,158,11,0.12)' :
                                     'var(--green);background:rgba(16,185,129,0.12)';
-          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
+          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + ANEF.t('prefectures.at_status', { dur: U.formatDuration(days) }) + '</span>';
         }
       } else {
         if (snap.date_statut) {
           // Étape 11 (IDD) : encore en cours, pas figé
           var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut }) && Number(snap.etape) !== 11;
           if (isTerminated) {
-            durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
+            durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">' + ANEF.t('prefectures.finished') + '</span>';
           } else {
             var today = new Date(); today.setHours(0, 0, 0, 0);
             days = U.daysDiff(snap.date_statut, today);
             if (days !== null) {
-              durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+              durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + ANEF.t('prefectures.in_progress', { dur: U.formatDuration(days) }) + '</span>';
             }
           }
         }
@@ -663,8 +672,8 @@
     var latest = snaps[snaps.length - 1];
     var pref = D.normalizePrefecture(latest.prefecture) || '';
     var infoHtml = '';
-    if (latest.date_depot) infoHtml += '<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(latest.date_depot) + '</span></div>';
-    if (pref) infoHtml += '<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(pref) + '</span></div>';
+    if (latest.date_depot) infoHtml += '<div class="detail-row"><span class="detail-label">' + ANEF.t('prefectures.detail_depot') + '</span><span>' + U.formatDateFr(latest.date_depot) + '</span></div>';
+    if (pref) infoHtml += '<div class="detail-row"><span class="detail-label">' + ANEF.t('prefectures.detail_prefecture') + '</span><span>' + U.escapeHtml(pref) + '</span></div>';
 
     var modal = document.getElementById('hm-dossier-modal');
     if (!modal) {
@@ -680,12 +689,12 @@
     modal.innerHTML =
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
-          '<h3>Détails du dossier</h3>' +
-          '<button class="history-close" title="Fermer">\u00d7</button>' +
+          '<h3>' + ANEF.t('prefectures.modal_title') + '</h3>' +
+          '<button class="history-close" title="' + U.escapeHtml(ANEF.t('common.close')) + '">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list" style="padding:0.5rem 1rem">' +
           (infoHtml ? '<div class="dossier-detail-info">' + infoHtml + '</div>' : '') +
-          '<div class="detail-section-label">Historique des statuts</div>' +
+          '<div class="detail-section-label">' + ANEF.t('prefectures.modal_history') + '</div>' +
           timelineHtml +
         '</div>' +
       '</div>';
@@ -720,10 +729,10 @@
         '<div class="hm-popover-header">' + U.escapeHtml(pref) + '</div>' +
         '<div class="hm-popover-step">' + U.escapeHtml(step) + '</div>' +
         '<div class="hm-popover-stats">' +
-          '<div class="hm-popover-row"><span>Dur\u00e9e moyenne</span><strong>' + U.formatDuration(avg) + '</strong></div>' +
-          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(minHash) + '"><span>Plus rapide</span><strong>' + U.formatDuration(min) + '</strong></div>' +
-          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(maxHash) + '"><span>Plus long</span><strong>' + U.formatDuration(max) + '</strong></div>' +
-          '<div class="hm-popover-row"><span>Dossiers</span><strong>' + count + '</strong></div>' +
+          '<div class="hm-popover-row"><span>' + ANEF.t('prefectures.pop_avg') + '</span><strong>' + U.formatDuration(avg) + '</strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(minHash) + '"><span>' + ANEF.t('prefectures.pop_fastest') + '</span><strong>' + U.formatDuration(min) + '</strong></div>' +
+          '<div class="hm-popover-row hm-popover-link" data-hash="' + U.escapeHtml(maxHash) + '"><span>' + ANEF.t('prefectures.pop_longest') + '</span><strong>' + U.formatDuration(max) + '</strong></div>' +
+          '<div class="hm-popover-row"><span>' + ANEF.t('prefectures.pop_dossiers') + '</span><strong>' + count + '</strong></div>' +
         '</div>';
 
       // Click on "Plus rapide" / "Plus long" → open dossier detail
@@ -782,7 +791,7 @@
 
     if (!prefStats.length) {
       toolbar.style.display = 'none';
-      tbody.innerHTML = '<tr><td colspan="4" class="no-data">Aucune pr\u00e9fecture</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">' + ANEF.t('prefectures.no_pref') + '</td></tr>';
       return;
     }
 
@@ -839,7 +848,7 @@
     var pageRows = ps > 0 ? rows.slice((state.distribPage - 1) * ps, state.distribPage * ps) : rows;
 
     toolbar.style.display = 'flex';
-    document.getElementById('distrib-count').textContent = total + ' pr\u00e9fecture' + (total > 1 ? 's' : '');
+    document.getElementById('distrib-count').textContent = ANEF.tn('prefectures.pref_count', total);
     document.getElementById('distrib-page-info').textContent = state.distribPage + '/' + totalPages;
     document.getElementById('distrib-btn-prev').disabled = state.distribPage <= 1;
     document.getElementById('distrib-btn-next').disabled = state.distribPage >= totalPages;
@@ -847,7 +856,7 @@
     var html = '';
     for (var r = 0; r < pageRows.length; r++) {
       var row = pageRows[r];
-      var stepName = C.PHASE_NAMES[row.dominantStep] || ('\u00c9tape ' + row.dominantStep);
+      var stepName = C.PHASE_NAMES[row.dominantStep] || ANEF.t('prefectures.step_label', { n: row.dominantStep });
       var stepColor = C.STEP_COLORS[row.dominantStep] || C.STEP_COLORS[0];
 
       // Build mini stacked bar
@@ -878,7 +887,7 @@
         var dCount = row.steps[dStep];
         var dPct = Math.round(dCount / row.total * 100);
         var dColor = C.STEP_COLORS[dStep] || C.STEP_COLORS[0];
-        var dName = C.PHASE_NAMES[dStep] || ('\u00c9tape ' + dStep);
+        var dName = C.PHASE_NAMES[dStep] || ANEF.t('prefectures.step_label', { n: dStep });
         html += '<tr class="distrib-detail" data-parent="' + r + '" style="display:none">' +
           '<td class="distrib-detail-name"><span class="distrib-dot" style="background:' + dColor + '"></span>' + dStep + '. ' + U.escapeHtml(dName) + '</td>' +
           '<td colspan="2" class="num">' + dCount + ' <span class="text-dim">(' + dPct + '%)</span></td>' +

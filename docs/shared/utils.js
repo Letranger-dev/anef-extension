@@ -68,22 +68,45 @@
 
   function formatDuration(days) {
     if (days === null || days === undefined || isNaN(days) || days < 0) return '\u2014';
-    if (days === 0) return '< 1 jour';
-    if (days < 30) return days + ' jour' + (days > 1 ? 's' : '');
+    // i18n : pluriels via Intl.PluralRules (catalogue dur.*). Repli FR inline si
+    // l'i18n n'est pas charg\u00e9 (ne devrait pas arriver : utils.js charge apr\u00e8s).
+    var i18n = (window.ANEF && ANEF.tn) ? ANEF.i18n : null;
+    var tn = i18n ? ANEF.tn : function(k, n) { return n + (k === 'dur.years' ? ' an' + (n > 1 ? 's' : '') : k === 'dur.months' ? ' mois' : ' jour' + (n > 1 ? 's' : '')); };
+    var t = i18n ? ANEF.t : function(k) { return k === 'dur.lt1day' ? '< 1 jour' : k === 'dur.day_short' ? 'j' : 'mois'; };
+    if (days === 0) return t('dur.lt1day');
+    if (days < 30) return tn('dur.days', days);
     if (days < 365) {
       var months = Math.floor(days / 30);
       var remain = days % 30;
-      if (remain === 0) return months + ' mois';
-      return months + ' mois, ' + remain + ' j';
+      if (remain === 0) return tn('dur.months', months);
+      return tn('dur.months', months) + ', ' + remain + ' ' + t('dur.day_short');
     }
     var years = Math.floor(days / 365);
     var rest = days % 365;
     var m = Math.floor(rest / 30);
     var d = rest % 30;
-    var parts = [years + ' an' + (years > 1 ? 's' : '')];
-    if (m > 0) parts.push(m + ' mois');
-    if (d > 0) parts.push(d + ' j');
+    var parts = [tn('dur.years', years)];
+    if (m > 0) parts.push(tn('dur.months', m)); // pluriel correct (1 mes / 11 meses…)
+    if (d > 0) parts.push(d + ' ' + t('dur.day_short'));
     return parts.join(', ');
+  }
+
+  // Formateurs de dates m\u00e9mo\u00efs\u00e9s par (locale + jeu d'options). M\u00eame garde-fou
+  // perf que _parisDateFmt : on n'instancie JAMAIS un Intl.DateTimeFormat par
+  // appel. La locale vient de l'i18n (fr-FR, en-GB, ar, zh-CN\u2026) ; repli fr-FR.
+  // Les noms restent \u2026Fr pour ne pas casser les appelants ; le rendu suit la
+  // langue active. Le fuseau reste Europe/Paris (jour calendaire fran\u00e7ais).
+  var _DATE_OPTS = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Paris' };
+  var _DATETIME_OPTS = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' };
+  var _dateFmtCache = new Map();
+  function _currentLocale() {
+    return (window.ANEF && ANEF.i18n && ANEF.i18n.locale) ? ANEF.i18n.locale() : 'fr-FR';
+  }
+  function _dateFmt(kind, opts) {
+    var key = _currentLocale() + '|' + kind;
+    var f = _dateFmtCache.get(key);
+    if (!f) { f = new Intl.DateTimeFormat(_currentLocale(), opts); _dateFmtCache.set(key, f); }
+    return f;
   }
 
   function formatDateFr(dateStr) {
@@ -91,10 +114,7 @@
     try {
       var d = new Date(dateStr);
       if (isNaN(d)) return '\u2014';
-      return d.toLocaleDateString('fr-FR', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        timeZone: 'Europe/Paris'
-      });
+      return _dateFmt('date', _DATE_OPTS).format(d);
     } catch(e) {
       return '\u2014';
     }
@@ -105,11 +125,7 @@
     try {
       var d = new Date(dateStr);
       if (isNaN(d)) return '\u2014';
-      return d.toLocaleDateString('fr-FR', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-        timeZone: 'Europe/Paris'
-      });
+      return _dateFmt('datetime', _DATETIME_OPTS).format(d);
     } catch(e) {
       return '\u2014';
     }

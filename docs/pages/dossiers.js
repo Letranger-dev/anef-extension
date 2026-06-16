@@ -42,7 +42,7 @@
     try {
       var snapshots = await D.loadData();
       if (!snapshots.length) {
-        loading.innerHTML = '<div class="error-msg"><p>Aucune donnée disponible.</p></div>';
+        loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('dossiers.no_data_available') + '</p></div>';
         return;
       }
 
@@ -71,7 +71,7 @@
       renderAll();
 
     } catch (error) {
-      loading.innerHTML = '<div class="error-msg"><p>Erreur: ' + U.escapeHtml(error.message) + '</p></div>';
+      loading.innerHTML = '<div class="error-msg"><p>' + ANEF.t('common.error') + ': ' + U.escapeHtml(error.message) + '</p></div>';
     }
   });
 
@@ -236,7 +236,7 @@
       toolbar.style.display = 'none';
       grid.innerHTML = '';
       grid.style.display = 'none';
-      list.innerHTML = '<p class="no-data">Aucun dossier pour ce filtre</p>';
+      list.innerHTML = '<p class="no-data">' + ANEF.t('dossiers.no_dossier_filter') + '</p>';
       list.style.display = 'flex';
       return;
     }
@@ -249,8 +249,8 @@
 
     toolbar.style.display = 'flex';
     var countText = sorted.length === allSummaries.length
-      ? sorted.length + ' dossier' + (sorted.length > 1 ? 's' : '')
-      : sorted.length + ' / ' + allSummaries.length + ' dossiers';
+      ? ANEF.tn('common.dossier_count', sorted.length)
+      : ANEF.t('dossiers.count_filtered', { n: sorted.length, total: allSummaries.length });
     document.getElementById('dossier-count').textContent = countText;
     document.getElementById('page-info').textContent = state.page + '/' + totalPages;
     document.getElementById('btn-prev').disabled = state.page <= 1;
@@ -287,20 +287,20 @@
         daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
         totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
       } else {
-        daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
+        daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : ANEF.t('dossiers.finished');
         totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
       }
 
-      var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+      var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">' + ANEF.t('dossiers.badge_tri') + '</span>' : '';
       var sansEntretien = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
-      var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
+      var sansEntretienBadge = sansEntretien ? ' <span class="badge-decision-sans-entretien">\u26A0 ' + ANEF.t('dossiers.badge_sans_entretien') + '</span>' : '';
       // Badge "Terminé/Clôturé" uniquement si vraiment clôturé (pas pour IDD étape 11)
       // Naturalis\u00e9(e) \u2192 badge festif d\u00e9di\u00e9 ; positif non-naturalis\u00e9 \u2192 "Termin\u00e9" ; n\u00e9gatif \u2192 "Cl\u00f4tur\u00e9"
       var finishedBadge = '';
       if (s.isFinished && s.currentStep !== 11) {
-        if (C.isNaturalise(s.statut)) finishedBadge = ' <span class="badge-naturalise">\ud83c\udf89 Naturalis\u00e9(e)</span>';
-        else if (C.isPositiveStatus(s.statut)) finishedBadge = ' <span class="badge-finished-ok">\u2713 Termin\u00e9</span>';
-        else finishedBadge = ' <span class="badge-finished-ko">\u2717 Cl\u00f4tur\u00e9</span>';
+        if (C.isNaturalise(s.statut)) finishedBadge = ' <span class="badge-naturalise">\ud83c\udf89 ' + ANEF.t('dossiers.badge_naturalise') + '</span>';
+        else if (C.isPositiveStatus(s.statut)) finishedBadge = ' <span class="badge-finished-ok">\u2713 ' + ANEF.t('dossiers.finished') + '</span>';
+        else finishedBadge = ' <span class="badge-finished-ko">\u2717 ' + ANEF.t('dossiers.closed') + '</span>';
       }
 
       html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
@@ -313,10 +313,10 @@
             triBadge + sansEntretienBadge + finishedBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
-            '<span>' + (displayAsInProgress ? daysAtStatus + ' au statut' : daysAtStatus) + '</span>' +
-            '<span>' + totalDuration + ' total</span>' +
+            '<span>' + (displayAsInProgress ? daysAtStatus + ' ' + ANEF.t('dossiers.at_status') : daysAtStatus) + '</span>' +
+            '<span>' + totalDuration + ' ' + ANEF.t('dossiers.total') + '</span>' +
             (s.prefecture ? '<span>' + U.escapeHtml(s.prefecture) + '</span>' : '') +
-            (s.hasComplement ? '<span style="color:var(--orange)">Complément</span>' : '') +
+            (s.hasComplement ? '<span style="color:var(--orange)">' + ANEF.t('dossiers.complement') + '</span>' : '') +
           '</div>' +
         '</div>' +
         '<button class="dossier-row-expand" aria-label="Details">&#x25BC;</button>' +
@@ -371,15 +371,15 @@
     });
 
     var html = '<div style="margin-top:0.75rem;padding-top:0.6rem">' +
-      '<div class="detail-history-header">Historique des statuts</div>';
+      '<div class="detail-history-header">' + ANEF.t('dossiers.status_history') + '</div>';
     for (var j = 0; j < events.length; j++) {
       var snap = events[j];
 
       if (snap._synthetic === 'deposit' || snap._synthetic === 'interview') {
-        var synthLabel = snap._synthetic === 'deposit' ? '📨 Dépôt du dossier' : '🗣️ Entretien d\'assimilation';
+        var synthLabel = snap._synthetic === 'deposit' ? '📨 ' + ANEF.t('dossiers.deposit_label') : '🗣️ ' + ANEF.t('dossiers.interview_label');
         var synthExpl = snap._synthetic === 'deposit'
-          ? 'Date officielle de dépôt'
-          : 'Date de l\'entretien d\'assimilation';
+          ? ANEF.t('dossiers.deposit_expl')
+          : ANEF.t('dossiers.interview_expl');
         var synthColor = snap._synthetic === 'deposit' ? '#06b6d4' : '#f472b6';
         var synthDate = snap.date_statut ? U.formatDateFr(snap.date_statut) : '';
         // Durée jusqu'au prochain événement
@@ -388,7 +388,7 @@
           var nextEv = events[j + 1];
           var dd = (snap.date_statut && nextEv.date_statut) ? U.daysDiff(snap.date_statut, nextEv.date_statut) : null;
           if (dd !== null) {
-            synthDur = '<span class="ts-duration" style="color:var(--text-dim);background:rgba(148,163,184,0.1)">' + U.formatDuration(dd) + ' jusqu\'au suivant</span>';
+            synthDur = '<span class="ts-duration" style="color:var(--text-dim);background:rgba(148,163,184,0.1)">' + U.formatDuration(dd) + ' ' + ANEF.t('dossiers.until_next') + '</span>';
           }
         }
         html += '<div class="timeline-step">' +
@@ -426,13 +426,13 @@
           var dColor = days >= 60 ? 'var(--red);background:rgba(239,68,68,0.12)' :
                        days >= 30 ? 'var(--orange);background:rgba(245,158,11,0.12)' :
                                     'var(--green);background:rgba(16,185,129,0.12)';
-          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' \u00e0 ce statut</span>';
+          durationHtml = '<span class="ts-duration" style="color:' + dColor + '">' + U.formatDuration(days) + ' ' + ANEF.t('dossiers.at_this_status') + '</span>';
         }
       } else {
         // Étape 11 (IDD) : encore en cours, pas figé
         var isTerminated = C.isFinished({ etape: snap.etape, statut: snap.statut }) && Number(snap.etape) !== 11;
         if (isTerminated) {
-          durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 Termin\u00e9</span>';
+          durationHtml = '<span class="ts-duration" style="color:var(--green);background:rgba(16,185,129,0.12)">\u2705 ' + ANEF.t('dossiers.finished') + '</span>';
         } else {
           var today = new Date(); today.setHours(0, 0, 0, 0);
           days = snap.date_statut ? U.daysDiff(snap.date_statut, today) : null;
@@ -440,7 +440,7 @@
             days = U.daysDiff(snap.created_at, today);
           }
           if (days !== null) {
-            durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' (en cours)</span>';
+            durationHtml = '<span class="ts-duration" style="color:var(--primary-light);background:rgba(59,130,246,0.12)">' + U.formatDuration(days) + ' ' + ANEF.t('dossiers.in_progress') + '</span>';
           }
         }
       }
@@ -490,22 +490,22 @@
     // Étape 11 (IDD) : techniquement "finished" mais encore en cours (attente JO)
     var displayAsFinished = s.isFinished && s.currentStep !== 11;
     if (displayAsFinished) {
-      daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00e9';
-      durationLabel = 'Finalis\u00e9 le';
+      daysAtStatus = s.dateStatut ? U.formatDateFr(s.dateStatut) : ANEF.t('dossiers.finished');
+      durationLabel = ANEF.t('dossiers.finalized_on');
     } else {
       daysAtStatus = s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014';
-      durationLabel = 'Au statut actuel';
+      durationLabel = ANEF.t('dossiers.at_current_status');
     }
     totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
-    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Pr\u00e9fecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
-    if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
-    if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
-    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">D\u00e9cret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_prefecture') + '</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_interview') + '</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
+    if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_place') + '</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_decret') + '</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
-    var complementBadge = s.hasComplement ? '<span class="badge-complement">Compl\u00e9ment demand\u00e9</span>' : '';
-    var checkedHtml = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">' + ANEF.t('dossiers.complement_requested') + '</span>' : '';
+    var checkedHtml = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('dossiers.checked_on', { date: U.formatDateTimeFr(s.lastChecked) }) + '</span>' : '';
 
     // Status history timeline
     var snaps = state.grouped.get(s.fullHash) || [];
@@ -516,9 +516,9 @@
     if (C.isNaturalise(s.statut)) {
       naturaliseBanner = '<div class="dossier-naturalise-banner">' +
         '<span class="dnb-confetti">🎉</span>' +
-        '<div class="dnb-text"><strong>Naturalisé(e) — procédure terminée</strong>' +
-        '<span>Décret publié au Journal Officiel' +
-        (s.daysSinceDeposit != null ? ' · ' + U.formatDuration(s.daysSinceDeposit) + ' au total' : '') +
+        '<div class="dnb-text"><strong>' + ANEF.t('dossiers.naturalise_banner_title') + '</strong>' +
+        '<span>' + ANEF.t('dossiers.naturalise_banner_sub') +
+        (s.daysSinceDeposit != null ? ' · ' + ANEF.t('dossiers.total_duration_inline', { d: U.formatDuration(s.daysSinceDeposit) }) : '') +
         '</span></div></div>';
     }
 
@@ -529,7 +529,7 @@
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">' + durationLabel + '</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
-        '<div class="duration-item"><span class="duration-label">Depuis le d\u00e9p\u00f4t</span><span class="duration-value">' + totalDuration + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">' + ANEF.t('dossiers.since_deposit') + '</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
@@ -562,34 +562,34 @@
       miniTimeline += '<span class="step-dot' + (st === s.currentStep ? ' current' : '') + '" style="background:' + C.STEP_COLORS[st] + '" title="' + st + '. ' + C.PHASE_NAMES[st] + '">' + st + '</span>';
     }
 
-    var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">Tri</span>' : '';
+    var triBadge = s.currentStep === 3 ? ' <span class="badge-tri">' + ANEF.t('dossiers.badge_tri') + '</span>' : '';
     var sansEntretienCard = s.currentStep === 8 && !s.dateEntretien && s.stepsTraversed.indexOf(7) === -1;
-    var sansEntretienBadgeCard = sansEntretienCard ? ' <span class="badge-decision-sans-entretien">\u26A0 Sans entretien</span>' : '';
+    var sansEntretienBadgeCard = sansEntretienCard ? ' <span class="badge-decision-sans-entretien">\u26A0 ' + ANEF.t('dossiers.badge_sans_entretien') + '</span>' : '';
 
     // Badge de fin (coh\u00E9rent avec la vue liste) : festif si naturalis\u00E9(e)
     var finishedBadgeCard = '';
     if (s.isFinished && s.currentStep !== 11) {
-      if (C.isNaturalise(s.statut)) finishedBadgeCard = ' <span class="badge-naturalise">\uD83C\uDF89 Naturalis\u00E9(e)</span>';
-      else if (C.isPositiveStatus(s.statut)) finishedBadgeCard = ' <span class="badge-finished-ok">\u2713 Termin\u00E9</span>';
-      else finishedBadgeCard = ' <span class="badge-finished-ko">\u2717 Cl\u00F4tur\u00E9</span>';
+      if (C.isNaturalise(s.statut)) finishedBadgeCard = ' <span class="badge-naturalise">\uD83C\uDF89 ' + ANEF.t('dossiers.badge_naturalise') + '</span>';
+      else if (C.isPositiveStatus(s.statut)) finishedBadgeCard = ' <span class="badge-finished-ok">\u2713 ' + ANEF.t('dossiers.finished') + '</span>';
+      else finishedBadgeCard = ' <span class="badge-finished-ko">\u2717 ' + ANEF.t('dossiers.closed') + '</span>';
     }
 
     // \u00C9tape 11 (IDD) : "finished" mais encore en cours (attente JO) \u2192 afficher comme en cours
     var cardFinished = s.isFinished && s.currentStep !== 11;
     var daysAtStatus = cardFinished
-      ? (s.dateStatut ? U.formatDateFr(s.dateStatut) : 'Termin\u00E9')
+      ? (s.dateStatut ? U.formatDateFr(s.dateStatut) : ANEF.t('dossiers.finished'))
       : (s.daysAtCurrentStatus != null ? U.formatDuration(s.daysAtCurrentStatus) : '\u2014');
-    var daysAtStatusLabel = cardFinished ? 'Finalis\u00E9 le' : 'Au statut actuel';
+    var daysAtStatusLabel = cardFinished ? ANEF.t('dossiers.finalized_on') : ANEF.t('dossiers.at_current_status');
     var totalDuration = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
     var infoItems = '';
-    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">Préfecture</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
-    if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Entretien</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
-    if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">Lieu</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
-    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">Décret</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
+    if (s.prefecture) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_prefecture') + '</span><span class="info-value">' + U.escapeHtml(s.prefecture) + '</span></div>';
+    if (s.dateEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_interview') + '</span><span class="info-value">' + U.formatDateFr(s.dateEntretien) + '</span></div>';
+    if (s.lieuEntretien) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_place') + '</span><span class="info-value">' + U.escapeHtml(s.lieuEntretien) + '</span></div>';
+    if (s.numeroDecret) infoItems += '<div class="dossier-info-item"><span class="info-label">' + ANEF.t('dossiers.label_decret') + '</span><span class="info-value">' + U.escapeHtml(s.numeroDecret) + '</span></div>';
 
-    var complementBadge = s.hasComplement ? '<span class="badge-complement">Complément demandé</span>' : '';
-    var checkedHtml2 = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">Vérifié le ' + U.formatDateTimeFr(s.lastChecked) + '</span>' : '';
+    var complementBadge = s.hasComplement ? '<span class="badge-complement">' + ANEF.t('dossiers.complement_requested') + '</span>' : '';
+    var checkedHtml2 = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('dossiers.checked_on', { date: U.formatDateTimeFr(s.lastChecked) }) + '</span>' : '';
 
     return '<div class="dossier-card" style="--card-accent:' + color + '">' +
       '<div class="dossier-header">' +
@@ -601,7 +601,7 @@
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">' + daysAtStatusLabel + '</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
-        '<div class="duration-item"><span class="duration-label">Depuis le dépôt</span><span class="duration-value">' + totalDuration + '</span></div>' +
+        '<div class="duration-item"><span class="duration-label">' + ANEF.t('dossiers.since_deposit') + '</span><span class="duration-value">' + totalDuration + '</span></div>' +
       '</div>' +
       (infoItems ? '<div class="dossier-info">' + infoItems + '</div>' : '') +
       (complementBadge ? '<div class="dossier-footer">' + complementBadge + '</div>' : '') +
@@ -735,9 +735,9 @@
       var fastLabel = fastest.explication || C.PHASE_SHORT[fastest.etape] || fastest.phase;
       statsDiv.style.display = 'flex';
       statsDiv.innerHTML =
-        '<div class="chart-stat"><span class="chart-stat-value">' + totalTransitions + '</span><span class="chart-stat-label">passages observ\u00e9s</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(Math.round(fastest.median_days)) + '</span><span class="chart-stat-label">statut le plus rapide<br><small style="color:var(--text-dim)">' + U.escapeHtml(fastLabel) + '</small></span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(Math.round(slowest.median_days)) + '</span><span class="chart-stat-label">statut le plus lent<br><small style="color:var(--text-dim)">' + U.escapeHtml(slowLabel) + '</small></span></div>';
+        '<div class="chart-stat"><span class="chart-stat-value">' + totalTransitions + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.passages_observed') + '</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(Math.round(fastest.median_days)) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.fastest_status') + '<br><small style="color:var(--text-dim)">' + U.escapeHtml(fastLabel) + '</small></span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(Math.round(slowest.median_days)) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.slowest_status') + '<br><small style="color:var(--text-dim)">' + U.escapeHtml(slowLabel) + '</small></span></div>';
     }
 
     // Build interactive list
@@ -773,7 +773,7 @@
           '</div>' +
           '<div class="duration-list-values">' +
             '<span class="duration-list-median">' + U.formatDuration(Math.round(d.median_days)) + '</span>' +
-            '<span class="duration-list-count">' + d.count + ' dossiers</span>' +
+            '<span class="duration-list-count">' + ANEF.tn('common.dossier_count', d.count) + '</span>' +
           '</div>' +
         '</div>' +
         '<span class="mouvement-chevron">\u203a</span>' +
@@ -810,13 +810,13 @@
 
     // Duration filter ranges
     var RANGES = [
-      { key: 'all', label: 'Tous', min: 0, max: Infinity },
-      { key: 'lt1', label: '\u2264 1 jour', min: 0, max: 2 },
-      { key: 'lt7', label: '\u2264 1 semaine', min: 0, max: 8 },
-      { key: 'lt14', label: '\u2264 2 semaines', min: 0, max: 15 },
-      { key: 'lt30', label: '\u2264 1 mois', min: 0, max: 31 },
-      { key: 'lt90', label: '\u2264 3 mois', min: 0, max: 91 },
-      { key: 'gt90', label: '> 3 mois', min: 91, max: Infinity }
+      { key: 'all', label: ANEF.t('dossiers.range_all'), min: 0, max: Infinity },
+      { key: 'lt1', label: ANEF.t('dossiers.range_lt1'), min: 0, max: 2 },
+      { key: 'lt7', label: ANEF.t('dossiers.range_lt7'), min: 0, max: 8 },
+      { key: 'lt14', label: ANEF.t('dossiers.range_lt14'), min: 0, max: 15 },
+      { key: 'lt30', label: ANEF.t('dossiers.range_lt30'), min: 0, max: 31 },
+      { key: 'lt90', label: ANEF.t('dossiers.range_lt90'), min: 0, max: 91 },
+      { key: 'gt90', label: ANEF.t('dossiers.range_gt90'), min: 91, max: Infinity }
     ];
     // Count per range
     var rangeCounts = {};
@@ -833,10 +833,10 @@
     // Stats header
     var statsHtml =
       '<div class="duration-stats-grid">' +
-        '<div class="duration-stat-card"><span class="duration-stat-value">' + stepInfo.count + '</span><span class="duration-stat-label">passages</span></div>' +
-        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#3b82f6">' + U.formatDuration(Math.round(stepInfo.median_days)) + '</span><span class="duration-stat-label">m\u00e9diane</span></div>' +
-        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#10b981">' + (stepInfo.min_days === 0 ? '< 1 jour' : U.formatDuration(stepInfo.min_days)) + '</span><span class="duration-stat-label">min</span></div>' +
-        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#ef4444">' + U.formatDuration(stepInfo.max_days) + '</span><span class="duration-stat-label">max</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value">' + stepInfo.count + '</span><span class="duration-stat-label">' + ANEF.t('dossiers.stat_passages') + '</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#3b82f6">' + U.formatDuration(Math.round(stepInfo.median_days)) + '</span><span class="duration-stat-label">' + ANEF.t('dossiers.stat_median') + '</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#10b981">' + (stepInfo.min_days === 0 ? ANEF.t('dossiers.lt_1_day') : U.formatDuration(stepInfo.min_days)) + '</span><span class="duration-stat-label">' + ANEF.t('dossiers.stat_min') + '</span></div>' +
+        '<div class="duration-stat-card"><span class="duration-stat-value" style="color:#ef4444">' + U.formatDuration(stepInfo.max_days) + '</span><span class="duration-stat-label">' + ANEF.t('dossiers.stat_max') + '</span></div>' +
       '</div>';
 
     // Filter row: select + result
@@ -872,7 +872,7 @@
             '</span>' +
           '</div>' +
           '<div class="mouvement-dossier-desc">' +
-            '<span class="duration-dossier-duration" style="color:' + daysColor + '">' + (d.days === 0 ? '< 1 jour' : U.formatDuration(d.days)) + '</span> \u00e0 cette \u00e9tape' +
+            '<span class="duration-dossier-duration" style="color:' + daysColor + '">' + (d.days === 0 ? ANEF.t('dossiers.lt_1_day') : U.formatDuration(d.days)) + '</span> ' + ANEF.t('dossiers.at_this_step') +
           '</div>' +
           '<div class="mouvement-dossier-detail">' +
             U.formatDateFr(d.dateFrom) + ' \u2192 ' + U.formatDateFr(d.dateTo) +
@@ -901,7 +901,7 @@
             '<span class="activity-dot" style="background:' + color + ';color:' + color + '"></span>' +
             '<h3>' + U.escapeHtml(title) + '</h3>' +
           '</div>' +
-          '<button class="history-close" title="Fermer">\u00d7</button>' +
+          '<button class="history-close" title="' + ANEF.t('common.close') + '">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list mouvement-dossier-list">' +
           statsHtml +
@@ -962,22 +962,22 @@
 
     items.push('<span class="detail-badge" style="background:' + color + '">' + U.escapeHtml(s.sousEtape + '/12 \u2014 ' + s.explication) + '</span>');
 
-    if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">D\u00e9p\u00f4t</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
+    if (s.dateDepot) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.label_deposit') + '</span><span>' + U.formatDateFr(s.dateDepot) + '</span></div>');
     if (s.dateStatut) {
       // Étape 11 (IDD) : encore en cours, pas finalisé
       if (s.isFinished && s.currentStep !== 11) {
-        items.push('<div class="detail-row"><span class="detail-label">Finalis\u00e9 le</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
+        items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.finalized_on') + '</span><span>' + U.formatDateFr(s.dateStatut) + '</span></div>');
       } else {
-        items.push('<div class="detail-row"><span class="detail-label">Statut depuis</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
+        items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.status_since') + '</span><span>' + U.formatDateFr(s.dateStatut) + (s.daysAtCurrentStatus != null ? ' (' + U.formatDuration(s.daysAtCurrentStatus) + ')' : '') + '</span></div>');
       }
     }
-    if (s.daysSinceDeposit != null) items.push('<div class="detail-row"><span class="detail-label">Dur\u00e9e totale</span><span>' + U.formatDuration(s.daysSinceDeposit) + '</span></div>');
-    if (s.dateEntretien) items.push('<div class="detail-row"><span class="detail-label">Entretien</span><span>' + U.formatDateFr(s.dateEntretien) + '</span></div>');
-    if (s.lieuEntretien) items.push('<div class="detail-row"><span class="detail-label">Lieu</span><span>' + U.escapeHtml(s.lieuEntretien) + '</span></div>');
-    if (s.prefecture) items.push('<div class="detail-row"><span class="detail-label">Pr\u00e9fecture</span><span>' + U.escapeHtml(s.prefecture) + '</span></div>');
-    if (s.numeroDecret) items.push('<div class="detail-row"><span class="detail-label">D\u00e9cret</span><span>' + U.escapeHtml(s.numeroDecret) + '</span></div>');
-    if (s.hasComplement) items.push('<div class="detail-row"><span class="detail-label">Compl\u00e9ment</span><span style="color:var(--orange)">Demand\u00e9</span></div>');
-    if (s.lastChecked) items.push('<div class="detail-row"><span class="detail-label">Derni\u00e8re v\u00e9rif.</span><span style="color:var(--text-dim)">' + U.formatDateTimeFr(s.lastChecked) + '</span></div>');
+    if (s.daysSinceDeposit != null) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.total_duration') + '</span><span>' + U.formatDuration(s.daysSinceDeposit) + '</span></div>');
+    if (s.dateEntretien) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.label_interview') + '</span><span>' + U.formatDateFr(s.dateEntretien) + '</span></div>');
+    if (s.lieuEntretien) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.label_place') + '</span><span>' + U.escapeHtml(s.lieuEntretien) + '</span></div>');
+    if (s.prefecture) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.label_prefecture') + '</span><span>' + U.escapeHtml(s.prefecture) + '</span></div>');
+    if (s.numeroDecret) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.label_decret') + '</span><span>' + U.escapeHtml(s.numeroDecret) + '</span></div>');
+    if (s.hasComplement) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.complement') + '</span><span style="color:var(--orange)">' + ANEF.t('dossiers.requested') + '</span></div>');
+    if (s.lastChecked) items.push('<div class="detail-row"><span class="detail-label">' + ANEF.t('dossiers.last_check') + '</span><span style="color:var(--text-dim)">' + U.formatDateTimeFr(s.lastChecked) + '</span></div>');
 
     return '<div class="dossier-detail-info">' + items.join('') + '</div>';
   }
@@ -987,8 +987,8 @@
     var snaps = summary ? (state.grouped.get(summary.fullHash) || []) : [];
 
     var infoHtml = buildDossierInfoHtml(summary);
-    var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '<div class="detail-section-label" style="color:var(--text-dim)">Aucun historique disponible</div>';
-    var historyLabel = snaps.length > 0 ? '<div class="detail-section-label">Historique des statuts</div>' : '';
+    var timelineHtml = snaps.length > 0 ? buildStatusTimeline(snaps) : '<div class="detail-section-label" style="color:var(--text-dim)">' + ANEF.t('dossiers.no_history') + '</div>';
+    var historyLabel = snaps.length > 0 ? '<div class="detail-section-label">' + ANEF.t('dossiers.status_history') + '</div>' : '';
 
     var modal = document.getElementById('duration-dossier-modal');
     if (!modal) {
@@ -1004,9 +1004,9 @@
     modal.innerHTML =
       '<div class="history-modal">' +
         '<div class="history-modal-header">' +
-          '<button class="history-back" title="Retour">\u2190</button>' +
-          '<h3>Détails du dossier</h3>' +
-          '<button class="history-close" title="Fermer">\u00d7</button>' +
+          '<button class="history-back" title="' + ANEF.t('common.back') + '">\u2190</button>' +
+          '<h3>' + ANEF.t('dossiers.dossier_details') + '</h3>' +
+          '<button class="history-close" title="' + ANEF.t('common.close') + '">\u00d7</button>' +
         '</div>' +
         '<div class="modal-history-list">' +
           infoHtml +
@@ -1087,11 +1087,11 @@
     if (statsDiv) {
       statsDiv.style.display = 'flex';
       statsDiv.innerHTML =
-        '<div class="chart-stat"><span class="chart-stat-value">' + total + '</span><span class="chart-stat-label">dossiers suivis</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(p25) + '</span><span class="chart-stat-label">25% attendent moins de</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#3b82f6">' + U.formatDuration(med) + '</span><span class="chart-stat-label">attente habituelle</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#f59e0b">' + U.formatDuration(p75) + '</span><span class="chart-stat-label">75% attendent moins de</span></div>' +
-        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(maxD) + '</span><span class="chart-stat-label">le plus ancien</span></div>';
+        '<div class="chart-stat"><span class="chart-stat-value">' + total + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.hist_tracked') + '</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#10b981">' + U.formatDuration(p25) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.hist_p25') + '</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#3b82f6">' + U.formatDuration(med) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.hist_usual') + '</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#f59e0b">' + U.formatDuration(p75) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.hist_p75') + '</span></div>' +
+        '<div class="chart-stat"><span class="chart-stat-value" style="color:#ef4444">' + U.formatDuration(maxD) + '</span><span class="chart-stat-label">' + ANEF.t('dossiers.hist_oldest') + '</span></div>';
     }
 
     // Buckets of 60 days (~2 mois)
@@ -1103,7 +1103,7 @@
     for (var i = 0; i < numBuckets; i++) {
       var fromM = i * 2;
       var toM = (i + 1) * 2;
-      labels.push(fromM + '-' + toM + ' mois');
+      labels.push(ANEF.t('dossiers.bucket_months', { from: fromM, to: toM }));
     }
     for (var j = 0; j < days.length; j++) {
       var idx = Math.min(Math.floor(days[j] / bucketSize), numBuckets - 1);
@@ -1119,7 +1119,7 @@
     }
 
     var datasets = [{
-      label: 'Dossiers',
+      label: ANEF.t('dossiers.chart_dossiers'),
       data: buckets,
       backgroundColor: 'rgba(59,130,246,0.5)',
       borderColor: '#3b82f6',
@@ -1153,10 +1153,10 @@
         label: function(ctx) {
           var count = ctx.parsed.y;
           var pct = Math.round(count / total * 100);
-          return count + ' dossier' + (count > 1 ? 's' : '') + ' (' + pct + '%)';
+          return ANEF.tn('common.dossier_count', count) + ' (' + pct + '%)';
         },
         afterLabel: function(ctx) {
-          return cumulative[ctx.dataIndex] + '% attendent depuis \u2264 ' + U.formatDuration((ctx.dataIndex + 1) * bucketSize);
+          return ANEF.t('dossiers.hist_cumulative', { pct: cumulative[ctx.dataIndex], dur: U.formatDuration((ctx.dataIndex + 1) * bucketSize) });
         }
       }
     };
@@ -1172,8 +1172,8 @@
         var ctx = chart.ctx;
 
         var lines = [
-          { val: medBucket, color: '#3b82f6', label: 'Attente habituelle : ' + U.formatDuration(med) },
-          { val: avgBucket, color: '#f59e0b', label: 'Attente moyenne : ' + U.formatDuration(avg) }
+          { val: medBucket, color: '#3b82f6', label: ANEF.t('dossiers.refline_usual', { dur: U.formatDuration(med) }) },
+          { val: avgBucket, color: '#f59e0b', label: ANEF.t('dossiers.refline_avg', { dur: U.formatDuration(avg) }) }
         ];
 
         for (var i = 0; i < lines.length; i++) {

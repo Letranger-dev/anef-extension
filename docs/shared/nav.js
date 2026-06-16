@@ -40,7 +40,7 @@
       + '<line x1="3.95" y1="6.06" x2="8.54" y2="14"/>'
       + '<line x1="10.88" y1="21.94" x2="15.46" y2="14"/>'
       + '</svg>'
-      + '<span>Installer l\u2019extension</span>';
+      + '<span>' + (ANEF.t ? ANEF.t('nav.install') : 'Installer l\u2019extension') + '</span>';
     desktopNav.appendChild(link);
 
     // Inject styles once
@@ -121,7 +121,7 @@
       // Match other mobile nav items: vertical stack of icon + label, flex-1 width.
       m.innerHTML =
           '<span class="theme-toggle-icon-wrap">' + SUN_SVG + MOON_SVG + '</span>'
-        + '<span class="theme-toggle-label">Thème</span>';
+        + '<span class="theme-toggle-label">' + (ANEF.t ? ANEF.t('nav.theme') : 'Thème') + '</span>';
       mobileNav.appendChild(m);
       buttons.push(m);
     }
@@ -231,6 +231,131 @@
     }
   }
 
+  /** Language switcher (dropdown in the header, desktop + mobile).
+   *  - Placed in the <header> (not the bottom nav, already full at 7 items).
+   *  - Lists ANEF.i18n.SUPPORTED; picking one persists + reloads (see i18n.js).
+   *  - Scales to N languages with zero layout change.
+   */
+  function initLangSwitcher() {
+    if (!ANEF.i18n) return;
+    var header = document.querySelector('header .max-w-container');
+    if (!header) return;
+
+    var i18n = ANEF.i18n;
+    var cur = i18n.getLang();
+    var meta = i18n.META[cur] || i18n.META.fr;
+
+    // The header centers its content; anchor the switcher to the right edge.
+    header.style.position = 'relative';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'lang-switcher';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lang-btn';
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', i18n.t('lang.label'));
+    btn.title = i18n.t('lang.label');
+    // No flag emojis: they render as "tofu"/letter-pairs on Windows. Use a globe
+    // icon + the language code instead — legible on every platform.
+    var GLOBE_SVG =
+        '<svg class="lang-globe" width="16" height="16" viewBox="0 0 24 24" fill="none" '
+      +   'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      +   '<circle cx="12" cy="12" r="10"></circle>'
+      +   '<line x1="2" y1="12" x2="22" y2="12"></line>'
+      +   '<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>'
+      + '</svg>';
+    btn.innerHTML =
+        GLOBE_SVG
+      + '<span class="lang-code">' + cur.toUpperCase() + '</span>'
+      + '<svg class="lang-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+    var menu = document.createElement('div');
+    menu.className = 'lang-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    i18n.SUPPORTED.forEach(function(code) {
+      var m = i18n.META[code] || {};
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'lang-item' + (code === cur ? ' active' : '');
+      item.setAttribute('role', 'menuitem');
+      item.setAttribute('lang', code);
+      item.dataset.lang = code;
+      item.innerHTML = '<span class="lang-code-chip">' + code.toUpperCase() + '</span><span>' + (m.label || code) + '</span>';
+      item.addEventListener('click', function() { i18n.setLang(code); });
+      menu.appendChild(item);
+    });
+
+    function close() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    function open() { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (menu.hidden) open(); else close();
+    });
+    document.addEventListener('click', function(e) {
+      if (!wrap.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') close();
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(menu);
+    header.appendChild(wrap);
+
+    if (!document.getElementById('anef-lang-switcher-css')) {
+      var style = document.createElement('style');
+      style.id = 'anef-lang-switcher-css';
+      style.textContent = [
+        '.lang-switcher{position:absolute;top:50%;transform:translateY(-50%);',
+        '  inset-inline-end:0.75rem;z-index:60;}',
+        '.lang-btn{display:inline-flex;align-items:center;gap:0.3rem;',
+        '  padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:8px;',
+        '  background:var(--bg);color:var(--text-muted);cursor:pointer;',
+        '  font-size:0.72rem;font-weight:600;font-family:inherit;line-height:1;',
+        '  transition:color .15s,border-color .15s,background .15s;}',
+        '.lang-btn:hover{color:var(--primary-light);border-color:var(--primary);}',
+        '.lang-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}',
+        '.lang-globe{opacity:0.85;flex-shrink:0;}',
+        '.lang-caret{opacity:0.6;flex-shrink:0;}',
+        '.lang-code-chip{display:inline-flex;align-items:center;justify-content:center;',
+        '  min-width:1.6rem;padding:0.1rem 0.3rem;border-radius:5px;',
+        '  background:var(--bg);border:1px solid var(--border);',
+        '  font-size:0.66rem;font-weight:700;letter-spacing:0.02em;color:var(--text-muted);}',
+        '.lang-item.active .lang-code-chip{border-color:var(--primary);color:var(--primary-light);}',
+        '.lang-menu{position:absolute;inset-inline-end:0;top:calc(100% + 0.35rem);',
+        '  min-width:150px;padding:0.3rem;border:1px solid var(--border);border-radius:10px;',
+        '  background:var(--bg-card);box-shadow:0 8px 24px rgba(0,0,0,0.25);}',
+        '.lang-item{display:flex;align-items:center;gap:0.55rem;width:100%;',
+        '  padding:0.45rem 0.6rem;border:0;border-radius:7px;background:transparent;',
+        '  color:var(--text-main);cursor:pointer;font-size:0.82rem;font-family:inherit;',
+        '  text-align:start;}',
+        '.lang-item:hover{background:var(--bg-card-hover);}',
+        '.lang-item.active{color:var(--primary-light);font-weight:600;}',
+        // Keep the language menu inside the viewport on any screen.
+        '.lang-menu{max-width:calc(100vw - 1rem);}',
+        // On small screens, declutter the header: globe-only switcher, drop the
+        // decorative "Anonymous data" badge, and reserve room on the right so the
+        // centred title never slides under the absolutely-positioned switcher.
+        '@media (max-width:560px){',
+        '  .lang-btn .lang-code{display:none;}',
+        '  .lang-btn{padding:0.34rem 0.4rem;}',
+        '  header .max-w-container{padding-inline-end:2.6rem;padding-inline-start:0.6rem;}',
+        '  header [data-i18n="header.badge"]{display:none;}',
+        '}',
+        // Narrow phones: keep only the brand + switcher for a clean top bar.
+        '@media (max-width:430px){',
+        '  header [data-i18n="header.subtitle"]{display:none;}',
+        '}'
+      ].join('\n');
+      document.head.appendChild(style);
+    }
+  }
+
   /** Inject version tag in footer */
   function initVersion() {
     var footer = document.querySelector('footer');
@@ -246,6 +371,7 @@
     initNav();
     initCWSLink();
     initThemeToggle();
+    initLangSwitcher();
     initVersion();
   });
 

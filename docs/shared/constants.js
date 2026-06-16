@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.34.3';
+  var SITE_VERSION = '1.35.0';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -448,6 +448,36 @@
     if (cp.substring(0, 2) === '20') return DEPT_MAP[parseInt(cp, 10) < 20200 ? '2A' : '2B'] || null;
     return DEPT_MAP[cp.substring(0, 2)] || null;
   }
+
+  // ── Localisation du dictionnaire (i18n) ──────────────────────────
+  // Le FR ci-dessus reste la SOURCE. Si la langue active ≠ fr, on superpose
+  // les traductions du catalogue (status.<code>.* / phase.name.N / phase.short.N).
+  // Seules les clés réellement traduites écrasent le FR ; tout le reste retombe
+  // proprement sur le français. Exécuté une fois (langue fixe par page : reload
+  // au changement). La logique métier branche sur le CODE/etape, jamais sur ces
+  // textes → traduire est purement cosmétique et sans risque.
+  (function localizeStatuts() {
+    if (!window.ANEF || !ANEF.i18n || !ANEF.i18n.tRaw || ANEF.i18n.getLang() === 'fr') return;
+    var tr = ANEF.i18n.tRaw;
+    for (var code in STATUTS) {
+      if (!Object.prototype.hasOwnProperty.call(STATUTS, code)) continue;
+      var p = tr('status.' + code + '.phase');
+      var e = tr('status.' + code + '.explication');
+      var d = tr('status.' + code + '.description');
+      if (p != null) STATUTS[code].phase = p;
+      if (e != null) STATUTS[code].explication = e;
+      if (d != null) STATUTS[code].description = d;
+    }
+    var maps = [['name', PHASE_NAMES], ['short', PHASE_SHORT]];
+    for (var mi = 0; mi < maps.length; mi++) {
+      var kind = maps[mi][0], obj = maps[mi][1];
+      for (var k in obj) {
+        if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+        var v = tr('phase.' + kind + '.' + k);
+        if (v != null) obj[k] = v;
+      }
+    }
+  })();
 
   ANEF.constants = {
     SITE_VERSION: SITE_VERSION,

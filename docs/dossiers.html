@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Explorateur de dossiers naturalisation</title>
-  <meta name="description" content="Explorez les dossiers de naturalisation française : statut actuel, historique des étapes, durées par préfecture. Données anonymes et communautaires.">
+  <title data-i18n="meta.dossiers.title">ANEF Stats — Explorateur de dossiers naturalisation</title>
+  <meta name="description" data-i18n-attr="content:meta.dossiers.desc" content="Explorez les dossiers de naturalisation française : statut actuel, historique des étapes, durées par préfecture. Données anonymes et communautaires.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/dossiers.html">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/dossiers.html?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/dossiers.html?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/dossiers.html?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/dossiers.html?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/dossiers.html?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/dossiers.html">
   <script>
     (function () {
       try {
@@ -15,6 +21,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Reads localStorage, falls back to the browser language, then 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch (e) {} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -55,20 +77,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -76,22 +98,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -99,7 +121,7 @@
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
     <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des dossiers...</p>
+    <p class="text-base" data-i18n="dossiers.loading">Chargement des dossiers...</p>
   </div>
 
   <!-- Main Content -->
@@ -107,37 +129,37 @@
 
     <!-- Dossier Cards -->
     <div class="section" id="dossier-section">
-      <h2>Parcours des dossiers</h2>
+      <h2 data-i18n="dossiers.title">Parcours des dossiers</h2>
       <div class="table-filters" id="dossier-filters">
         <div class="table-filter-group">
-          <label>Statut</label>
+          <label data-i18n="dossiers.filter_statut">Statut</label>
           <div id="dossier-filter-statut-container"></div>
         </div>
         <div class="table-filter-group">
-          <label>Préfecture</label>
+          <label data-i18n="dossiers.filter_prefecture">Préfecture</label>
           <div id="dossier-filter-prefecture-container"></div>
         </div>
         <div class="table-filter-group">
-          <label>Suivi</label>
+          <label data-i18n="dossiers.filter_history">Suivi</label>
           <select id="dossier-filter-history">
-            <option value="all">Tous</option>
-            <option value="multi">Avec historique</option>
+            <option value="all" data-i18n="dossiers.history_all">Tous</option>
+            <option value="multi" data-i18n="dossiers.history_multi">Avec historique</option>
           </select>
         </div>
         <div class="table-filter-group">
-          <label>Date dépôt</label>
+          <label data-i18n="dossiers.filter_date_depot">Date dépôt</label>
           <div class="date-range">
-            <input type="date" id="dossier-filter-depot-min" class="table-filter-date" title="À partir du">
+            <input type="date" id="dossier-filter-depot-min" class="table-filter-date" data-i18n-attr="title:dossiers.date_from" title="À partir du">
             <span class="date-sep">→</span>
-            <input type="date" id="dossier-filter-depot-max" class="table-filter-date" title="Jusqu'au">
+            <input type="date" id="dossier-filter-depot-max" class="table-filter-date" data-i18n-attr="title:dossiers.date_to" title="Jusqu'au">
           </div>
         </div>
         <div class="table-filter-group">
-          <label>Date statut</label>
+          <label data-i18n="dossiers.filter_date_statut">Date statut</label>
           <div class="date-range">
-            <input type="date" id="dossier-filter-statut-min" class="table-filter-date" title="À partir du">
+            <input type="date" id="dossier-filter-statut-min" class="table-filter-date" data-i18n-attr="title:dossiers.date_from" title="À partir du">
             <span class="date-sep">→</span>
-            <input type="date" id="dossier-filter-statut-max" class="table-filter-date" title="Jusqu'au">
+            <input type="date" id="dossier-filter-statut-max" class="table-filter-date" data-i18n-attr="title:dossiers.date_to" title="Jusqu'au">
           </div>
         </div>
       </div>
@@ -145,20 +167,20 @@
         <span class="dossier-count" id="dossier-count">&mdash;</span>
         <div class="toolbar-controls">
           <div class="view-toggle">
-            <button class="view-btn active" data-view="list" title="Vue liste">&#x2630;</button>
-            <button class="view-btn" data-view="cards" title="Vue cartes">&#x25A6;</button>
+            <button class="view-btn active" data-view="list" data-i18n-attr="title:dossiers.view_list" title="Vue liste">&#x2630;</button>
+            <button class="view-btn" data-view="cards" data-i18n-attr="title:dossiers.view_cards" title="Vue cartes">&#x25A6;</button>
           </div>
-          <select id="sort-dossiers" title="Trier">
-            <option value="step-desc">Étape &darr;</option>
-            <option value="step-asc">Étape &uarr;</option>
-            <option value="duration-desc">Durée &darr;</option>
-            <option value="status-recent">Statut recent</option>
+          <select id="sort-dossiers" data-i18n-attr="title:dossiers.sort" title="Trier">
+            <option value="step-desc" data-i18n="dossiers.sort_step_desc">Étape &darr;</option>
+            <option value="step-asc" data-i18n="dossiers.sort_step_asc">Étape &uarr;</option>
+            <option value="duration-desc" data-i18n="dossiers.sort_duration_desc">Durée &darr;</option>
+            <option value="status-recent" data-i18n="dossiers.sort_status_recent">Statut recent</option>
           </select>
-          <select id="page-size" class="page-size-select" title="Par page">
-            <option value="5" selected>5 par page</option>
-            <option value="10">10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="50">50 par page</option>
+          <select id="page-size" class="page-size-select" data-i18n-attr="title:dossiers.per_page" title="Par page">
+            <option value="5" selected data-i18n="dossiers.per_page_5">5 par page</option>
+            <option value="10" data-i18n="dossiers.per_page_10">10 par page</option>
+            <option value="20" data-i18n="dossiers.per_page_20">20 par page</option>
+            <option value="50" data-i18n="dossiers.per_page_50">50 par page</option>
           </select>
         </div>
         <div class="pagination">
@@ -173,34 +195,34 @@
 
     <!-- Duration by Step Chart -->
     <div class="section" id="duration-section">
-      <h2>Durée par statut</h2>
-      <p class="section-subtitle">Combien de temps les dossiers restent à chaque statut avant de progresser — basé sur les transitions observées</p>
+      <h2 data-i18n="dossiers.duration_title">Durée par statut</h2>
+      <p class="section-subtitle" data-i18n="dossiers.duration_subtitle">Combien de temps les dossiers restent à chaque statut avant de progresser — basé sur les transitions observées</p>
       <div id="duration-stats" class="chart-stats" style="display:none"></div>
       <div class="chart-container" id="duration-chart-container">
         <canvas id="duration-chart" style="display:none"></canvas>
-        <p class="no-data" id="duration-no-data" style="display:none">Pas de données</p>
+        <p class="no-data" id="duration-no-data" style="display:none" data-i18n="dossiers.no_data">Pas de données</p>
         <div id="duration-list-container"></div>
       </div>
     </div>
 
     <!-- Histogram -->
     <div class="section" id="histogram-section">
-      <h2>Temps écoulé depuis le dépôt</h2>
-      <p class="section-subtitle">Durée entre le dépôt et l'étape actuelle de chaque dossier — ne représente pas la durée totale de la procédure</p>
+      <h2 data-i18n="dossiers.histogram_title">Temps écoulé depuis le dépôt</h2>
+      <p class="section-subtitle" data-i18n="dossiers.histogram_subtitle">Durée entre le dépôt et l'étape actuelle de chaque dossier — ne représente pas la durée totale de la procédure</p>
       <div class="table-filters" id="histogram-filters">
         <div class="table-filter-group">
-          <label>Statut</label>
+          <label data-i18n="dossiers.filter_statut">Statut</label>
           <div id="histogram-filter-statut-container"></div>
         </div>
         <div class="table-filter-group">
-          <label>Préfecture</label>
+          <label data-i18n="dossiers.filter_prefecture">Préfecture</label>
           <div id="histogram-filter-prefecture-container"></div>
         </div>
       </div>
       <div id="histogram-stats" class="chart-stats" style="display:none"></div>
       <div class="chart-container" style="min-height:350px">
         <canvas id="histogram-chart"></canvas>
-        <p class="no-data" id="histogram-no-data" style="display:none">Pas de données</p>
+        <p class="no-data" id="histogram-no-data" style="display:none" data-i18n="dossiers.no_data">Pas de données</p>
       </div>
     </div>
 
@@ -208,10 +230,18 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/i18n/pages/dossiers.js"></script>
   <script src="shared/constants.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/stats-math.js"></script>

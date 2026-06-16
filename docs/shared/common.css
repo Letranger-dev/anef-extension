@@ -114,6 +114,23 @@ html { scroll-behavior: smooth; }
     position: relative;
     border-top: 2px solid transparent;
     transition: color 0.15s, border-color 0.15s;
+    min-width: 0;            /* allow items to shrink evenly */
+    padding-left: 1px;
+    padding-right: 1px;
+    overflow: hidden;
+  }
+  /* Labels: tolerate longer translations (Expedientes, Timelines, …) by
+     wrapping to at most 2 tight lines instead of overflowing the bar. */
+  .mobile-nav-bar .nav-link > span:last-child {
+    max-width: 100%;
+    line-height: 1.05;
+    text-align: center;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .mobile-nav-bar .nav-link.active {
     border-bottom-color: transparent !important;

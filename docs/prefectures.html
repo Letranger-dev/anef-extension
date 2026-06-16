@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Délais par préfecture de naturalisation</title>
-  <meta name="description" content="Comparez les délais de naturalisation par préfecture : durée moyenne, répartition des étapes, nombre de dossiers. Données communautaires actualisées.">
+  <title data-i18n="meta.prefectures.title">ANEF Stats — Délais par préfecture de naturalisation</title>
+  <meta name="description" data-i18n-attr="content:meta.prefectures.desc" content="Comparez les délais de naturalisation par préfecture : durée moyenne, répartition des étapes, nombre de dossiers. Données communautaires actualisées.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/prefectures.html">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/prefectures.html?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/prefectures.html?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/prefectures.html?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/prefectures.html?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/prefectures.html?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/prefectures.html">
   <script>
     (function () {
       try {
@@ -15,6 +21,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Priority: ?lang= > localStorage > browser language > 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch (e) {} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -55,20 +77,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -76,22 +98,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -99,7 +121,7 @@
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
     <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des préfectures...</p>
+    <p class="text-base" data-i18n="prefectures.loading">Chargement des préfectures...</p>
   </div>
 
   <!-- Main Content -->
@@ -108,11 +130,11 @@
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">Préfecture</span>
+        <span class="filter-label" data-i18n="prefectures.filter_prefecture">Préfecture</span>
         <div id="filter-prefecture-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Statut ANEF</span>
+        <span class="filter-label" data-i18n="prefectures.filter_status">Statut ANEF</span>
         <div id="filter-status-container"></div>
       </div>
       <span class="filter-count" id="filter-count"></span>
@@ -120,26 +142,26 @@
 
     <!-- Ranking table -->
     <div class="section">
-      <h2>Classement des préfectures</h2>
+      <h2 data-i18n="prefectures.ranking_title">Classement des préfectures</h2>
       <div class="dossier-toolbar" id="ranking-toolbar" style="display:none">
         <span class="dossier-count" id="ranking-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="ranking-sort" class="page-size-select" title="Trier par">
-            <option value="avg_days-desc">Durée moy. &darr;</option>
-            <option value="avg_days-asc">Durée moy. &uarr;</option>
-            <option value="total-desc">Dossiers &darr;</option>
-            <option value="total-asc">Dossiers &uarr;</option>
-            <option value="median_days-desc">Durée typique &darr;</option>
-            <option value="median_days-asc">Durée typique &uarr;</option>
-            <option value="prefecture-asc">Nom A-Z</option>
-            <option value="prefecture-desc">Nom Z-A</option>
-            <option value="favorable_pct-desc">Taux favorable &darr;</option>
+          <select id="ranking-sort" class="page-size-select" title="Trier par" data-i18n-attr="title:prefectures.sort_by">
+            <option value="avg_days-desc" data-i18n="prefectures.sort_avg_desc">Durée moy. &darr;</option>
+            <option value="avg_days-asc" data-i18n="prefectures.sort_avg_asc">Durée moy. &uarr;</option>
+            <option value="total-desc" data-i18n="prefectures.sort_total_desc">Dossiers &darr;</option>
+            <option value="total-asc" data-i18n="prefectures.sort_total_asc">Dossiers &uarr;</option>
+            <option value="median_days-desc" data-i18n="prefectures.sort_median_desc">Durée typique &darr;</option>
+            <option value="median_days-asc" data-i18n="prefectures.sort_median_asc">Durée typique &uarr;</option>
+            <option value="prefecture-asc" data-i18n="prefectures.sort_name_asc">Nom A-Z</option>
+            <option value="prefecture-desc" data-i18n="prefectures.sort_name_desc">Nom Z-A</option>
+            <option value="favorable_pct-desc" data-i18n="prefectures.sort_favorable_desc">Taux favorable &darr;</option>
           </select>
-          <select id="ranking-page-size" class="page-size-select" title="Par page">
-            <option value="10" selected>10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="50">50 par page</option>
-            <option value="0">Tout</option>
+          <select id="ranking-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:prefectures.per_page_title">
+            <option value="10" selected data-i18n="prefectures.per_page_10">10 par page</option>
+            <option value="20" data-i18n="prefectures.per_page_20">20 par page</option>
+            <option value="50" data-i18n="prefectures.per_page_50">50 par page</option>
+            <option value="0" data-i18n="prefectures.per_page_all">Tout</option>
           </select>
         </div>
         <div class="pagination">
@@ -152,13 +174,13 @@
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-col="prefecture">Préfecture</th>
-              <th class="sortable" data-col="total">Dossiers</th>
-              <th class="sortable" data-col="avg_days">Durée moy.</th>
-              <th class="sortable" data-col="median_days" title="Valeur médiane : 50% des dossiers font moins">Durée typique</th>
-              <th class="sortable" data-col="avg_step">Étape moy.</th>
-              <th class="sortable" data-col="favorable_pct">Taux favorable</th>
-              <th class="sortable" data-col="complement_pct">Compléments</th>
+              <th class="sortable" data-col="prefecture" data-i18n="prefectures.col_prefecture">Préfecture</th>
+              <th class="sortable" data-col="total" data-i18n="prefectures.col_total">Dossiers</th>
+              <th class="sortable" data-col="avg_days" data-i18n="prefectures.col_avg">Durée moy.</th>
+              <th class="sortable" data-col="median_days" title="Valeur médiane : 50% des dossiers font moins" data-i18n="prefectures.col_median" data-i18n-attr="title:prefectures.col_median_tip">Durée typique</th>
+              <th class="sortable" data-col="avg_step" data-i18n="prefectures.col_avg_step">Étape moy.</th>
+              <th class="sortable" data-col="favorable_pct" data-i18n="prefectures.col_favorable">Taux favorable</th>
+              <th class="sortable" data-col="complement_pct" data-i18n="prefectures.col_complement">Compléments</th>
             </tr>
           </thead>
           <tbody id="ranking-tbody"></tbody>
@@ -168,19 +190,19 @@
 
     <!-- Horizontal bar chart -->
     <div class="section">
-      <h2>Comparaison des durées moyennes</h2>
+      <h2 data-i18n="prefectures.bar_title">Comparaison des durées moyennes</h2>
       <div class="dossier-toolbar" id="bar-toolbar" style="display:none">
         <span class="dossier-count" id="bar-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="bar-sort" class="page-size-select" title="Trier">
-            <option value="days-asc">Durée &uarr;</option>
-            <option value="days-desc">Durée &darr;</option>
-            <option value="name-asc">Nom A-Z</option>
+          <select id="bar-sort" class="page-size-select" title="Trier" data-i18n-attr="title:prefectures.sort">
+            <option value="days-asc" data-i18n="prefectures.sort_days_asc">Durée &uarr;</option>
+            <option value="days-desc" data-i18n="prefectures.sort_days_desc">Durée &darr;</option>
+            <option value="name-asc" data-i18n="prefectures.sort_name_asc">Nom A-Z</option>
           </select>
-          <select id="bar-page-size" class="page-size-select" title="Par page">
-            <option value="10" selected>10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="0">Tout</option>
+          <select id="bar-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:prefectures.per_page_title">
+            <option value="10" selected data-i18n="prefectures.per_page_10">10 par page</option>
+            <option value="20" data-i18n="prefectures.per_page_20">20 par page</option>
+            <option value="0" data-i18n="prefectures.per_page_all">Tout</option>
           </select>
         </div>
         <div class="pagination">
@@ -191,26 +213,26 @@
       </div>
       <div class="chart-container chart-container--tall" id="bar-chart-container" style="min-height:400px">
         <canvas id="prefecture-bar-chart"></canvas>
-        <p class="no-data" id="bar-no-data" style="display:none">Pas de données</p>
+        <p class="no-data" id="bar-no-data" style="display:none" data-i18n="prefectures.no_data">Pas de données</p>
       </div>
     </div>
 
     <!-- Heatmap -->
     <div class="section">
-      <h2>Heatmap préfecture x étape</h2>
-      <p class="section-subtitle">Dur&eacute;e moyenne pass&eacute;e &agrave; chaque statut (jours)</p>
+      <h2 data-i18n="prefectures.heatmap_title">Heatmap préfecture x étape</h2>
+      <p class="section-subtitle" data-i18n="prefectures.heatmap_sub">Dur&eacute;e moyenne pass&eacute;e &agrave; chaque statut (jours)</p>
       <div class="dossier-toolbar" id="hm-toolbar" style="display:none">
         <span class="dossier-count" id="hm-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="hm-sort" class="page-size-select" title="Trier">
-            <option value="days-desc">Durée &darr;</option>
-            <option value="days-asc">Durée &uarr;</option>
-            <option value="name-asc">Nom A-Z</option>
+          <select id="hm-sort" class="page-size-select" title="Trier" data-i18n-attr="title:prefectures.sort">
+            <option value="days-desc" data-i18n="prefectures.sort_days_desc">Durée &darr;</option>
+            <option value="days-asc" data-i18n="prefectures.sort_days_asc">Durée &uarr;</option>
+            <option value="name-asc" data-i18n="prefectures.sort_name_asc">Nom A-Z</option>
           </select>
-          <select id="hm-page-size" class="page-size-select" title="Par page">
-            <option value="10" selected>10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="0">Tout</option>
+          <select id="hm-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:prefectures.per_page_title">
+            <option value="10" selected data-i18n="prefectures.per_page_10">10 par page</option>
+            <option value="20" data-i18n="prefectures.per_page_20">20 par page</option>
+            <option value="0" data-i18n="prefectures.per_page_all">Tout</option>
           </select>
         </div>
         <div class="pagination">
@@ -226,20 +248,20 @@
 
     <!-- Distribution par etape -->
     <div class="section">
-      <h2>Distribution par étape</h2>
-      <p class="section-subtitle">Où en sont les dossiers de chaque préfecture</p>
+      <h2 data-i18n="prefectures.distrib_title">Distribution par étape</h2>
+      <p class="section-subtitle" data-i18n="prefectures.distrib_sub">Où en sont les dossiers de chaque préfecture</p>
       <div class="dossier-toolbar" id="distrib-toolbar" style="display:none">
         <span class="dossier-count" id="distrib-count">&mdash;</span>
         <div class="toolbar-controls">
-          <select id="distrib-sort" class="page-size-select" title="Trier">
-            <option value="total-desc">Dossiers &darr;</option>
-            <option value="total-asc">Dossiers &uarr;</option>
-            <option value="name-asc">Nom A-Z</option>
+          <select id="distrib-sort" class="page-size-select" title="Trier" data-i18n-attr="title:prefectures.sort">
+            <option value="total-desc" data-i18n="prefectures.sort_total_desc">Dossiers &darr;</option>
+            <option value="total-asc" data-i18n="prefectures.sort_total_asc">Dossiers &uarr;</option>
+            <option value="name-asc" data-i18n="prefectures.sort_name_asc">Nom A-Z</option>
           </select>
-          <select id="distrib-page-size" class="page-size-select" title="Par page">
-            <option value="10" selected>10 par page</option>
-            <option value="20">20 par page</option>
-            <option value="0">Tout</option>
+          <select id="distrib-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:prefectures.per_page_title">
+            <option value="10" selected data-i18n="prefectures.per_page_10">10 par page</option>
+            <option value="20" data-i18n="prefectures.per_page_20">20 par page</option>
+            <option value="0" data-i18n="prefectures.per_page_all">Tout</option>
           </select>
         </div>
         <div class="pagination">
@@ -252,10 +274,10 @@
         <table>
           <thead>
             <tr>
-              <th>Préfecture</th>
-              <th>Étape principale</th>
-              <th>Dossiers</th>
-              <th>Répartition</th>
+              <th data-i18n="prefectures.col_prefecture">Préfecture</th>
+              <th data-i18n="prefectures.col_main_step">Étape principale</th>
+              <th data-i18n="prefectures.col_total">Dossiers</th>
+              <th data-i18n="prefectures.col_distribution">Répartition</th>
             </tr>
           </thead>
           <tbody id="distrib-tbody"></tbody>
@@ -267,10 +289,18 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/i18n/pages/prefectures.js"></script>
   <script src="shared/constants.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/stats-math.js"></script>

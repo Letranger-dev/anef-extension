@@ -6,8 +6,11 @@
 
   window.ANEF = window.ANEF || {};
 
+  // i18n helper — _t(key, frenchFallback) for this component's own labels.
+  function _t(k, d) { return (window.ANEF && ANEF.t) ? ANEF.t(k) : d; }
+
   var STEP_PILLS = [
-    { value: 'all', label: 'Toutes', color: null },
+    { value: 'all', label: _t('filter.all', 'Toutes'), color: null },
     { value: '1-2', label: '1-2', color: '#6b7280' },
     { value: '3-5', label: '3-5', color: '#3b82f6' },
     { value: '6-8', label: '6-8', color: '#8b5cf6' },
@@ -68,17 +71,17 @@
     var allSelected = selected.length === 0;
 
     function triggerText() {
-      if (allSelected || selected.length === 0) return 'Toutes';
+      if (allSelected || selected.length === 0) return _t('filter.all', 'Toutes');
       if (selected.length === 1) return selected[0];
-      return selected.length + ' s\u00e9lectionn\u00e9es';
+      return (window.ANEF && ANEF.tn) ? ANEF.tn('filter.selected_count', selected.length) : selected.length + ' s\u00e9lectionn\u00e9es';
     }
 
     var html = '<div class="pref-multiselect">' +
       '<button type="button" class="pref-ms-trigger"><span class="pref-ms-text">' + esc(triggerText()) + '</span><span class="status-select-arrow">&#x25BC;</span></button>' +
       '<div class="pref-ms-dropdown" style="display:none">' +
-        '<input type="text" class="pref-ms-search" style="width:100%" placeholder="Rechercher...">' +
+        '<input type="text" class="pref-ms-search" style="width:100%" placeholder="' + esc(_t('filter.search', 'Rechercher...')) + '">' +
         '<div class="pref-ms-options">' +
-          '<label class="pref-ms-option pref-ms-all"><input type="checkbox"' + (allSelected ? ' checked' : '') + '> <span>Toutes les pr\u00e9fectures</span></label>';
+          '<label class="pref-ms-option pref-ms-all"><input type="checkbox"' + (allSelected ? ' checked' : '') + '> <span>' + esc(_t('filter.all_prefectures', 'Toutes les pr\u00e9fectures')) + '</span></label>';
 
     for (var i = 0; i < prefectures.length; i++) {
       var checked = !allSelected && selected.indexOf(prefectures[i]) !== -1 ? ' checked' : '';
@@ -156,10 +159,10 @@
     if (!container) return;
 
     var options = [
-      { value: 'all', label: 'Tous' },
-      { value: 'en_cours', label: 'En cours' },
-      { value: 'favorable', label: 'Favorable' },
-      { value: 'defavorable', label: 'Defavorable' }
+      { value: 'all', label: _t('filter.outcome_all', 'Tous') },
+      { value: 'en_cours', label: _t('filter.outcome_ongoing', 'En cours') },
+      { value: 'favorable', label: _t('filter.outcome_favorable', 'Favorable') },
+      { value: 'defavorable', label: _t('filter.outcome_unfavorable', 'Défavorable') }
     ];
 
     var html = '<select>';
@@ -181,9 +184,9 @@
     if (!container) return;
 
     var options = [
-      { value: 'all', label: 'Tous' },
-      { value: 'with', label: 'Avec complement' },
-      { value: 'without', label: 'Sans complement' }
+      { value: 'all', label: _t('filter.complement_all', 'Tous') },
+      { value: 'with', label: _t('filter.complement_with', 'Avec complément') },
+      { value: 'without', label: _t('filter.complement_without', 'Sans complément') }
     ];
 
     var html = '<select>';
@@ -297,7 +300,7 @@
 
     var esc = ANEF.utils.escapeHtml;
     options = options || {};
-    var allLabel = options.allLabel || 'Pr\u00e9f. : toutes';
+    var allLabel = options.allLabel || _t('filter.pref_all_label', 'Pr\u00e9f. : toutes');
 
     function displayText(val) {
       return (!val || val === '') ? allLabel : val;
@@ -306,7 +309,7 @@
     var html = '<div class="pref-search-select">' +
       '<button type="button" class="pref-ms-trigger"><span class="pref-ms-text">' + esc(displayText(currentValue)) + '</span><span class="status-select-arrow">&#x25BC;</span></button>' +
       '<div class="pref-ms-dropdown" style="display:none">' +
-        '<input type="text" class="pref-ms-search" placeholder="Rechercher une pr\u00e9fecture...">' +
+        '<input type="text" class="pref-ms-search" placeholder="' + esc(_t('filter.search_pref', 'Rechercher une pr\u00e9fecture...')) + '">' +
         '<div class="pref-ms-options">' +
           '<div class="pref-ss-option' + (!currentValue || currentValue === '' ? ' selected' : '') + '" data-value="">' + esc(allLabel) + '</div>';
 

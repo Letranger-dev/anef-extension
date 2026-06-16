@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Délais de naturalisation française 2025-2026</title>
-  <meta name="description" content="Analysez les délais de naturalisation française : durée par étape, temps moyen de traitement SDANF/SCEC, calendrier des décrets. Statistiques actualisées.">
+  <title data-i18n="meta.delais.title">ANEF Stats — Délais de naturalisation française 2025-2026</title>
+  <meta name="description" data-i18n-attr="content:meta.delais.desc" content="Analysez les délais de naturalisation française : durée par étape, temps moyen de traitement SDANF/SCEC, calendrier des décrets. Statistiques actualisées.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/delais.html">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/delais.html?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/delais.html?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/delais.html?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/delais.html?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/delais.html?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/delais.html">
   <script>
     (function () {
       try {
@@ -15,6 +21,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Reads localStorage, falls back to the browser language, then 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch(e){} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -55,20 +77,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -76,22 +98,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -99,7 +121,7 @@
   <!-- Loading -->
   <div id="loading" class="text-center py-12 text-text-muted">
     <div class="inline-block w-9 h-9 border-[3px] border-border border-t-primary rounded-full animate-spin mb-4"></div>
-    <p class="text-base">Chargement des délais...</p>
+    <p class="text-base" data-i18n="delais.loading">Chargement des délais...</p>
   </div>
 
   <!-- Main Content -->
@@ -108,15 +130,15 @@
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">Préfecture</span>
+        <span class="filter-label" data-i18n="delais.filter_prefecture">Préfecture</span>
         <div id="filter-prefecture-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Statut ANEF</span>
+        <span class="filter-label" data-i18n="delais.filter_status">Statut ANEF</span>
         <div id="filter-status-container"></div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Issue</span>
+        <span class="filter-label" data-i18n="delais.filter_outcome">Issue</span>
         <div id="filter-outcome-container"></div>
       </div>
       <span class="filter-count" id="filter-count"></span>
@@ -124,34 +146,34 @@
 
     <!-- Estimator -->
     <div class="section" id="estimator-section">
-      <h2>Estimateur de délai</h2>
-      <p class="section-subtitle">Estimez le temps restant jusqu'à la naturalisation</p>
+      <h2 data-i18n="delais.estimator_title">Estimateur de délai</h2>
+      <p class="section-subtitle" data-i18n="delais.estimator_subtitle">Estimez le temps restant jusqu'à la naturalisation</p>
       <div class="estimator">
         <div class="estimator-form">
           <div class="estimator-field">
-            <label>Votre statut actuel</label>
+            <label data-i18n="delais.estimator_your_status">Votre statut actuel</label>
             <div id="estimator-status-container"></div>
           </div>
           <div class="estimator-field">
-            <label>Préfecture (optionnel)</label>
+            <label data-i18n="delais.estimator_prefecture_opt">Préfecture (optionnel)</label>
             <div id="estimator-prefecture-container"></div>
           </div>
         </div>
         <div class="estimator-result" id="estimator-result">
           <div class="estimate-card">
-            <div class="estimate-label">Optimiste</div>
+            <div class="estimate-label" data-i18n="delais.est_optimistic">Optimiste</div>
             <div class="estimate-value" style="color:var(--green)" id="est-p25">&mdash;</div>
-            <div class="estimate-sub">Si votre dossier avance vite</div>
+            <div class="estimate-sub" data-i18n="delais.est_optimistic_sub">Si votre dossier avance vite</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Cas g&eacute;n&eacute;ral</div>
+            <div class="estimate-label" data-i18n="delais.est_general">Cas g&eacute;n&eacute;ral</div>
             <div class="estimate-value" style="color:var(--primary-light)" id="est-p50">&mdash;</div>
-            <div class="estimate-sub">Dur&eacute;e la plus courante</div>
+            <div class="estimate-sub" data-i18n="delais.est_general_sub">Dur&eacute;e la plus courante</div>
           </div>
           <div class="estimate-card">
-            <div class="estimate-label">Pessimiste</div>
+            <div class="estimate-label" data-i18n="delais.est_pessimistic">Pessimiste</div>
             <div class="estimate-value" style="color:var(--orange)" id="est-p75">&mdash;</div>
-            <div class="estimate-sub">Si votre dossier prend du temps</div>
+            <div class="estimate-sub" data-i18n="delais.est_pessimistic_sub">Si votre dossier prend du temps</div>
           </div>
         </div>
         <div class="confidence-indicator" id="est-confidence" style="margin-top:0.75rem"></div>
@@ -162,26 +184,26 @@
     <div class="section">
       <details id="barchart-details" class="chart-details" open>
         <summary>
-          <h2 class="inline-heading">Temps cumul&eacute; depuis le d&eacute;p&ocirc;t</h2>
-          <span class="details-hint">Voir le graphique</span>
+          <h2 class="inline-heading" data-i18n="delais.cumulative_title">Temps cumul&eacute; depuis le d&eacute;p&ocirc;t</h2>
+          <span class="details-hint" data-i18n="delais.see_chart">Voir le graphique</span>
         </summary>
-        <p class="section-subtitle" style="margin-top:0.5rem">Temps &eacute;coul&eacute; entre le d&eacute;p&ocirc;t et la <strong>premi&egrave;re arriv&eacute;e</strong> &agrave; chaque &eacute;tape (un point par dossier, &eacute;tapes &lt; 3 dossiers masqu&eacute;es)</p>
+        <p class="section-subtitle" style="margin-top:0.5rem" data-i18n-html="delais.cumulative_subtitle">Temps &eacute;coul&eacute; entre le d&eacute;p&ocirc;t et la <strong>premi&egrave;re arriv&eacute;e</strong> &agrave; chaque &eacute;tape (un point par dossier, &eacute;tapes &lt; 3 dossiers masqu&eacute;es)</p>
         <div class="chart-container chart-container--tall" style="min-height:520px">
           <canvas id="duration-bar-chart"></canvas>
-          <p class="no-data" id="duration-bar-no-data" style="display:none">Pas de donn&eacute;es</p>
+          <p class="no-data" id="duration-bar-no-data" style="display:none" data-i18n="delais.no_data">Pas de donn&eacute;es</p>
         </div>
-        <p class="section-subtitle" style="font-size:0.75rem;margin-top:0.75rem;color:var(--text-dim)">Les baisses r&eacute;siduelles entre &eacute;tapes refl&egrave;tent un biais de cohorte : les dossiers ayant atteint les derni&egrave;res &eacute;tapes proviennent de lots plus anciens ou plus rapides.</p>
+        <p class="section-subtitle" style="font-size:0.75rem;margin-top:0.75rem;color:var(--text-dim)" data-i18n="delais.cohort_bias">Les baisses r&eacute;siduelles entre &eacute;tapes refl&egrave;tent un biais de cohorte : les dossiers ayant atteint les derni&egrave;res &eacute;tapes proviennent de lots plus anciens ou plus rapides.</p>
       </details>
     </div>
 
     <!-- Percentile table -->
     <div class="section">
-      <h2>Temps d'attente par &eacute;tape</h2>
-      <p class="section-subtitle">Dur&eacute;e effective pass&eacute;e &agrave; chaque &eacute;tape avant de transitionner (dossiers en cours, transitions observ&eacute;es uniquement)</p>
+      <h2 data-i18n="delais.wait_title">Temps d'attente par &eacute;tape</h2>
+      <p class="section-subtitle" data-i18n="delais.wait_subtitle">Dur&eacute;e effective pass&eacute;e &agrave; chaque &eacute;tape avant de transitionner (dossiers en cours, transitions observ&eacute;es uniquement)</p>
       <div class="table-container">
         <table class="percentile-table">
           <thead>
-            <tr><th>&Eacute;tape</th><th>Rapide</th><th>Habituel</th><th>Long</th><th>Dossiers</th></tr>
+            <tr><th data-i18n="delais.col_step">&Eacute;tape</th><th data-i18n="delais.col_fast">Rapide</th><th data-i18n="delais.col_usual">Habituel</th><th data-i18n="delais.col_long">Long</th><th data-i18n="delais.col_dossiers">Dossiers</th></tr>
           </thead>
           <tbody id="percentile-tbody"></tbody>
         </table>
@@ -193,10 +215,18 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/i18n/pages/delais.js"></script>
   <script src="shared/constants.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/stats-math.js"></script>

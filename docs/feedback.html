@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Contact et retours</title>
-  <meta name="description" content="Signalez un problème ou envoyez vos retours sur ANEF Status Tracker, l'extension Chrome de suivi de naturalisation française.">
+  <title data-i18n="meta.feedback.title">ANEF Stats — Contact et retours</title>
+  <meta name="description" data-i18n-attr="content:meta.feedback.desc" content="Signalez un problème ou envoyez vos retours sur ANEF Status Tracker, l'extension Chrome de suivi de naturalisation française.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/feedback.html">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/feedback.html?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/feedback.html?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/feedback.html?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/feedback.html?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/feedback.html?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/feedback.html">
   <script>
     (function () {
       try {
@@ -15,6 +21,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Reads localStorage, falls back to the browser language, then 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch (e) {} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -53,20 +75,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -74,22 +96,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -99,39 +121,40 @@
     <div class="text-center max-w-lg mx-auto">
 
       <div class="text-5xl mb-4">&#x1F4AC;</div>
-      <h2 class="text-2xl md:text-3xl font-bold mb-4">Signaler un bug ou proposer une idée</h2>
-      <p class="text-text-muted text-base leading-relaxed mb-8">
+      <h2 class="text-2xl md:text-3xl font-bold mb-4" data-i18n="feedback.hero_title">Signaler un bug ou proposer une idée</h2>
+      <p class="text-text-muted text-base leading-relaxed mb-8" data-i18n="feedback.hero_desc">
         Vous avez trouvé un bug ? Vous avez une suggestion d'amélioration ou une fonctionnalité à proposer ?
         Rejoignez notre groupe Facebook pour en discuter avec la communauté !
       </p>
 
       <a href="https://www.facebook.com/groups/1206709331640208" target="_blank" rel="noopener"
-         class="inline-block bg-[#1877F2] hover:bg-[#166FE5] text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-lg">
+         class="inline-block bg-[#1877F2] hover:bg-[#166FE5] text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-lg"
+         data-i18n="feedback.cta_facebook">
         Rejoindre le groupe Facebook
       </a>
 
       <div class="mt-12 text-left">
-        <p class="text-text-dim text-sm font-semibold uppercase tracking-wider mb-4 text-center">Le groupe est l'endroit idéal pour :</p>
+        <p class="text-text-dim text-sm font-semibold uppercase tracking-wider mb-4 text-center" data-i18n="feedback.cards_intro">Le groupe est l'endroit idéal pour :</p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="bg-bg-card rounded-card border border-border p-4 text-center">
             <span class="text-2xl block mb-2">&#x1F41B;</span>
-            <p class="text-text-main font-semibold text-sm">Signaler un bug</p>
-            <p class="text-text-dim text-xs mt-1">Un affichage incorrect, une erreur, un plantage</p>
+            <p class="text-text-main font-semibold text-sm" data-i18n="feedback.card_bug_title">Signaler un bug</p>
+            <p class="text-text-dim text-xs mt-1" data-i18n="feedback.card_bug_desc">Un affichage incorrect, une erreur, un plantage</p>
           </div>
           <div class="bg-bg-card rounded-card border border-border p-4 text-center">
             <span class="text-2xl block mb-2">&#x1F4A1;</span>
-            <p class="text-text-main font-semibold text-sm">Proposer une idée</p>
-            <p class="text-text-dim text-xs mt-1">De nouvelles fonctionnalités ou améliorations</p>
+            <p class="text-text-main font-semibold text-sm" data-i18n="feedback.card_idea_title">Proposer une idée</p>
+            <p class="text-text-dim text-xs mt-1" data-i18n="feedback.card_idea_desc">De nouvelles fonctionnalités ou améliorations</p>
           </div>
           <div class="bg-bg-card rounded-card border border-border p-4 text-center">
             <span class="text-2xl block mb-2">&#x1F527;</span>
-            <p class="text-text-main font-semibold text-sm">Demander une correction</p>
-            <p class="text-text-dim text-xs mt-1">Des données incorrectes, des textes à modifier</p>
+            <p class="text-text-main font-semibold text-sm" data-i18n="feedback.card_fix_title">Demander une correction</p>
+            <p class="text-text-dim text-xs mt-1" data-i18n="feedback.card_fix_desc">Des données incorrectes, des textes à modifier</p>
           </div>
           <div class="bg-bg-card rounded-card border border-border p-4 text-center">
             <span class="text-2xl block mb-2">&#x1F4AC;</span>
-            <p class="text-text-main font-semibold text-sm">Échanger</p>
-            <p class="text-text-dim text-xs mt-1">Discuter avec la communauté</p>
+            <p class="text-text-main font-semibold text-sm" data-i18n="feedback.card_chat_title">Échanger</p>
+            <p class="text-text-dim text-xs mt-1" data-i18n="feedback.card_chat_desc">Discuter avec la communauté</p>
           </div>
         </div>
       </div>
@@ -141,11 +164,20 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/i18n/pages/feedback.js"></script>
   <script src="shared/constants.js"></script>
+  <script src="shared/utils.js"></script>
   <script src="shared/nav.js"></script>
 </body>
 </html>

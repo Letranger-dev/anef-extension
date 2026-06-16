@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <title>ANEF Stats — Guide des étapes de naturalisation française</title>
-  <meta name="description" content="Guide complet des 12 étapes de naturalisation française : du dépôt du dossier ANEF jusqu'à la publication du décret au Journal Officiel. Statuts expliqués.">
+  <title data-i18n="meta.guide.title">ANEF Stats — Guide des étapes de naturalisation française</title>
+  <meta name="description" data-i18n-attr="content:meta.guide.desc" content="Guide complet des 12 étapes de naturalisation française : du dépôt du dossier ANEF jusqu'à la publication du décret au Journal Officiel. Statuts expliqués.">
   <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/guide.html">
+  <link rel="alternate" hreflang="fr" href="https://letranger-dev.github.io/anef-extension/guide.html?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://letranger-dev.github.io/anef-extension/guide.html?lang=en">
+  <link rel="alternate" hreflang="es" href="https://letranger-dev.github.io/anef-extension/guide.html?lang=es">
+  <link rel="alternate" hreflang="ar" href="https://letranger-dev.github.io/anef-extension/guide.html?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://letranger-dev.github.io/anef-extension/guide.html?lang=zh">
+  <link rel="alternate" hreflang="x-default" href="https://letranger-dev.github.io/anef-extension/guide.html">
   <script>
     (function () {
       try {
@@ -15,6 +21,22 @@
         var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
         var theme = saved || (prefersLight ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Priority: ?lang= (persisted) > localStorage > browser language > 'fr'. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch (e) {} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       } catch (e) {}
     })();
   </script>
@@ -53,20 +75,20 @@
     <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
       <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
       <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
-      <span class="text-text-muted text-xs md:text-sm">Statistiques communautaires</span>
-      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium">Données anonymes</span>
+      <span class="text-text-muted text-xs md:text-sm" data-i18n="header.subtitle">Statistiques communautaires</span>
+      <span class="bg-primary/15 text-primary-light text-[0.65rem] px-2 py-0.5 rounded-full font-medium" data-i18n="header.badge">Données anonymes</span>
     </div>
   </header>
 
   <!-- Desktop Nav -->
   <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
     <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
-      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Accueil</a>
-      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Dossiers</a>
-      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Préfectures</a>
-      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Délais</a>
-      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Guide</a>
-      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors">Contact</a>
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
     </div>
   </nav>
 
@@ -74,22 +96,22 @@
   <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="mobile-nav-bar flex justify-around items-stretch">
       <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span>Accueil
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
       </a>
       <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span>Dossiers
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
       </a>
       <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span>Préf.
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
       </a>
       <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x23F1;</span>Délais
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
       </a>
       <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span>Guide
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
       </a>
       <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
-        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span>Contact
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
       </a>
     </div>
   </nav>
@@ -99,12 +121,12 @@
 
     <!-- Section 1: What is it -->
     <div class="section">
-      <h2>Qu'est-ce que ANEF Status Tracker ?</h2>
+      <h2 data-i18n="guide.s1.title">Qu'est-ce que ANEF Status Tracker ?</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
-        <p class="text-text-muted leading-relaxed mb-4">
+        <p class="text-text-muted leading-relaxed mb-4" data-i18n-html="guide.s1.p1">
           ANEF Status Tracker est une <strong class="text-text-main">extension Chrome gratuite</strong> qui surveille l'avancement de votre dossier de naturalisation sur le portail ANEF.
         </p>
-        <p class="text-text-muted leading-relaxed">
+        <p class="text-text-muted leading-relaxed" data-i18n-html="guide.s1.p2">
           En plus de vous informer en temps réel sur votre statut, elle contribue anonymement aux <strong class="text-text-main">statistiques communautaires</strong> que vous consultez sur ce site. Plus on est nombreux, plus les chiffres sont fiables !
         </p>
       </div>
@@ -112,50 +134,50 @@
 
     <!-- Section 2: Installation -->
     <div class="section">
-      <h2>Comment installer l'extension ?</h2>
+      <h2 data-i18n="guide.s2.title">Comment installer l'extension ?</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
         <!-- Chrome Web Store (recommandé) -->
         <div class="p-5 bg-primary/10 border border-primary/30 rounded-lg mb-6">
-          <p class="text-text-main font-semibold mb-2">Chrome Web Store (recommandé)</p>
-          <p class="text-sm text-text-muted mb-4">Installation en un clic, mises à jour automatiques.</p>
+          <p class="text-text-main font-semibold mb-2" data-i18n="guide.s2.cws.title">Chrome Web Store (recommandé)</p>
+          <p class="text-sm text-text-muted mb-4" data-i18n="guide.s2.cws.desc">Installation en un clic, mises à jour automatiques.</p>
           <div class="text-center">
-            <a href="https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek" target="_blank" rel="noopener" class="inline-block bg-primary hover:bg-primary-light text-white px-6 py-2.5 rounded-lg font-semibold transition-colors">
+            <a href="https://chromewebstore.google.com/detail/anef-status-tracker/icnpklneeaiffilemaflccdejefpehek" target="_blank" rel="noopener" class="inline-block bg-primary hover:bg-primary-light text-white px-6 py-2.5 rounded-lg font-semibold transition-colors" data-i18n="guide.s2.cws.btn">
               Installer depuis le Chrome Web Store
             </a>
           </div>
         </div>
         <!-- Installation manuelle -->
         <details class="group">
-          <summary class="cursor-pointer text-text-muted text-sm font-semibold hover:text-text-main transition-colors select-none">
+          <summary class="cursor-pointer text-text-muted text-sm font-semibold hover:text-text-main transition-colors select-none" data-i18n="guide.s2.manual.summary">
             Installation manuelle (avancé) ▸
           </summary>
           <ol class="space-y-4 text-text-muted mt-4">
             <li class="flex gap-3">
               <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">1</span>
               <div>
-                <p class="text-text-main font-semibold">Téléchargez l'extension</p>
-                <p class="text-sm mt-1">Rendez-vous sur la <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="text-primary-light hover:underline">page GitHub du projet</a> et téléchargez la dernière version (fichier ZIP).</p>
+                <p class="text-text-main font-semibold" data-i18n="guide.s2.manual.s1.title">Téléchargez l'extension</p>
+                <p class="text-sm mt-1" data-i18n-html="guide.s2.manual.s1.desc">Rendez-vous sur la <a href="https://github.com/Letranger-dev/anef-extension/releases" target="_blank" rel="noopener" class="text-primary-light hover:underline">page GitHub du projet</a> et téléchargez la dernière version (fichier ZIP).</p>
               </div>
             </li>
             <li class="flex gap-3">
               <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">2</span>
               <div>
-                <p class="text-text-main font-semibold">Ouvrez les extensions Chrome</p>
-                <p class="text-sm mt-1">Dans Chrome, tapez <code class="bg-bg px-2 py-0.5 rounded text-primary-light text-xs">chrome://extensions</code> dans la barre d'adresse.</p>
+                <p class="text-text-main font-semibold" data-i18n="guide.s2.manual.s2.title">Ouvrez les extensions Chrome</p>
+                <p class="text-sm mt-1" data-i18n-html="guide.s2.manual.s2.desc">Dans Chrome, tapez <code class="bg-bg px-2 py-0.5 rounded text-primary-light text-xs">chrome://extensions</code> dans la barre d'adresse.</p>
               </div>
             </li>
             <li class="flex gap-3">
               <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">3</span>
               <div>
-                <p class="text-text-main font-semibold">Activez le mode développeur</p>
-                <p class="text-sm mt-1">En haut à droite de la page, activez le bouton « Mode développeur ».</p>
+                <p class="text-text-main font-semibold" data-i18n="guide.s2.manual.s3.title">Activez le mode développeur</p>
+                <p class="text-sm mt-1" data-i18n="guide.s2.manual.s3.desc">En haut à droite de la page, activez le bouton « Mode développeur ».</p>
               </div>
             </li>
             <li class="flex gap-3">
               <span class="flex-shrink-0 w-7 h-7 rounded-full bg-bg-hover text-text-muted text-sm flex items-center justify-center font-bold">4</span>
               <div>
-                <p class="text-text-main font-semibold">Chargez l'extension</p>
-                <p class="text-sm mt-1">Cliquez sur « Charger l'extension non empaquetée » et sélectionnez le dossier décompressé.</p>
+                <p class="text-text-main font-semibold" data-i18n="guide.s2.manual.s4.title">Chargez l'extension</p>
+                <p class="text-sm mt-1" data-i18n="guide.s2.manual.s4.desc">Cliquez sur « Charger l'extension non empaquetée » et sélectionnez le dossier décompressé.</p>
               </div>
             </li>
           </ol>
@@ -165,28 +187,28 @@
 
     <!-- Section 3: How to use -->
     <div class="section">
-      <h2>Comment utiliser l'extension ?</h2>
+      <h2 data-i18n="guide.s3.title">Comment utiliser l'extension ?</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
         <ol class="space-y-4 text-text-muted">
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">1</span>
             <div>
-              <p class="text-text-main font-semibold">Ouvrez le popup de l'extension</p>
-              <p class="text-sm mt-1">Cliquez sur l'icône ANEF Status Tracker dans la barre d'outils Chrome.</p>
+              <p class="text-text-main font-semibold" data-i18n="guide.s3.s1.title">Ouvrez le popup de l'extension</p>
+              <p class="text-sm mt-1" data-i18n="guide.s3.s1.desc">Cliquez sur l'icône ANEF Status Tracker dans la barre d'outils Chrome.</p>
             </div>
           </li>
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">2</span>
             <div>
-              <p class="text-text-main font-semibold">Cliquez sur « Actualiser »</p>
-              <p class="text-sm mt-1">L'extension ouvre le portail ANEF en arrière-plan, récupère votre statut et vous l'affiche en français clair. L'opération peut prendre jusqu'à 45 secondes.</p>
+              <p class="text-text-main font-semibold" data-i18n="guide.s3.s2.title">Cliquez sur « Actualiser »</p>
+              <p class="text-sm mt-1" data-i18n="guide.s3.s2.desc">L'extension ouvre le portail ANEF en arrière-plan, récupère votre statut et vous l'affiche en français clair. L'opération peut prendre jusqu'à 45 secondes.</p>
             </div>
           </li>
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white text-sm flex items-center justify-center font-bold">3</span>
             <div>
-              <p class="text-text-main font-semibold">Les statistiques sont envoyées automatiquement</p>
-              <p class="text-sm mt-1">À chaque actualisation, un résumé anonyme de votre étape est envoyé aux statistiques communautaires. C'est automatique, rien de plus à faire !</p>
+              <p class="text-text-main font-semibold" data-i18n="guide.s3.s3.title">Les statistiques sont envoyées automatiquement</p>
+              <p class="text-sm mt-1" data-i18n="guide.s3.s3.desc">À chaque actualisation, un résumé anonyme de votre étape est envoyé aux statistiques communautaires. C'est automatique, rien de plus à faire !</p>
             </div>
           </li>
         </ol>
@@ -195,33 +217,33 @@
 
     <!-- Section 3b: Save credentials -->
     <div class="section">
-      <h2>Enregistrer ses identifiants (optionnel)</h2>
+      <h2 data-i18n="guide.s3b.title">Enregistrer ses identifiants (optionnel)</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
-        <p class="text-text-muted leading-relaxed mb-4">
+        <p class="text-text-muted leading-relaxed mb-4" data-i18n-html="guide.s3b.intro">
           Pour ne pas avoir à vous reconnecter à chaque fois, vous pouvez enregistrer vos identifiants ANEF dans les paramètres de l'extension. L'actualisation se fera alors <strong class="text-text-main">entièrement en arrière-plan</strong>, sans intervention de votre part.
         </p>
         <ol class="space-y-3 text-text-muted mb-5">
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">1</span>
             <div>
-              <p class="text-sm">Ouvrez le popup et allez dans les <strong class="text-text-main">Paramètres</strong></p>
+              <p class="text-sm" data-i18n-html="guide.s3b.s1">Ouvrez le popup et allez dans les <strong class="text-text-main">Paramètres</strong></p>
             </div>
           </li>
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">2</span>
             <div>
-              <p class="text-sm">Entrez votre identifiant et mot de passe ANEF</p>
+              <p class="text-sm" data-i18n="guide.s3b.s2">Entrez votre identifiant et mot de passe ANEF</p>
             </div>
           </li>
           <li class="flex gap-3">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-violet text-white text-sm flex items-center justify-center font-bold">3</span>
             <div>
-              <p class="text-sm">Cliquez sur « Actualiser » : la connexion et la récupération se font automatiquement !</p>
+              <p class="text-sm" data-i18n="guide.s3b.s3">Cliquez sur « Actualiser » : la connexion et la récupération se font automatiquement !</p>
             </div>
           </li>
         </ol>
         <div class="p-4 bg-success/10 border border-success/30 rounded-lg">
-          <p class="text-sm text-text-muted">
+          <p class="text-sm text-text-muted" data-i18n-html="guide.s3b.security">
             <strong class="text-success">Sécurité :</strong> Vos identifiants sont chiffrés localement avec AES-256-GCM (chiffrement de niveau bancaire). Ils restent uniquement dans votre navigateur et ne sont jamais envoyés à un serveur externe.
           </p>
         </div>
@@ -230,20 +252,20 @@
 
     <!-- Section 3c: Tips -->
     <div class="section">
-      <h2>Conseils pour de meilleures statistiques</h2>
+      <h2 data-i18n="guide.s3c.title">Conseils pour de meilleures statistiques</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
         <div class="space-y-3">
           <div class="flex gap-3 items-start">
             <span class="text-lg flex-shrink-0">&#x1F504;</span>
-            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Actualisez régulièrement</strong> — Plus vous cliquez sur « Actualiser », plus l'historique de votre dossier s'enrichit et plus les statistiques sont précises pour tout le monde.</p>
+            <p class="text-text-muted text-sm leading-relaxed" data-i18n-html="guide.s3c.tip1"><strong class="text-text-main">Actualisez régulièrement</strong> — Plus vous cliquez sur « Actualiser », plus l'historique de votre dossier s'enrichit et plus les statistiques sont précises pour tout le monde.</p>
           </div>
           <div class="flex gap-3 items-start">
             <span class="text-lg flex-shrink-0">&#x1F4CA;</span>
-            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Chaque statut compte</strong> — À chaque changement de statut détecté, une nouvelle entrée est créée dans les statistiques. C'est comme ça qu'on suit la progression des dossiers.</p>
+            <p class="text-text-muted text-sm leading-relaxed" data-i18n-html="guide.s3c.tip2"><strong class="text-text-main">Chaque statut compte</strong> — À chaque changement de statut détecté, une nouvelle entrée est créée dans les statistiques. C'est comme ça qu'on suit la progression des dossiers.</p>
           </div>
           <div class="flex gap-3 items-start">
             <span class="text-lg flex-shrink-0">&#x1F91D;</span>
-            <p class="text-text-muted text-sm leading-relaxed"><strong class="text-text-main">Plus on est nombreux, mieux c'est</strong> — N'hésitez pas à partager l'extension avec d'autres personnes en cours de naturalisation !</p>
+            <p class="text-text-muted text-sm leading-relaxed" data-i18n-html="guide.s3c.tip3"><strong class="text-text-main">Plus on est nombreux, mieux c'est</strong> — N'hésitez pas à partager l'extension avec d'autres personnes en cours de naturalisation !</p>
           </div>
         </div>
       </div>
@@ -251,27 +273,27 @@
 
     <!-- Section 4: Privacy -->
     <div class="section">
-      <h2>Protection de vos données</h2>
+      <h2 data-i18n="guide.s4.title">Protection de vos données</h2>
       <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
         <div class="grid gap-4 md:grid-cols-2">
           <div class="p-4 bg-bg rounded-lg border border-border">
-            <p class="font-semibold text-text-main mb-1">Numéro de dossier chiffré</p>
-            <p class="text-sm text-text-muted">Votre numéro est transformé par un algorithme cryptographique (SHA-256). Personne ne peut le retrouver.</p>
+            <p class="font-semibold text-text-main mb-1" data-i18n="guide.s4.c1.title">Numéro de dossier chiffré</p>
+            <p class="text-sm text-text-muted" data-i18n="guide.s4.c1.desc">Votre numéro est transformé par un algorithme cryptographique (SHA-256). Personne ne peut le retrouver.</p>
           </div>
           <div class="p-4 bg-bg rounded-lg border border-border">
-            <p class="font-semibold text-text-main mb-1">Aucune donnée personnelle</p>
-            <p class="text-sm text-text-muted">Ni votre nom, ni votre email, ni votre adresse ne sont stockés. Jamais.</p>
+            <p class="font-semibold text-text-main mb-1" data-i18n="guide.s4.c2.title">Aucune donnée personnelle</p>
+            <p class="text-sm text-text-muted" data-i18n="guide.s4.c2.desc">Ni votre nom, ni votre email, ni votre adresse ne sont stockés. Jamais.</p>
           </div>
           <div class="p-4 bg-bg rounded-lg border border-border">
-            <p class="font-semibold text-text-main mb-1">Dates tronquées</p>
-            <p class="text-sm text-text-muted">Seul le jour est conservé, jamais l'heure exacte, pour qu'aucun recoupement ne soit possible.</p>
+            <p class="font-semibold text-text-main mb-1" data-i18n="guide.s4.c3.title">Dates tronquées</p>
+            <p class="text-sm text-text-muted" data-i18n="guide.s4.c3.desc">Seul le jour est conservé, jamais l'heure exacte, pour qu'aucun recoupement ne soit possible.</p>
           </div>
           <div class="p-4 bg-bg rounded-lg border border-border">
-            <p class="font-semibold text-text-main mb-1">Désactivable à tout moment</p>
-            <p class="text-sm text-text-muted">Un simple clic dans les paramètres de l'extension et le partage s'arrête. Aucune pression.</p>
+            <p class="font-semibold text-text-main mb-1" data-i18n="guide.s4.c4.title">Désactivable à tout moment</p>
+            <p class="text-sm text-text-muted" data-i18n="guide.s4.c4.desc">Un simple clic dans les paramètres de l'extension et le partage s'arrête. Aucune pression.</p>
           </div>
         </div>
-        <p class="text-center text-sm text-text-dim mt-5">
+        <p class="text-center text-sm text-text-dim mt-5" data-i18n-html="guide.s4.opensource">
           Code 100% open source — <a href="https://github.com/Letranger-dev/anef-extension" target="_blank" rel="noopener" class="text-primary-light hover:underline">vérifiez par vous-même sur GitHub</a>
         </p>
       </div>
@@ -281,11 +303,20 @@
 
   <!-- Footer -->
   <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
-    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; Extension Chrome pour suivre votre naturalisation</p>
-    <p>Données collectées anonymement par les utilisateurs de l'extension</p>
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+    <p data-i18n="footer.collected">Données collectées anonymement par les utilisateurs de l'extension</p>
   </footer>
 
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Avant tout le reste. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/i18n/pages/guide.js"></script>
   <script src="shared/constants.js"></script>
+  <script src="shared/utils.js"></script>
   <script src="shared/nav.js"></script>
 </body>
 </html>
