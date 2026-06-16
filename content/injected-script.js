@@ -419,6 +419,25 @@ QJNdXtE3G7SjkDOn36yZSaXp
     '.fr-tabs__list button, .fr-tabs__list li, li[role="presentation"] a, ' +
     '.p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li';
 
+  // Le portail ANEF est multilingue : le libellé de l'onglet dépend de la langue
+  // choisie par l'usager (FR « Nationalité Française », EN « French Nationality
+  // application », …). On matche donc le mot « nationalit{é|y} » insensible à la
+  // casse et aux accents, ce qui couvre le français comme l'anglais sans lister
+  // chaque locale. Sans ça, un usager en anglais ne trouve jamais l'onglet, le
+  // fetch expire et l'extension conclut à tort « Site en maintenance ».
+  //
+  // On exige la racine « nationalit » précédée d'une frontière de mot, et non le
+  // simple radical « national » : ce dernier matcherait « International… » (et
+  // comme ce matcher est l'unique garde avant le fetch, un faux positif
+  // contournerait la voie d'échec `no_nationality_tab` et ferait passer un
+  // dossier non concerné pour une naturalisation). « International » ne contient
+  // pas « nationalit », il est donc bien exclu.
+  const _normalize = (s) => (s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // enlève les accents
+    .toLowerCase();
+  const _NATIONALITY_RE = /\bnationalit[ey]/; // FR « nationalité »→nationalite, EN « nationality »
+  const _matchesNationality = (s) => _NATIONALITY_RE.test(_normalize(s));
+
   function findNationalityTab() {
     const tabs = document.querySelectorAll(TAB_SELECTOR);
     if (tabs.length > 0 && !_tabsLoggedOnce) {
@@ -426,10 +445,8 @@ QJNdXtE3G7SjkDOn36yZSaXp
       log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
     }
     return Array.from(tabs).find(
-      el => el.textContent?.includes("Nationalité Française") ||
-            el.textContent?.includes("Nationalité") ||
-            el.textContent?.includes("nationalité") ||
-            el.getAttribute('aria-label')?.includes("Nationalité")
+      el => _matchesNationality(el.textContent) ||
+            _matchesNationality(el.getAttribute('aria-label'))
     ) || null;
   }
 
