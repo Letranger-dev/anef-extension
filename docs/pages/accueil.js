@@ -670,7 +670,7 @@
       // Last checked by extension
       var checkedHtml = '';
       if (s.lastChecked) {
-        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">V\u00e9rifi\u00e9 le ' + U.formatDateTimeFr(s.lastChecked) + (!isFresh ? ' (ancien)' : '') + '</span>';
+        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('common.checked_on', {date: U.formatDateTimeFr(s.lastChecked)}) + (!isFresh ? ' ' + ANEF.t('common.stale_marker') : '') + '</span>';
       }
 
       // Status change indicator
@@ -754,7 +754,7 @@
 
   // ─── Phase entretien & decision prefecture ──────────────
 
-  var entretienState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false };
+  var entretienState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', filter: '', pref: '', statut: '', changed: false, dateMin: '', dateMax: '' };
 
   /** Entretien is considered "passed" if rang >= 702 (compte-rendu or later), excluding sans-entretien */
   function isEntretienPassed(s) {
@@ -830,37 +830,51 @@
     if (entretienState.changed) {
       data = data.filter(function(s) { return !!s.previousStatut; });
     }
+    if (entretienState.dateMin || entretienState.dateMax) {
+      data = data.filter(function(s) {
+        var d = (s.dateEntretien || '').slice(0, 10);
+        if (!d) return false;
+        if (entretienState.dateMin && d < entretienState.dateMin) return false;
+        if (entretienState.dateMax && d > entretienState.dateMax) return false;
+        return true;
+      });
+    }
+    // Trier : dossiers frais d'abord, obsolètes (>20j) en dernier (comme SDANF)
+    var fresh = data.filter(isFreshDossier);
+    var stale = data.filter(function(s) { return !isFreshDossier(s); });
+    var sortFn;
     switch (entretienState.sort) {
       case 'days-desc':
-        data = data.slice().sort(function(a, b) { return (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); });
+        sortFn = function(a, b) { return (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); };
         break;
       case 'days-asc':
-        data = data.slice().sort(function(a, b) { return (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); });
+        sortFn = function(a, b) { return (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); };
         break;
       case 'step-desc':
-        data = data.slice().sort(function(a, b) { return b.rang - a.rang || (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); });
+        sortFn = function(a, b) { return b.rang - a.rang || (b.daysSinceDeposit || 0) - (a.daysSinceDeposit || 0); };
         break;
       case 'step-asc':
-        data = data.slice().sort(function(a, b) { return a.rang - b.rang || (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); });
+        sortFn = function(a, b) { return a.rang - b.rang || (a.daysSinceDeposit || 0) - (b.daysSinceDeposit || 0); };
         break;
       case 'entretien-desc':
-        data = data.slice().sort(function(a, b) {
+        sortFn = function(a, b) {
           if (!a.dateEntretien && !b.dateEntretien) return 0;
           if (!a.dateEntretien) return 1;
           if (!b.dateEntretien) return -1;
           return b.dateEntretien.localeCompare(a.dateEntretien);
-        });
+        };
         break;
       case 'entretien-asc':
-        data = data.slice().sort(function(a, b) {
+        sortFn = function(a, b) {
           if (!a.dateEntretien && !b.dateEntretien) return 0;
           if (!a.dateEntretien) return 1;
           if (!b.dateEntretien) return -1;
           return a.dateEntretien.localeCompare(b.dateEntretien);
-        });
+        };
         break;
     }
-    return data;
+    if (sortFn) { fresh.sort(sortFn); stale.sort(sortFn); }
+    return fresh.concat(stale);
   }
 
   function renderEntretienPage() {
@@ -923,10 +937,13 @@
       }
       var daysLabel = s.daysSinceDeposit != null ? U.formatDuration(s.daysSinceDeposit) : '\u2014';
 
+      var isFresh = isFreshDossier(s);
+      var staleStyle = isFresh ? '' : 'opacity:0.5;';
+
       // Last checked by extension
       var checkedHtml = '';
       if (s.lastChecked) {
-        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('common.checked_on', {date: U.formatDateTimeFr(s.lastChecked)}) + '</span>';
+        checkedHtml = '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('common.checked_on', {date: U.formatDateTimeFr(s.lastChecked)}) + (!isFresh ? ' ' + ANEF.t('common.stale_marker') : '') + '</span>';
       }
 
       // Status change indicator
@@ -953,7 +970,7 @@
           '\u26A0 ' + ANEF.t('accueil.sans_entretien_warning') + '</span></div>';
       }
 
-      html += '<div class="dossier-row dossier-clickable" style="--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
+      html += '<div class="dossier-row dossier-clickable" style="' + staleStyle + '--card-accent:' + color + ';cursor:pointer" data-hash="' + U.escapeHtml(s.hash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="' + badgeClass + '">' + badgeText + '</span>' +
@@ -1006,6 +1023,55 @@
       var totalPages = Math.ceil(getEntretienFiltered().length / entretienState.pageSize);
       if (entretienState.page < totalPages) { entretienState.page++; renderEntretienPage(); }
     });
+
+    // Filtre par intervalle de date d'entretien (bornes optionnelles) :
+    // champ texte jj/mm/aaaa + datepicker natif caché, un par borne
+    function isoToFr(iso) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+    }
+    function bindEntretienDateBound(stateKey, textId, pickerId, clearId, fieldId) {
+      var text = document.getElementById(textId);
+      var picker = document.getElementById(pickerId);
+      var clear = document.getElementById(clearId);
+      function apply(iso) {
+        entretienState[stateKey] = iso || '';
+        text.value = isoToFr(iso);
+        clear.style.display = iso ? '' : 'none';
+        document.getElementById(fieldId).classList.toggle('active', !!iso);
+        entretienState.page = 1;
+        renderEntretienPage();
+      }
+      text.addEventListener('click', function() {
+        picker.value = entretienState[stateKey] || '';
+        try { picker.showPicker(); } catch (e) { /* fallback navigateurs anciens : saisie manuelle */ }
+      });
+      picker.addEventListener('change', function() {
+        apply(picker.value);
+      });
+      text.addEventListener('blur', function() {
+        var val = text.value.trim();
+        if (!val) { apply(''); return; }
+        var m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(val);
+        if (m) {
+          var day = parseInt(m[1], 10), month = parseInt(m[2], 10);
+          var iso = m[3] + '-' + ('0' + month).slice(-2) + '-' + ('0' + day).slice(-2);
+          var check = new Date(iso + 'T00:00:00');
+          if (!isNaN(check.getTime()) && check.getDate() === day && check.getMonth() + 1 === month) {
+            apply(iso);
+            return;
+          }
+        }
+        // Saisie invalide → on restaure la dernière valeur valide
+        text.value = isoToFr(entretienState[stateKey]);
+      });
+      text.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
+      });
+      clear.addEventListener('click', function() { apply(''); });
+    }
+    bindEntretienDateBound('dateMin', 'entretien-date-min', 'entretien-date-min-picker', 'entretien-date-min-clear', 'entretien-date-min-field');
+    bindEntretienDateBound('dateMax', 'entretien-date-max', 'entretien-date-max-picker', 'entretien-date-max-clear', 'entretien-date-max-field');
   }
 
   // ─── Mouvements du jour ────────────────────────────────

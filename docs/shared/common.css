@@ -2205,6 +2205,72 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   cursor: pointer;
 }
 
+/* Filtre date compact : champ texte jj/mm/aaaa + datepicker natif caché */
+.date-filter-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.date-filter-input-from { width: 175px; }
+.date-filter-input-to { width: 125px; }
+.date-filter-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.date-filter-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.35rem 1.3rem 0.35rem 0.4rem;
+  font-size: 0.75rem;
+  width: 155px;
+  min-width: 0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.date-filter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.date-filter-field.active .date-filter-input {
+  border-color: var(--primary);
+}
+.date-filter-picker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.date-filter-clear {
+  position: absolute;
+  right: 0.3rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+.date-filter-clear:hover {
+  color: var(--text);
+}
+/* RTL : le × et le padding passent du côté gauche */
+[dir="rtl"] .date-filter-input {
+  padding: 0.35rem 0.4rem 0.35rem 1.3rem;
+}
+[dir="rtl"] .date-filter-clear {
+  right: auto;
+  left: 0.3rem;
+}
+
 /* Mobile: stack filter groups */
 @media (max-width: 767px) {
   .table-filters {
@@ -2269,6 +2335,19 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   }
   .toolbar-controls .toggle-filter {
     justify-content: center;
+  }
+  /* Filtre date entretien : pleine largeur de la grille, champs fluides */
+  .toolbar-controls .date-filter-range {
+    grid-column: 1 / -1;
+  }
+  .date-filter-range .date-filter-field {
+    flex: 1;
+    min-width: 0;
+  }
+  .date-filter-input,
+  .date-filter-input-from,
+  .date-filter-input-to {
+    width: 100%;
   }
   .sdanf-statut-pills {
     gap: 4px;

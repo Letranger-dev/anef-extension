@@ -154,6 +154,22 @@
       case 'status-recent':
         data.sort(function(a, b) { return (a.daysAtCurrentStatus || 9999) - (b.daysAtCurrentStatus || 9999); });
         break;
+      case 'entretien-desc':
+        data.sort(function(a, b) {
+          if (!a.dateEntretien && !b.dateEntretien) return 0;
+          if (!a.dateEntretien) return 1;
+          if (!b.dateEntretien) return -1;
+          return b.dateEntretien.localeCompare(a.dateEntretien);
+        });
+        break;
+      case 'entretien-asc':
+        data.sort(function(a, b) {
+          if (!a.dateEntretien && !b.dateEntretien) return 0;
+          if (!a.dateEntretien) return 1;
+          if (!b.dateEntretien) return -1;
+          return a.dateEntretien.localeCompare(b.dateEntretien);
+        });
+        break;
     }
     return data;
   }
