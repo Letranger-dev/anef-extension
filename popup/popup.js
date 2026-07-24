@@ -155,9 +155,7 @@ function initializeElements() {
     detailEntretienLieuValue: document.getElementById('detail-entretien-lieu-value'),
     detailDecret: document.getElementById('detail-decret'),
     detailDecretValue: document.getElementById('detail-decret-value'),
-    statusBadges: document.getElementById('status-badges'),
-    timelineSection: document.getElementById('timeline-section'),
-    timelineList: document.getElementById('timeline-list')
+    statusBadges: document.getElementById('status-badges')
   };
 }
 
@@ -715,7 +713,6 @@ function displayStatus(statusData, apiData, lastCheck) {
   displayTemporalStats(statusData, apiData, closed);
   displayDetails(statusData, apiData);
   displayStatusBadges(apiData);
-  displayTimeline(apiData);
 }
 
 /** Affiche les badges d'état déduits des drapeaux ANEF (décision, décret, recours) */
@@ -738,47 +735,6 @@ function displayStatusBadges(apiData) {
     host.appendChild(span);
   }
   host.classList.remove('hidden');
-}
-
-/** Affiche la timeline datée issue des notifications ANEF (événements réels) */
-function displayTimeline(apiData) {
-  const section = elements.timelineSection;
-  const list = elements.timelineList;
-  if (!section || !list) return;
-
-  const timeline = Array.isArray(apiData?.timeline) ? apiData.timeline : [];
-  list.textContent = '';
-
-  if (!timeline.length) { section.classList.add('hidden'); return; }
-
-  // Plus récent en premier
-  const ordered = [...timeline].sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  for (const ev of ordered) {
-    const li = document.createElement('li');
-    li.className = 'timeline-item';
-
-    const icon = document.createElement('span');
-    icon.className = 'timeline-icon';
-    icon.textContent = ev.icon || '•';
-
-    const body = document.createElement('span');
-    body.className = 'timeline-body';
-
-    const label = document.createElement('span');
-    label.className = 'timeline-label';
-    label.textContent = ev.label || ev.motif || 'Événement';
-
-    const date = document.createElement('span');
-    date.className = 'timeline-date';
-    date.textContent = ev.date ? formatDate(ev.date) : '';
-
-    body.appendChild(label);
-    body.appendChild(date);
-    li.appendChild(icon);
-    li.appendChild(body);
-    list.appendChild(li);
-  }
-  section.classList.remove('hidden');
 }
 
 /** Affiche la bannière de clôture quand la procédure est terminée (décret publié).
