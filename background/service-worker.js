@@ -10,6 +10,7 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
+import { deriveStatus, parseStatutField } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
 
@@ -347,8 +348,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 /** Traite les données du dossier (statut principal) */
 async function handleDossierData(data) {
+  // ── Recombinaison du nouveau format API (juillet 2026) ──
+  // Le statut arrive en brut (`statut_raw` = « MACRO|drapeaux ») accompagné de
+  // la frise et des notifications. anef-mapper le traduit en `statutCode` du
+  // dictionnaire existant → tout l'aval (badge, historique, popup, site) marche
+  // sans réécriture. On garde une compat avec l'ancien `data.statut` direct.
+  if (data?.statut_raw !== undefined || data?.frise) {
+    const derived = deriveStatus({
+      statut: data.statut_raw,
+      frise: data.frise,
+      currentStep: data.current_step,
+      notifications: data.notifications,
+      dossierId: data.id,
+      numeroDecret: data.numero_decret
+    });
+    if (derived.statutCode) {
+      data.statut = derived.statutCode;
+    } else if (!data.statut) {
+      // Repli : 1er drapeau en minuscules → détection de changement stable
+      const { macro } = parseStatutField(data.statut_raw);
+      data.statut = (macro || '').toLowerCase() || null;
+    }
+    data.flags = derived.flags;
+    data.friseKey = derived.friseKey;
+    data.friseIndex = derived.friseIndex;
+    data.friseTotal = derived.friseTotal;
+    logger.info('🧭 Statut recombiné', { code: data.statut, friseKey: derived.friseKey, macro: derived.macro });
+  }
+
   if (!data?.statut) {
-    logger.warn('Données invalides - pas de statut');
+    logger.warn('Données invalides - pas de statut exploitable');
     return;
   }
 
@@ -378,8 +407,18 @@ async function handleDossierData(data) {
       || prevStatus.date_statut !== data.date_statut
       || (prevStatus.statut || '').toLowerCase() !== (data.statut || '').toLowerCase();
 
-    // Écrire les données dans le bon record (saveStatus route via data.id)
-    await storage.saveStatus(data);
+    // Écrire un enregistrement LÉGER (saveStatus route via .id + l'ajoute à
+    // l'historique). On exclut notifications/dossier/frise pour ne pas gonfler
+    // chaque entrée d'historique — la timeline complète vit dans apiData.
+    const statusRecord = {
+      statut: data.statut,
+      date_statut: data.date_statut,
+      id: data.id,
+      statut_raw: data.statut_raw ?? null,
+      flags: data.flags ?? [],
+      friseKey: data.friseKey ?? null
+    };
+    await storage.saveStatus(statusRecord);
     logger.info('✅ Statut sauvegardé', { dossierId: newId, isNew: isNewSecondary });
 
     if (isNewSecondary) {
@@ -437,6 +476,17 @@ async function handleDossierStepper(data) {
 
 /** Traite les données détaillées de l'API */
 async function handleApiData(data) {
+  // Recombine les signaux (statut brut + frise + notifications) pour enrichir
+  // apiData avec la timeline datée et les drapeaux d'état (juillet 2026).
+  const derived = deriveStatus({
+    statut: data.statut_raw,
+    frise: data.frise,
+    currentStep: data.current_step,
+    notifications: data.notifications,
+    dossierId: data.id,
+    numeroDecret: data.numero_decret
+  });
+
   const apiData = {
     dossierId: data.id,
     numeroNational: data.numero_national,
@@ -444,18 +494,30 @@ async function handleApiData(data) {
     dateDepot: data.date_depot,
     dateEntretien: data.entretien_date,
     lieuEntretien: data.entretien_lieu,
+    entretienAdresse: data.entretien_adresse || null,   // NOUVEAU
+    entretienInfo: data.entretien_info || null,         // NOUVEAU
     prefecture: data.prefecture,
     domicileCodePostal: data.domicile_code_postal,
     domicileVille: data.domicile_ville,
     typeDemande: data.type_demande,
     complementInstruction: data.complement_instruction,
+    currentStep: data.current_step ?? null,             // NOUVEAU (indicatif)
+    // ── Enrichissements mapper (juillet 2026) ──
+    timeline: derived.timeline || [],                   // historique daté réel
+    statutFlags: derived.flags || [],
+    friseKey: derived.friseKey,
+    friseIndex: derived.friseIndex,
+    friseTotal: derived.friseTotal,
+    decisionAvailable: derived.decisionAvailable,       // décision téléchargeable
+    inDecretPipeline: derived.inDecretPipeline,         // dans le pipeline décret
+    canRapo: derived.canRapo,
     rawTaxePayee: data.raw_taxe_payee,
     rawEntretien: data.raw_entretien,
     lastUpdate: new Date().toISOString()
   };
 
   await storage.saveApiData(apiData);
-  logger.info('✅ Données API sauvegardées');
+  logger.info('✅ Données API sauvegardées', { timeline: derived.timeline?.length || 0 });
 
   // Statistiques anonymes communautaires + rehydrate post-switch
   // `lastStatus` doit être celui du dossier dont on traite les données,

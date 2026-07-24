@@ -1,10 +1,17 @@
 /**
  * Script d'interception - Extension ANEF Status Tracker
  *
- * Ce script est injecté directement dans la page ANEF pour :
- * - Appeler les API internes d'ANEF
- * - Déchiffrer le statut (qui est chiffré côté serveur)
- * - Envoyer les données au content script
+ * Injecté dans la page ANEF pour récupérer l'état du dossier de naturalisation.
+ *
+ * ⚠️ Changement d'API (juillet 2026) — voir lib/anef-mapper.js :
+ *   Le statut n'est PLUS chiffré (RSA/forge abandonnés). L'API expose désormais
+ *   trois signaux séparés qu'on récupère par appel direct (cookies de session) :
+ *     • /api/anf/dossier-stepper            → statut « MACRO|drapeaux » (texte clair)
+ *     • /api/anf/usager/dossiers/frise-stepper → étape granulaire (id_active)
+ *     • /api/notifications                  → historique d'événements horodaté
+ *     • /api/anf/usager/dossiers/{id}       → détails (dates, entretien, décret)
+ *   La recombinaison (statut → code interne, timeline) est faite côté service
+ *   worker via lib/anef-mapper.js. Ce script se contente de collecter le brut.
  */
 
 (function() {
@@ -13,35 +20,22 @@
   const LOG_PREFIX = '[ANEF-INJECT]';
   const SOURCE = 'InjectedScript';
 
-  function log(msg, data) {
-    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
-    console.log(data ? `${LOG_PREFIX} [${timestamp}] ${msg}` : `${LOG_PREFIX} [${timestamp}] ${msg}`, data || '');
+  function ts() {
+    return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
+  }
 
-    // Envoyer le log au content-script pour stockage centralisé
-    sendToExtension('LOG', {
-      level: 'INFO',
-      source: SOURCE,
-      message: msg,
-      data: data
-    });
+  function log(msg, data) {
+    console.log(`${LOG_PREFIX} [${ts()}] ${msg}`, data || '');
+    sendToExtension('LOG', { level: 'INFO', source: SOURCE, message: msg, data });
   }
 
   function logError(msg, data) {
-    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Paris' });
-    console.error(`${LOG_PREFIX} [${timestamp}] ${msg}`, data || '');
-
-    sendToExtension('LOG', {
-      level: 'ERROR',
-      source: SOURCE,
-      message: msg,
-      data: data
-    });
+    console.error(`${LOG_PREFIX} [${ts()}] ${msg}`, data || '');
+    sendToExtension('LOG', { level: 'ERROR', source: SOURCE, message: msg, data });
   }
 
   function sendToExtension(type, data) {
-    window.dispatchEvent(new CustomEvent('ANEF_EXTENSION_DATA', {
-      detail: { type, data }
-    }));
+    window.dispatchEvent(new CustomEvent('ANEF_EXTENSION_DATA', { detail: { type, data } }));
   }
 
   log('Script d\'interception chargé');
@@ -50,110 +44,13 @@
   // Configuration des API
   // ─────────────────────────────────────────────────────────────
 
+  const ROOT = 'https://administration-etrangers-en-france.interieur.gouv.fr/api';
   const API = {
-    DOSSIER_STEPPER: 'https://administration-etrangers-en-france.interieur.gouv.fr/api/anf/dossier-stepper',
-    DOSSIER_DETAILS: 'https://administration-etrangers-en-france.interieur.gouv.fr/api/anf/usager/dossiers/'
+    STEPPER: ROOT + '/anf/dossier-stepper',
+    FRISE: ROOT + '/anf/usager/dossiers/frise-stepper',
+    NOTIFICATIONS: ROOT + '/notifications',
+    DETAILS: ROOT + '/anf/usager/dossiers/'
   };
-
-  // ─────────────────────────────────────────────────────────────
-  // Déchiffrement RSA du statut
-  // ─────────────────────────────────────────────────────────────
-
-  // Clé privée pour déchiffrer le statut (fournie par l'API ANEF)
-  const PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC/WvhR9YrO6DHY
-0UpAoIlIuDoF3PtLEJ3J0T5FOLAPSY2sa33AnECl6jWfM7uLuojuTDbfIz6J3vAo
-sNUzwYFNHKx3EG1o6cYzjWm2LzZDa4e25wYlXcL2r3T0mFGS9DT7adKlomNURj4L
-f2WUt11oNH8RYyH/uNk+kIL0HRJLtfTjyyjlWSyjUUDD1ATYZwjnQS2HvdcqJ+Go
-3TTvqTG7yOPzC/lwSKG3zE3eL+pi9E9Lgw9NlSanewOu7toB9NiKwzP3kfSBNpkz
-Sv4UBNClfp1UG+psSPnTx3Csil9TbPjSe99ZZ0/ffPf0h2xoga/7rWgScQwHzN9E
-crvEfDgxAgMBAAECggEAa08Ikm2wOffcfEph6XwdgLpPT5ptEdtvoQ3GbessUGZf
-HKHrE2iMmH6PM4g/VEx3Hat/2gJZv9dVtnv0E+IgMK4zyVFdCciPbbmP3qr7MzPK
-F7fWqn26J7ydSc1hcZehXpwplNlL+qaphKkcvhlWOGm4GHgPSOjQa1V/GoZzDCE1
-e1z9KpVuMMiV4d89FFiE3MHtnrmMnmUdbnesffVftnPmzkkGKKWTCL1BLrdEXgCz
-GSFdqCo+PjcJjEojjmqHhgzTyjPOR6JGh0FqG9ht3aduIQMZfKR1p2+Ds18NlOZu
-T60Lyc7Ud/d0H0f2h9GfftHYCSLkIxfTaAmoYXzXAQKBgQDoWc91xlh8Kb3vmIN1
-IoVY2yhviDTpUqkGxvjt6WYmu38CFpEwSO0cpTVCAkWRKvjKLUOoCAaqfaTrN04t
-LG85Z18gvSQKmncfv0zrKaTN/FrnKOA//hPCAcveDT6Ir9SCxgVmNBox70k89eQ+
-5cDOZACqFhKcoAQa/LjF621HBQKBgQDS1Pi+GhSwbn6nBiqQdzU1+RpXdburzubd
-3dgNlrAOmLoFEGqYNzaMcKbNljNTnAdv/FX6/NYaQGx/pYTs26o/SZZ+SE7Cl2RS
-RJIuWeskuNEoH4W06JgO1djyHVOiHmKbyaATWCjoZSQnnHo8OUBUKOJpw8mrNlQl
-IYUE0OLcPQKBgQDD3LlKUZnTiKhoqYrfGeuIfK34Xrwjlx+O6/l5LA+FRPaKfxWC
-u2bNh+J+M0YLWksAuulWYvWjkGiOMz++Sr+zhxUkluwj2BPk+jDP53nafgju5YEr
-0HU9TKBbHZUCSh384wo4HmGaiFiXf7wY3ToLgTciKZsk1qq/SRxFEvE6NQKBgHcS
-Cs2qgybFsMf55o4ilS2/Ww4sEurMdny1bvD1usbzoJN9mwYOoMMeWEZh3ukIhPbN
-J24R34WB/wT0YSc4RGVr1Q/LHJgv0lvYGEsPQ4tAyfeEHgp3FnHCerz6rSIxUPW1
-IK/sKWZewNWSPULH/rnJQV4EUmBc1ZcG4E5A/u7tAoGBAMneO96PMhJFQDhsakTL
-vGTbhuwBnFjbSuxmyebhszASOuKm8XTVDe004AZTSy7lAm+iYTkfeRbfVrIGWElT
-5DWhmlN/zNTdX56dQWG3P5M48+bxZFXz0YCBAZJw8jZ5LcFuKrr5tQbcNZN9Pqgk
-QJNdXtE3G7SjkDOn36yZSaXp
------END PRIVATE KEY-----`;
-  const PASSPHRASE = 'wa_sir_3awtani_Dir_l_bou9_aaa_khay_div';
-
-  function decryptStatus(encryptedData) {
-    try {
-      if (typeof forge === 'undefined') {
-        logError('forge.js non disponible, déchiffrement impossible');
-        return null;
-      }
-
-      let privateKey = forge.pki.decryptRsaPrivateKey(PRIVATE_KEY.trim(), PASSPHRASE);
-      if (!privateKey) {
-        privateKey = forge.pki.privateKeyFromPem(PRIVATE_KEY.trim());
-      }
-      if (!privateKey) throw new Error('Clé privée invalide');
-
-      const decoded = forge.util.decode64(encryptedData);
-      const buffer = forge.util.createBuffer(decoded, 'raw');
-      const decrypted = privateKey.decrypt(buffer.getBytes(), 'RSA-OAEP', {
-        md: forge.md.sha256.create(),
-        mgf1: forge.md.sha256.create()
-      });
-
-      // Le statut est avant le séparateur #K#
-      return decrypted.split('#K#')[0] || decrypted;
-
-    } catch (error) {
-      logError('Erreur déchiffrement:', error.message);
-      return null;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Chargement de forge.js (bibliothèque de cryptographie)
-  // Chargé depuis le package de l'extension (requis par Manifest V3,
-  // le code hébergé à distance est interdit par le Chrome Web Store).
-  // L'URL locale est passée par content-script.js via data-forge-url.
-  // ─────────────────────────────────────────────────────────────
-
-  // Récupérer l'URL locale de forge.js passée par le content-script
-  const FORGE_URL = (function() {
-    const el = document.querySelector('script[data-forge-url]');
-    return el ? el.dataset.forgeUrl : null;
-  })();
-
-  function loadForge() {
-    return new Promise((resolve, reject) => {
-      if (typeof forge !== 'undefined') {
-        resolve();
-        return;
-      }
-
-      if (!FORGE_URL) {
-        reject(new Error('URL forge.js non disponible'));
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = FORGE_URL;
-      script.onload = () => {
-        log('✅ forge.js chargé (local)');
-        resolve();
-      };
-      script.onerror = () => reject(new Error('Échec chargement forge.js'));
-      document.head.appendChild(script);
-    });
-  }
 
   // ─────────────────────────────────────────────────────────────
   // Mapping département français (code postal → nom)
@@ -188,353 +85,197 @@ QJNdXtE3G7SjkDOn36yZSaXp
   function getDepartementFromCP(codePostal) {
     if (!codePostal) return null;
     const cp = String(codePostal).padStart(5, '0');
-    // Outre-mer (97x)
     if (cp.startsWith('97')) return DEPT_MAP[cp.substring(0, 3)] || null;
-    // Corse (20xxx)
     if (cp.startsWith('20')) return DEPT_MAP[parseInt(cp, 10) < 20200 ? '2A' : '2B'] || null;
-    // Métropole
     return DEPT_MAP[cp.substring(0, 2)] || null;
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Récupération des données
-  // ─────────────────────────────────────────────────────────────
-
-  async function fetchDossierData() {
-    try {
-      const startTime = Date.now();
-      log('📡 Appel API dossier-stepper...');
-
-      const response = await fetch(API.DOSSIER_STEPPER);
-      log('📡 API répondu en ' + (Date.now() - startTime) + 'ms');
-      if (!response.ok) {
-        // HTTP 502/503 = maintenance probable
-        if (response.status === 502 || response.status === 503) {
-          log('🔧 API en maintenance (HTTP ' + response.status + ')');
-          sendToExtension('MAINTENANCE', { inMaintenance: true });
-          return null;
-        }
-        throw new Error(`Erreur ${response.status}`);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        logError('Réponse API non-JSON');
-        return null;
-      }
-
-      if (!data?.dossier?.statut) {
-        log('Pas de statut dans la réponse');
-        return null;
-      }
-
-      // Déchiffrer le statut
-      const decryptedStatus = decryptStatus(data.dossier.statut);
-      if (!decryptedStatus) {
-        logError('Déchiffrement échoué, statut ignoré');
-        return null;
-      }
-      log('🔓 Statut:', decryptedStatus);
-
-      // Envoyer les données principales
-      sendToExtension('DOSSIER_DATA', {
-        statut: decryptedStatus,
-        statut_encrypted: data.dossier.statut,
-        date_statut: data.dossier.date_statut,
-        id: data.dossier.id,
-        dossier: data.dossier
-      });
-
-      // Récupérer les détails supplémentaires
-      if (data.dossier.id) {
-        await fetchDossierDetails(data.dossier.id);
-      }
-
-      return { statut: decryptedStatus, date_statut: data.dossier.date_statut };
-
-    } catch (error) {
-      log('Erreur récupération dossier:', error.message);
-      return null;
-    }
   }
 
   /** Extrait le numéro de décret depuis la réponse API détails */
   function extractDecretId(details) {
-    if (!details) return null;
-    // Chemin : demande.informations.etat_civil.identites_decrets[].decret.id
     try {
-      var idents = details?.demande?.informations?.etat_civil?.identites_decrets;
-      if (Array.isArray(idents) && idents.length > 0) {
-        for (var i = 0; i < idents.length; i++) {
-          if (idents[i]?.decret?.id) {
-            return String(idents[i].decret.id);
-          }
+      const idents = details?.demande?.informations?.etat_civil?.identites_decrets;
+      if (Array.isArray(idents)) {
+        for (const it of idents) {
+          if (it?.decret?.id) return String(it.decret.id);
         }
       }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     return null;
   }
 
-  async function fetchDossierDetails(dossierId) {
+  // ─────────────────────────────────────────────────────────────
+  // Récupération des données (appels API directs, cookies de session)
+  // ─────────────────────────────────────────────────────────────
+
+  /** GET JSON avec cookies. Renvoie { ok, status, ct, json }. */
+  async function getJson(url) {
+    const r = await fetch(url, { credentials: 'include' });
+    const ct = r.headers.get('content-type') || '';
+    let json = null;
+    if (r.ok && ct.includes('json')) {
+      try { json = await r.json(); } catch { /* non-JSON */ }
+    }
+    return { ok: r.ok, status: r.status, ct, json };
+  }
+
+  async function fetchFrise() {
     try {
-      log('📡 Appel API détails dossier...');
-
-      const response = await fetch(API.DOSSIER_DETAILS + dossierId);
-      if (!response.ok) return;
-
-      const raw = await response.json();
-      const details = raw?.data ?? raw;
-
-      // Log diagnostic : clés de la réponse + recherche champ décret
-      if (details) {
-        log('📋 Clés API détails: ' + Object.keys(details).join(', '));
-        // Recherche récursive de tout champ contenant "decret"
-        var decretFields = [];
-        (function findDecret(obj, path) {
-          if (!obj || typeof obj !== 'object') return;
-          for (var k in obj) {
-            if (k.toLowerCase().includes('decret') || k.toLowerCase().includes('decree')) {
-              decretFields.push(path + '.' + k + '=' + JSON.stringify(obj[k]));
-            }
-            if (typeof obj[k] === 'object' && obj[k] !== null && path.split('.').length < 4) {
-              findDecret(obj[k], path + '.' + k);
-            }
-          }
-        })(details, 'details');
-        if (decretFields.length) {
-          log('📋 Champs décret trouvés: ' + decretFields.join(' | '));
-        }
+      const res = await getJson(API.FRISE);
+      if (res.json) {
+        const f = res.json.data ?? res.json;
+        return { id_active: f?.id_active, type_frise: f?.type_frise, has_step_scec: f?.has_step_scec };
       }
+    } catch (e) { log('Frise indisponible: ' + e.message); }
+    return null;
+  }
 
-      // Extraire les dates importantes
-      const dateDepot = details?.taxe_payee?.date_consommation
-        || details?.date_creation
-        || details?.date_depot;
-      const dateEntretien = details?.entretien_assimilation?.date_rdv;
+  async function fetchNotifications() {
+    try {
+      const res = await getJson(API.NOTIFICATIONS);
+      if (res.json) {
+        const items = res.json._items || res.json.items || res.json.data || [];
+        // On ne transmet que les champs utiles (pas de contenu texte perso)
+        return items.map(n => ({
+          type_notification: n.type_notification,
+          motif_notification: n.motif_notification,
+          id_demande: n.id_demande,
+          _created: n._created || n.date_creation || n.date,
+          lu: n.lu
+        }));
+      }
+    } catch (e) { log('Notifications indisponibles: ' + e.message); }
+    return [];
+  }
 
-      // Préfecture : priorité entretien > code postal domicile
-      const prefEntretien = details?.entretien_assimilation?.unite_gestion?.nom_plateforme
-        || details?.entretien_assimilation?.unite_gestion?.libelle || null;
-      const domicile = details?.demande?.domicile?.adresse;
+  async function fetchDossierData() {
+    const startTime = Date.now();
+    log('📡 Appel API dossier-stepper...');
+
+    let stepper;
+    try {
+      stepper = await getJson(API.STEPPER);
+    } catch (e) {
+      log('Erreur réseau stepper: ' + e.message);
+      return false;
+    }
+    log('📡 stepper répondu en ' + (Date.now() - startTime) + 'ms (HTTP ' + stepper.status + ')');
+
+    // Maintenance probable
+    if (stepper.status === 502 || stepper.status === 503) {
+      log('🔧 API en maintenance (HTTP ' + stepper.status + ')');
+      sendToExtension('MAINTENANCE', { inMaintenance: true });
+      return false;
+    }
+    // Session invalide / mot de passe expiré (401/403 ou page de login HTML)
+    if (stepper.status === 401 || stepper.status === 403 || (stepper.ok && !stepper.json)) {
+      log('🔑 Session ANEF invalide (HTTP ' + stepper.status + ')');
+      sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
+      return false;
+    }
+    if (!stepper.json?.dossier?.statut) {
+      log('Pas de statut dans la réponse stepper');
+      return false;
+    }
+
+    const dossier = stepper.json.dossier;
+    const statutRaw = dossier.statut;               // « MACRO|drapeaux » texte clair
+    log('🔓 Statut brut: ' + String(statutRaw).slice(0, 80));
+
+    // Signaux complémentaires en parallèle (best effort)
+    const [frise, notifications] = await Promise.all([fetchFrise(), fetchNotifications()]);
+    if (frise) log('🧭 Frise: id_active=' + frise.id_active + ' type=' + frise.type_frise);
+
+    // On récupère le détail AVANT d'émettre DOSSIER_DATA pour y joindre le n° de
+    // décret et current_step : un décret assigné (identites_decrets[].decret.id)
+    // est un signal d'étape plus fiable que la frise (qui reste en retrait quand
+    // le dossier est déjà inséré au décret).
+    let detail = null;
+    if (dossier.id) {
+      try {
+        const res = await getJson(API.DETAILS + dossier.id);
+        detail = res.json ? (res.json.data ?? res.json) : null;
+      } catch (e) { log('Détail indisponible: ' + e.message); }
+    }
+    const numeroDecret = detail ? extractDecretId(detail) : null;
+    const currentStep = detail?.current_step ?? null;
+    if (numeroDecret) log('📜 Décret assigné: ' + numeroDecret);
+
+    // Envoi du statut principal (le service worker recombine via anef-mapper)
+    sendToExtension('DOSSIER_DATA', {
+      statut_raw: statutRaw,
+      frise,
+      notifications,
+      numero_decret: numeroDecret,
+      current_step: currentStep,
+      date_statut: dossier.date_statut,
+      id: dossier.id,
+      dossier
+    });
+
+    // Détails enrichis (à partir du détail déjà récupéré)
+    if (detail) {
+      sendApiData(dossier.id, detail, statutRaw, frise, notifications);
+    }
+    return true;
+  }
+
+  function sendApiData(dossierId, d, statutRaw, frise, notifications) {
+    try {
+      const ea = d?.entretien_assimilation || null;
+      const dateDepot = d?.taxe_payee?.date_consommation || d?.date_creation || d?._created || d?.date_depot;
+      const prefEntretien = ea?.unite_gestion?.nom_plateforme || ea?.unite_gestion?.libelle || null;
+      const domicile = d?.demande?.domicile?.adresse;
       const codePostal = domicile?.code_postal || null;
-      const prefDomicile = getDepartementFromCP(codePostal);
-      const prefecture = prefEntretien || prefDomicile;
+      const prefecture = prefEntretien || getDepartementFromCP(codePostal);
 
       sendToExtension('API_DATA', {
         id: dossierId,
         date_depot: dateDepot,
-        entretien_date: dateEntretien,
+        entretien_date: ea?.date_rdv,
         entretien_lieu: prefEntretien,
-        prefecture: prefecture,
+        entretien_adresse: ea?.adresse_rdv || null,                       // NOUVEAU
+        entretien_info: ea?.information_complementaire_rdv || null,        // NOUVEAU
+        prefecture,
         domicile_code_postal: codePostal,
         domicile_ville: domicile?.ville || null,
         type_demande: 'naturalisation',
-        complement_instruction: details?.demande_complement,
-        numero_national: details?.numero_national,
-        numero_decret: extractDecretId(details),
-        raw_taxe_payee: details?.taxe_payee,
-        raw_entretien: details?.entretien_assimilation
+        complement_instruction: d?.demande_complement,
+        numero_national: d?.numero_national,
+        numero_decret: extractDecretId(d),
+        current_step: d?.current_step,                                     // NOUVEAU (indicatif)
+        // Signaux bruts pour recombinaison mapper côté service worker
+        statut_raw: statutRaw,
+        frise,
+        notifications,
+        raw_taxe_payee: d?.taxe_payee,
+        raw_entretien: ea
       });
-
     } catch (error) {
-      log('Erreur récupération détails:', error.message);
+      log('Erreur envoi détails: ' + error.message);
     }
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Attente de l'onglet Nationalité
+  // Détection de maintenance (repli DOM, quand l'API ne répond pas)
   // ─────────────────────────────────────────────────────────────
 
-  async function waitForNationalityTab() {
-    const MAX_WAIT = 30000;
-    log('⏳ Recherche onglet Nationalité...');
-
-    // Vérifier immédiatement
-    const found = findNationalityTab();
-    if (found) {
-      log('✅ Onglet Nationalité trouvé immédiatement');
-      return found;
-    }
-
-    // Utiliser MutationObserver (insensible au throttle des fenêtres minimisées)
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      let maintenanceChecked = false;
-
-      const observer = new MutationObserver(() => {
-        // Page d'erreur ou login
-        if (document.querySelector('.error-page') || window.location.href.includes('connexion')) {
-          observer.disconnect();
-          log('❌ Page d\'erreur ou de connexion détectée');
-          resolve(null);
-          return;
-        }
-
-        // Vérifier la maintenance périodiquement (après 3s d'attente)
-        if (!maintenanceChecked && Date.now() - startTime > 3000) {
-          maintenanceChecked = true;
-          if (checkMaintenance()) {
-            observer.disconnect();
-            resolve(null);
-            return;
-          }
-        }
-
-        const tab = findNationalityTab();
-        if (tab) {
-          observer.disconnect();
-          log('✅ Onglet Nationalité trouvé après ' + (Date.now() - startTime) + 'ms');
-          resolve(tab);
-        }
-      });
-
-      observer.observe(document.body || document.documentElement, {
-        childList: true, subtree: true
-      });
-
-      // Timeout de sécurité
-      setTimeout(() => {
-        observer.disconnect();
-        const tab = findNationalityTab();
-        if (tab) {
-          resolve(tab);
-        } else {
-          const allTabs = document.querySelectorAll(TAB_SELECTOR);
-          const allLinks = document.querySelectorAll('a');
-          const tabTexts = Array.from(allTabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"');
-          log('❌ Timeout: onglet non trouvé après ' + MAX_WAIT / 1000 + 's. DOM tabs: ' + allTabs.length + ' [' + tabTexts.join(', ') + ']. Total links: ' + allLinks.length + '. Body length: ' + (document.body?.innerHTML?.length || 0));
-          resolve(null);
-        }
-      }, MAX_WAIT);
-    });
-  }
-
-  let _tabsLoggedOnce = false;
-
-  // Sélecteur des onglets — couvre le nouveau design DSFR (button.fr-tabs__tab)
-  // et l'ancien design PrimeNG (.p-tabview-nav) en repli.
-  const TAB_SELECTOR = 'button[role="tab"], a[role="tab"], .fr-tabs__tab, ' +
-    '.fr-tabs__list button, .fr-tabs__list li, li[role="presentation"] a, ' +
-    '.p-tabview-nav a, .p-tabview-nav li, [role="tablist"] a, [role="tablist"] li';
-
-  // Le portail ANEF est multilingue : le libellé de l'onglet dépend de la langue
-  // choisie par l'usager (FR « Nationalité Française », EN « French Nationality
-  // application », …). On matche donc le mot « nationalit{é|y} » insensible à la
-  // casse et aux accents, ce qui couvre le français comme l'anglais sans lister
-  // chaque locale. Sans ça, un usager en anglais ne trouve jamais l'onglet, le
-  // fetch expire et l'extension conclut à tort « Site en maintenance ».
-  //
-  // On exige la racine « nationalit » précédée d'une frontière de mot, et non le
-  // simple radical « national » : ce dernier matcherait « International… » (et
-  // comme ce matcher est l'unique garde avant le fetch, un faux positif
-  // contournerait la voie d'échec `no_nationality_tab` et ferait passer un
-  // dossier non concerné pour une naturalisation). « International » ne contient
-  // pas « nationalit », il est donc bien exclu.
-  const _normalize = (s) => (s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // enlève les accents
-    .toLowerCase();
-  const _NATIONALITY_RE = /\bnationalit[ey]/; // FR « nationalité »→nationalite, EN « nationality »
-  const _matchesNationality = (s) => _NATIONALITY_RE.test(_normalize(s));
-
-  function findNationalityTab() {
-    const tabs = document.querySelectorAll(TAB_SELECTOR);
-    if (tabs.length > 0 && !_tabsLoggedOnce) {
-      _tabsLoggedOnce = true;
-      log('🔍 Onglets DOM trouvés: ' + tabs.length + ' — textes: ' + Array.from(tabs).map(el => '"' + (el.textContent || '').trim().substring(0, 40) + '"').join(', '));
-    }
-    return Array.from(tabs).find(
-      el => _matchesNationality(el.textContent) ||
-            _matchesNationality(el.getAttribute('aria-label'))
-    ) || null;
-  }
-
-  /** Attend que le contenu de l'onglet soit chargé (MutationObserver) */
-  async function waitForTabContent() {
-    const MAX_WAIT = 3000;
-    log('⏳ Attente chargement contenu onglet...');
-
-    // Vérifier immédiatement
-    if (isTabContentLoaded()) {
-      log('✅ Contenu onglet Nationalité déjà chargé');
-      return;
-    }
-
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-
-      const observer = new MutationObserver(() => {
-        if (isTabContentLoaded()) {
-          observer.disconnect();
-          log('✅ Contenu onglet chargé après ' + (Date.now() - startTime) + 'ms');
-          resolve();
-        }
-      });
-
-      observer.observe(document.body || document.documentElement, {
-        childList: true, subtree: true
-      });
-
-      setTimeout(() => {
-        observer.disconnect();
-        log('⚠️ Timeout attente contenu (' + MAX_WAIT + 'ms), on continue');
-        resolve();
-      }, MAX_WAIT);
-    });
-  }
-
-  function isTabContentLoaded() {
-    const activeTab = document.querySelector(
-      // DSFR (nouveau)
-      'button[role="tab"][aria-selected="true"], .fr-tabs__tab[aria-selected="true"], ' +
-      // PrimeNG (ancien)
-      'a[role="tab"].p-tabview-nav-link-active, ' +
-      '.p-tabview-nav-link.p-highlight, ' +
-      'li.p-highlight a[role="tab"]'
-    );
-    const hasContent = document.querySelector(
-      // DSFR (nouveau)
-      '.fr-tabs__panel, [role="tabpanel"], ' +
-      // PrimeNG (ancien) + génériques
-      '.dossier-card, [class*="statut"], [class*="dossier"], ' +
-      '.p-tabview-panel:not(.p-hidden), .p-card-body'
-    );
-    return !!(activeTab && hasContent);
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Détection de maintenance
-  // ─────────────────────────────────────────────────────────────
-
-  /**
-   * Détecte si le site est en maintenance.
-   * Vérifie plusieurs patterns car la page de maintenance peut varier
-   * (texte h1, contenu body, classes CSS, titre de page, code HTTP).
-   */
   function checkMaintenance() {
     const bodyText = (document.body?.innerText || '').toLowerCase();
     const titleText = (document.title || '').toLowerCase();
-
     const isMaintenance =
-      // Texte dans les titres
       bodyText.includes('site en maintenance') ||
       bodyText.includes('service momentanément indisponible') ||
       bodyText.includes('service indisponible') ||
       bodyText.includes('temporairement indisponible') ||
       bodyText.includes('service unavailable') ||
       bodyText.includes('erreur 503') ||
-      // Titre de la page
       titleText.includes('maintenance') ||
       titleText.includes('indisponible') ||
       titleText.includes('503') ||
-      // Classes CSS de maintenance
       !!document.querySelector('.maintenance-page, .maintenance, [class*="maintenance"]') ||
-      // Page d'erreur HTTP (souvent un <h1> avec le code)
       !!(document.querySelector('h1')?.textContent?.includes('503'));
-
     if (isMaintenance) {
-      log('🔧 Site en maintenance détecté');
+      log('🔧 Site en maintenance détecté (DOM)');
       sendToExtension('MAINTENANCE', { inMaintenance: true });
       return true;
     }
@@ -549,13 +290,8 @@ QJNdXtE3G7SjkDOn36yZSaXp
   let hasRun = false;
 
   async function main() {
-    // Éviter les exécutions simultanées
-    if (isRunning) {
-      log('⏳ Déjà en cours d\'exécution');
-      return;
-    }
+    if (isRunning) { log('⏳ Déjà en cours'); return; }
 
-    // Vérifier qu'on est sur une page appropriée (pas login)
     const currentUrl = window.location.href;
     if (currentUrl.includes('connexion-inscription')) {
       log('📍 Page de connexion, attente navigation...');
@@ -565,155 +301,52 @@ QJNdXtE3G7SjkDOn36yZSaXp
     isRunning = true;
     log('🚀 Démarrage...');
 
-    if (checkMaintenance()) {
-      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
-      isRunning = false;
-      return;
-    }
-
-    // Écouter les erreurs JWT Angular (session/mot de passe expiré)
-    let jwtErrorDetected = false;
-    const jwtErrorHandler = function(event) {
-      if (event.message && event.message.includes('doesn\'t appear to be a JWT')) {
-        jwtErrorDetected = true;
-        log('🔑 Erreur JWT détectée — session invalide ou mot de passe expiré');
-      }
-    };
-    window.addEventListener('error', jwtErrorHandler);
-
     try {
-      await loadForge();
-    } catch {
-      log('forge.js non disponible, déchiffrement désactivé');
-    }
-
-    // Si l'erreur JWT est déjà arrivée (elle arrive très vite), sortir immédiatement
-    if (jwtErrorDetected) {
-      window.removeEventListener('error', jwtErrorHandler);
-      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
-      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
-      sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
-      isRunning = false;
-      return;
-    }
-
-    const tab = await waitForNationalityTab();
-    window.removeEventListener('error', jwtErrorHandler);
-
-    // Vérifier si l'erreur JWT est arrivée pendant l'attente
-    if (jwtErrorDetected) {
-      log('❌ Session ANEF invalide (JWT expiré) — mot de passe à renouveler');
-      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'expired_session' });
-      sendToExtension('EXPIRED_SESSION', { reason: 'jwt_invalid' });
-      isRunning = false;
-      return;
-    }
-
-    if (!tab) {
-      // Revérifier la maintenance (la page a pu finir de charger entre-temps)
-      checkMaintenance();
-      log('❌ Onglet Nationalité non trouvé après attente');
-      sendToExtension('FETCH_COMPLETE', { success: false, reason: 'no_nationality_tab' });
-      isRunning = false;
-      return;
-    }
-
-    if (!tab.classList.contains('active')) {
-      log('👆 Activation onglet Nationalité');
-      tab.click();
-      // Petit délai pour laisser Angular réagir au clic
-      await new Promise(r => setTimeout(r, 500));
-    }
-
-    log('📡 Lancement récupération données...');
-    const result = await fetchDossierData();
-    if (result) {
-      log('✅ Données récupérées');
-      hasRun = true;
-      sendToExtension('FETCH_COMPLETE', { success: true });
-    } else {
-      // Revérifier la maintenance en cas d'échec API
-      checkMaintenance();
+      const ok = await fetchDossierData();
+      if (ok) {
+        log('✅ Données récupérées');
+        hasRun = true;
+        sendToExtension('FETCH_COMPLETE', { success: true });
+      } else {
+        // L'échec a déjà émis MAINTENANCE / EXPIRED_SESSION le cas échéant.
+        checkMaintenance();
+        sendToExtension('FETCH_COMPLETE', { success: false, reason: 'api_error' });
+      }
+    } catch (e) {
+      logError('Erreur main: ' + e.message);
       sendToExtension('FETCH_COMPLETE', { success: false, reason: 'api_error' });
+    } finally {
+      isRunning = false;
     }
-
-    isRunning = false;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Écoute des messages pour relancer la récupération
-  // ─────────────────────────────────────────────────────────────
-
+  // Relance à la demande (après auto-login, navigation, refresh manuel)
   window.addEventListener('message', async (event) => {
     if (event.source !== window) return;
     if (event.data?.source !== 'ANEF_EXTENSION') return;
-
     if (event.data.type === 'TRIGGER_DATA_FETCH') {
-      log('📥 Demande de récupération des données reçue');
+      log('📥 Demande de récupération reçue');
       await main();
     }
   });
 
-  // Démarrer dès qu'Angular est chargé (MutationObserver = insensible au throttle)
+  // Démarrage automatique sur mon-compte (les appels API ne dépendent plus
+  // du DOM Angular : dès que les cookies de session existent, le fetch marche).
   function startWhenReady() {
-    // Ne démarrer que si on est sur mon-compte
     if (!window.location.href.includes('mon-compte')) {
-      log('📍 Pas sur mon-compte, attente navigation...');
-      // Vérifier quand même la maintenance (le site peut avoir redirigé)
+      log('📍 Pas sur mon-compte, attente d\'un déclencheur...');
       setTimeout(() => {
-        if (checkMaintenance()) {
-          sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
-        }
+        if (!isRunning && !hasRun) checkMaintenance();
       }, 3000);
       return;
     }
-
-    // Vérifier immédiatement
-    if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
-      log('✅ Angular détecté immédiatement');
-      main();
-      return;
-    }
-
-    // Observer les mutations DOM pour détecter Angular instantanément
-    const startTime = Date.now();
-    const MAX_WAIT = 10000;
-
-    const observer = new MutationObserver(() => {
-      if (document.querySelector('app-root, [ng-version], .p-tabview, router-outlet')) {
-        observer.disconnect();
-        log('✅ Angular détecté (après ' + (Date.now() - startTime) + 'ms)');
-        main();
-      }
-    });
-
-    observer.observe(document.documentElement, {
-      childList: true, subtree: true
-    });
-
-    // Vérifier la maintenance à mi-parcours (si Angular ne charge pas)
-    setTimeout(() => {
-      if (!isRunning && !hasRun && checkMaintenance()) {
-        observer.disconnect();
-        sendToExtension('FETCH_COMPLETE', { success: false, reason: 'maintenance' });
-      }
-    }, 5000);
-
-    // Timeout de sécurité : démarrer même sans Angular après 10s
-    setTimeout(() => {
-      observer.disconnect();
-      if (!isRunning && !hasRun) {
-        log('⚠️ Timeout détection Angular, démarrage forcé');
-        main();
-      }
-    }, MAX_WAIT);
+    main();
   }
 
-  // Démarrer dès que le DOM est prêt
-  if (document.body) {
-    startWhenReady();
-  } else {
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startWhenReady);
+  } else {
+    startWhenReady();
   }
 
 })();

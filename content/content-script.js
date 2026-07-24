@@ -64,8 +64,6 @@
   function injectScript() {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('content/injected-script.js');
-    // Passer l'URL locale de forge.js (le script injecté n'a pas accès à chrome.runtime)
-    script.dataset.forgeUrl = chrome.runtime.getURL('lib/forge.min.js');
     script.onload = function() {
       logger.info('✅ Script d\'interception injecté');
       this.remove();

@@ -154,7 +154,10 @@ function initializeElements() {
     detailEntretienLieu: document.getElementById('detail-entretien-lieu'),
     detailEntretienLieuValue: document.getElementById('detail-entretien-lieu-value'),
     detailDecret: document.getElementById('detail-decret'),
-    detailDecretValue: document.getElementById('detail-decret-value')
+    detailDecretValue: document.getElementById('detail-decret-value'),
+    statusBadges: document.getElementById('status-badges'),
+    timelineSection: document.getElementById('timeline-section'),
+    timelineList: document.getElementById('timeline-list')
   };
 }
 
@@ -711,6 +714,71 @@ function displayStatus(statusData, apiData, lastCheck) {
   displayClosureBanner(statusData, apiData, closed);
   displayTemporalStats(statusData, apiData, closed);
   displayDetails(statusData, apiData);
+  displayStatusBadges(apiData);
+  displayTimeline(apiData);
+}
+
+/** Affiche les badges d'état déduits des drapeaux ANEF (décision, décret, recours) */
+function displayStatusBadges(apiData) {
+  const host = elements.statusBadges;
+  if (!host) return;
+  host.textContent = '';
+
+  const badges = [];
+  if (apiData?.decisionAvailable) badges.push({ icon: '📄', text: 'Décision disponible sur ANEF', cls: 'badge-info' });
+  if (apiData?.inDecretPipeline) badges.push({ icon: '📜', text: 'Dans le pipeline décret', cls: 'badge-success' });
+  if (apiData?.canRapo) badges.push({ icon: '⚖️', text: 'Recours possible', cls: 'badge-warning' });
+
+  if (!badges.length) { host.classList.add('hidden'); return; }
+
+  for (const b of badges) {
+    const span = document.createElement('span');
+    span.className = 'status-badge ' + b.cls;
+    span.textContent = `${b.icon} ${b.text}`;
+    host.appendChild(span);
+  }
+  host.classList.remove('hidden');
+}
+
+/** Affiche la timeline datée issue des notifications ANEF (événements réels) */
+function displayTimeline(apiData) {
+  const section = elements.timelineSection;
+  const list = elements.timelineList;
+  if (!section || !list) return;
+
+  const timeline = Array.isArray(apiData?.timeline) ? apiData.timeline : [];
+  list.textContent = '';
+
+  if (!timeline.length) { section.classList.add('hidden'); return; }
+
+  // Plus récent en premier
+  const ordered = [...timeline].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  for (const ev of ordered) {
+    const li = document.createElement('li');
+    li.className = 'timeline-item';
+
+    const icon = document.createElement('span');
+    icon.className = 'timeline-icon';
+    icon.textContent = ev.icon || '•';
+
+    const body = document.createElement('span');
+    body.className = 'timeline-body';
+
+    const label = document.createElement('span');
+    label.className = 'timeline-label';
+    label.textContent = ev.label || ev.motif || 'Événement';
+
+    const date = document.createElement('span');
+    date.className = 'timeline-date';
+    date.textContent = ev.date ? formatDate(ev.date) : '';
+
+    body.appendChild(label);
+    body.appendChild(date);
+    li.appendChild(icon);
+    li.appendChild(body);
+    list.appendChild(li);
+  }
+  section.classList.remove('hidden');
 }
 
 /** Affiche la bannière de clôture quand la procédure est terminée (décret publié).
@@ -843,8 +911,8 @@ function displayDetails(statusData, apiData) {
   }
 
   // Lieu entretien
-  if (apiData?.uniteGestion && elements.detailEntretienLieu) {
-    elements.detailEntretienLieuValue.textContent = apiData.uniteGestion;
+  if (apiData?.lieuEntretien && elements.detailEntretienLieu) {
+    elements.detailEntretienLieuValue.textContent = apiData.lieuEntretien;
     elements.detailEntretienLieu.classList.remove('hidden');
     hasDetails = true;
   } else {
