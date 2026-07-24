@@ -713,6 +713,90 @@ function displayStatus(statusData, apiData, lastCheck) {
   displayTemporalStats(statusData, apiData, closed);
   displayDetails(statusData, apiData);
   displayStatusBadges(apiData);
+  renderForecast(statut);
+}
+
+// ─── Prévision : branches probables (données communautaires statiques) ───
+// Défensif : tout échec (réseau, données absentes) => le bloc reste caché.
+const FORECAST_URL = 'https://letranger-dev.github.io/anef-extension/data/forecast.json';
+let _forecastCache;
+
+async function loadForecast() {
+  if (_forecastCache !== undefined) return _forecastCache;
+  try {
+    const r = await fetch(FORECAST_URL, { cache: 'default' });
+    _forecastCache = r.ok ? await r.json() : null;
+  } catch { _forecastCache = null; }
+  return _forecastCache;
+}
+
+async function renderForecast(statut) {
+  const host = document.getElementById('forecast-section');
+  if (!host) return;
+  host.classList.add('hidden');
+  host.textContent = '';
+  try {
+    const code = String(statut || '').toLowerCase();
+    if (!code || isClosedStatus(code) || isNegativeStatus(code)) return;
+
+    const fc = await loadForecast();
+    const node = fc && fc.byStatut && fc.byStatut[code];
+    if (!node || !Array.isArray(node.branches) || !node.branches.length) return;
+
+    const title = document.createElement('div');
+    title.className = 'forecast-title';
+    title.textContent = '🔮 Prochaine étape probable';
+    host.appendChild(title);
+
+    const ul = document.createElement('ul');
+    ul.className = 'forecast-branches';
+    for (const b of node.branches.slice(0, 4)) {
+      const info = getStatusExplanation(b.to);
+      const li = document.createElement('li');
+      li.className = 'forecast-branch';
+
+      const label = document.createElement('span');
+      label.className = 'fb-label';
+      label.textContent = (info && (info.explication || info.phase)) || b.to;
+
+      const pctVal = Math.min(100, Math.max(0, Number(b.pct) || 0));
+      const bar = document.createElement('span');
+      bar.className = 'fb-bar';
+      const fill = document.createElement('span');
+      fill.className = 'fb-fill';
+      fill.style.width = Math.max(4, pctVal) + '%';
+      bar.appendChild(fill);
+
+      const pct = document.createElement('span');
+      pct.className = 'fb-pct';
+      pct.textContent = pctVal + '%';
+
+      li.append(label, bar, pct);
+
+      // Délai médian : affiché seulement s'il est renseigné (>0) — sinon « ~aujourd'hui » n'aurait pas de sens.
+      const medDays = Number(b.median_days) || 0;
+      if (medDays > 0) {
+        const med = document.createElement('span');
+        med.className = 'fb-med';
+        med.textContent = '~' + formatDuration(medDays);
+        li.appendChild(med);
+      }
+      ul.appendChild(li);
+    }
+    host.appendChild(ul);
+
+    const nTotal = Number(node.total) || 0;
+    if (nTotal > 0) {
+      const note = document.createElement('div');
+      note.className = 'forecast-note';
+      note.textContent = `d'après ${nTotal} dossiers de la communauté`;
+      host.appendChild(note);
+    }
+
+    host.classList.remove('hidden');
+  } catch (e) {
+    console.warn('[Popup] forecast indisponible:', e);
+  }
 }
 
 /** Affiche les badges d'état déduits des drapeaux ANEF (décision, décret, recours) */

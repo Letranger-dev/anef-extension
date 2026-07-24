@@ -1639,3 +1639,15 @@ body {
   user-select: none;
   pointer-events: none;
 }
+
+/* ─── Prévision : branches probables (données communautaires) ─── */
+.forecast-section { margin-top: 12px; }
+.forecast-title { font-size: 13px; font-weight: 600; color: var(--france-blue); margin-bottom: 8px; }
+.forecast-branches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.forecast-branch { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.fb-label { flex: 0 0 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937; }
+.fb-bar { flex: 1 1 auto; height: 7px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+.fb-fill { display: block; height: 100%; border-radius: 999px; background: var(--france-blue-light); }
+.fb-pct { flex: 0 0 34px; text-align: right; font-weight: 600; color: var(--france-blue); }
+.fb-med { flex: 0 0 auto; color: #6b7280; font-size: 11px; white-space: nowrap; }
+.forecast-note { margin-top: 6px; font-size: 11px; color: #9ca3af; }
