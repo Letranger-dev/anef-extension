@@ -35,6 +35,9 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
+      - name: Build forecast (branches probables pour l'extension)
+        run: node scripts/build-forecast.js
+
       - name: Inject Supabase credentials
         run: |
           # Vérifier que les secrets ne sont pas vides

@@ -149,6 +149,7 @@
     'accueil.sans_entretien_warning': 'ملف في مرحلة القرار دون المرور بالمقابلة — يُحتمل التأجيل أو الحفظ المبكر',
 
     'pill.controle_a_affecter.label': 'رقابة بانتظار التعيين', 'pill.controle_a_affecter.short': 'للتعيين',
+    'pill.controle_sdanf.label': 'رقابة SDANF', 'pill.controle_sdanf.short': 'SDANF',
     'pill.controle_a_effectuer.label': 'رقابة للتنفيذ', 'pill.controle_a_effectuer.short': 'للتنفيذ',
     'pill.controle_en_attente_pec.label': 'بانتظار SCEC', 'pill.controle_en_attente_pec.short': 'انتظار SCEC',
     'pill.controle_pec_a_faire.label': 'تحقّق الحالة المدنية', 'pill.controle_pec_a_faire.short': 'تحقّق مدني',
@@ -157,6 +158,7 @@
     'pill.inseree_dans_decret.label': 'مُدرج في المرسوم', 'pill.inseree_dans_decret.short': 'في المرسوم',
 
     'sublabel.controle_a_affecter': 'بانتظار التعيين',
+    'sublabel.controle_sdanf': 'الرقابة الوزارية',
     'sublabel.controle_a_effectuer': 'الرقابة جارية',
     'sublabel.controle_en_attente_pec': 'أُرسل إلى SCEC',
     'sublabel.controle_pec_a_faire': 'تحقّق الحالة المدنية',
@@ -184,8 +186,7 @@
     'badge.waiting': 'قيد الانتظار',
     'badge.status_changed': 'تغيّرت الحالة',
 
-    'mouv.arrivedStep9': { one: 'ملف انتقل إلى مرحلة SDANF', two: 'ملفان انتقلا إلى مرحلة SDANF', few: 'ملفات انتقلت إلى مرحلة SDANF', many: 'ملفًا انتقل إلى مرحلة SDANF', other: 'ملف انتقل إلى مرحلة SDANF' },
-    'mouv.caaToCAE': { one: 'ملف تولّته SDANF', two: 'ملفان تولّتهما SDANF', few: 'ملفات تولّتها SDANF', many: 'ملفًا تولّته SDANF', other: 'ملف تولّته SDANF' },
+    'mouv.entreControleSdanf': { one: 'ملف دخل الرقابة الوزارية SDANF', two: 'ملفان دخلا الرقابة الوزارية SDANF', few: 'ملفات دخلت الرقابة الوزارية SDANF', many: 'ملفًا دخل الرقابة الوزارية SDANF', other: 'ملف دخل الرقابة الوزارية SDANF' },
     'mouv.sdanfToSCEC': { one: 'ملف حُوّل إلى SCEC', two: 'ملفان حُوّلا إلى SCEC', few: 'ملفات حُوّلت إلى SCEC', many: 'ملفًا حُوّل إلى SCEC', other: 'ملف حُوّل إلى SCEC' },
     'mouv.arrivedDecret': { one: 'ملف أُدرج في المرسوم', two: 'ملفان أُدرِجا في المرسوم', few: 'ملفات أُدرِجت في المرسوم', many: 'ملفًا أُدرِج في المرسوم', other: 'ملف أُدرج في المرسوم' },
 
@@ -307,6 +308,7 @@
     'short.prop_decision_pref_prop_a_editer': 'تحرير القرار',
     'short.prop_decision_pref_en_attente_retour_signataire': 'توقيع المحافظ',
     'short.controle_a_affecter': 'انتظار SDANF',
+    'short.controle_sdanf': 'رقابة SDANF',
     'short.controle_a_effectuer': 'رقابة SDANF',
     'short.controle_en_attente_pec': 'أُرسل SCEC',
     'short.controle_pec_a_faire': 'تحقّق SCEC',
@@ -427,6 +429,9 @@
     'status.controle_a_affecter.phase': 'رقابة SDANF',
     'status.controle_a_affecter.explication': 'وصل إلى SDANF، بانتظار التعيين',
     'status.controle_a_affecter.description': 'وصل ملفك إلى المديرية الفرعية للوصول إلى الجنسية الفرنسية (SDANF) في Rezé (44). وينتظر إسناده إلى موظف للرقابة الوزارية.',
+    'status.controle_sdanf.phase': 'رقابة SDANF',
+    'status.controle_sdanf.explication': 'الرقابة الوزارية SDANF',
+    'status.controle_sdanf.description': 'ملفك في SDANF (Rezé، 44) للرقابة الوزارية: التحقق من وثائق الحالة المدنية، والاتساق، والشروط القانونية. قد تستغرق هذه المرحلة عدة أسابيع.',
 
     'status.controle_a_effectuer.phase': 'رقابة SDANF',
     'status.controle_a_effectuer.explication': 'الرقابة الوزارية جارية',

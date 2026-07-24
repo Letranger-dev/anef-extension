@@ -3167,3 +3167,39 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
     padding-right: max(0.85rem, env(safe-area-inset-right));
   }
 }
+
+/* ─── Prévision : branches probables + chaîne décomposée (Vague 2) ─────── */
+
+.est-breakdown { margin-top: 1rem; }
+.prev-block { margin-top: 1rem; }
+.prev-head {
+  font-weight: 600; font-size: 0.9rem; color: var(--text);
+  margin-bottom: 0.5rem;
+}
+.prev-basis { font-weight: 400; font-size: 0.8rem; color: var(--text-muted); }
+.prev-note { font-size: 0.85rem; color: var(--text-muted); margin: 0.75rem 0 0; }
+
+/* Branches « ça ou ça » */
+.prev-branches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.prev-branch { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
+.pb-label { flex: 0 0 40%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.pb-bar { flex: 1 1 auto; height: 8px; border-radius: 999px; background: rgba(var(--border-rgb), 0.6); overflow: hidden; }
+.pb-fill { display: block; height: 100%; border-radius: 999px; background: var(--primary-light); }
+.pb-pct { flex: 0 0 2.6rem; text-align: right; font-weight: 600; color: var(--primary); }
+.pb-med { flex: 0 0 auto; color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
+
+/* Chaîne décomposée jusqu'au décret */
+.prev-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.35rem; }
+.chain-node {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0.35rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-card); min-width: 3.5rem;
+}
+.cn-phase { font-size: 0.78rem; color: var(--text); font-weight: 600; text-align: center; line-height: 1.15; }
+.cn-days { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.chain-arrow { align-self: center; color: var(--text-dim); font-weight: 700; }
+
+@media (max-width: 560px) {
+  .pb-label { flex-basis: 50%; }
+  .pb-med { display: none; }
+}

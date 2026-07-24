@@ -424,7 +424,7 @@
    *  at that step). One data point per (dossier, step) — no double-counting dossiers
    *  with many identical snapshots, and earlier steps benefit from historical snapshots
    *  of dossiers that have since progressed. */
-  var STEP9_STATUTS = ['controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
+  var STEP9_STATUTS = ['controle_sdanf', 'controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
 
   function _bucketKeyFor(s) {
     var STATUTS = ANEF.constants.STATUTS;

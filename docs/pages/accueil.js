@@ -349,6 +349,7 @@
       'prop_decision_pref_en_attente_retour_hierarchique': 'Valid. hi\u00e9rarch.',
       'prop_decision_pref_prop_a_editer': 'R\u00e9daction d\u00e9c.',
       'prop_decision_pref_en_attente_retour_signataire': 'Signature pr\u00e9fet',
+      'controle_sdanf': 'SDANF contr\u00f4le',
       'controle_a_affecter': 'SDANF attente', 'controle_a_effectuer': 'SDANF contr\u00f4le',
       'controle_en_attente_pec': 'SCEC transmis', 'controle_pec_a_faire': 'SCEC v\u00e9rif.',
       'controle_transmise_pour_decret': 'Avis favorable',
@@ -504,6 +505,17 @@
     return new Date(s.lastChecked).getTime() >= Date.now() - FRESHNESS_DAYS * 86400000;
   }
 
+  // Regroupement d'AFFICHAGE des sous-états de contrôle SDANF dans la section
+  // « Contrôle SDANF & SCEC » (pills + KPI-bar + filtre) : le nouveau code unifié
+  // controle_sdanf et les anciens controle_a_affecter / controle_a_effectuer sont
+  // présentés comme UN seul groupe « Contrôle SDANF ». ⚠️ Les LIGNES de dossier
+  // gardent leur vrai statut (badge réel). SCEC (PEC) reste distinct.
+  var _SDANF_CONTROL_GROUP = { 'controle_a_affecter': 'controle_sdanf', 'controle_a_effectuer': 'controle_sdanf' };
+  function sdanfGroup(code) {
+    code = (code || '').toLowerCase();
+    return _SDANF_CONTROL_GROUP[code] || code;
+  }
+
   function renderSdanfWait(summaries) {
     // Dossiers étape 9 + sous-statuts spécifiques étapes 10-11 (vérifs finales + PPID + IDD)
     var EXTRA_PRE_DECRET_STATUTS = {
@@ -522,6 +534,7 @@
       return { label: ANEF.t('pill.' + code + '.label'), short: ANEF.t('pill.' + code + '.short'), color: color };
     };
     var STATUT_PILLS = {
+      'controle_sdanf': _pill('controle_sdanf', '#f59e0b'),
       'controle_a_affecter': _pill('controle_a_affecter', '#f59e0b'),
       'controle_a_effectuer': _pill('controle_a_effectuer', '#3b82f6'),
       'controle_en_attente_pec': _pill('controle_en_attente_pec', '#8b5cf6'),
@@ -534,7 +547,7 @@
     var prefs = {};
     for (var i = 0; i < sdanfState.all.length; i++) {
       var st = sdanfState.all[i].statut;
-      if (st) statuts[st.toLowerCase()] = true;
+      if (st) statuts[sdanfGroup(st)] = true;
       var p = sdanfState.all[i].prefecture;
       if (p) prefs[p] = true;
     }
@@ -561,8 +574,8 @@
   function getSdanfFiltered() {
     var data = sdanfState.all;
     if (sdanfState.statut) {
-      var filterStatut = sdanfState.statut.toLowerCase();
-      data = data.filter(function(s) { return (s.statut || '').toLowerCase() === filterStatut; });
+      var filterStatut = sdanfGroup(sdanfState.statut);
+      data = data.filter(function(s) { return sdanfGroup(s.statut) === filterStatut; });
     }
     if (sdanfState.pref) {
       data = data.filter(function(s) { return s.prefecture === sdanfState.pref; });
@@ -605,7 +618,7 @@
     // KPIs — count by exact sub-status (lowercase keys)
     var subCounts = {};
     for (var k = 0; k < data.length; k++) {
-      var st = (data[k].statut || 'inconnu').toLowerCase();
+      var st = sdanfGroup(data[k].statut || 'inconnu');
       subCounts[st] = (subCounts[st] || 0) + 1;
     }
     var days = data.map(function(s) { return s.daysAtCurrentStatus || 0; });
@@ -613,6 +626,7 @@
     var maxD = total ? Math.max.apply(null, days) : 0;
 
     var SUB_LABELS = {
+      'controle_sdanf': { short: ANEF.t('sublabel.controle_sdanf'), cls: 'orange' },
       'controle_a_affecter': { short: ANEF.t('sublabel.controle_a_affecter'), cls: 'orange' },
       'controle_a_effectuer': { short: ANEF.t('sublabel.controle_a_effectuer'), cls: '' },
       'controle_en_attente_pec': { short: ANEF.t('sublabel.controle_en_attente_pec'), cls: 'violet' },
@@ -649,6 +663,7 @@
     // Render rows (étapes 9 et 10 partagent la même couleur amber)
     var color = C.STEP_COLORS[9];
     var BADGE_MAP = {
+      'controle_sdanf': { text: '9 ' + ANEF.t('sublabel.controle_sdanf'), cls: 'badge-entretien-non' },
       'controle_a_affecter': { text: '9.1 ' + ANEF.t('sublabel.controle_a_affecter'), cls: 'badge-entretien-non' },
       'controle_a_effectuer': { text: '9.2 ' + ANEF.t('sublabel.controle_a_effectuer'), cls: 'badge-entretien-non' },
       'controle_en_attente_pec': { text: '9.3 ' + ANEF.t('sublabel.controle_en_attente_pec'), cls: 'badge-entretien-oui' },
@@ -1077,7 +1092,6 @@
   // ─── Mouvements du jour ────────────────────────────────
 
   var mouvementsState = { period: 0, transitions: [], grouped: null };
-  var SDANF_STATUTS = { 'controle_a_affecter': true, 'controle_a_effectuer': true };
   var SCEC_STATUTS = { 'controle_en_attente_pec': true, 'controle_pec_a_faire': true };
 
   var _dailyMovCache = {};
@@ -1095,7 +1109,7 @@
       cutoff = new Date(startOfToday.getTime() - periodDays * 86400000);
     }
 
-    var caaToCAE = 0, sdanfToSCEC = 0, arrivedStep9 = 0, arrivedDecret = 0;
+    var entreControleSdanf = 0, sdanfToSCEC = 0, arrivedDecret = 0;
 
     // Comptage basé sur les snapshots groupés — fiable car indépendant de l'ordre des transitions
     // On cherche le premier snapshot de chaque catégorie et on vérifie son created_at
@@ -1106,21 +1120,11 @@
           statuts.push({ s: (snaps[i].statut || '').toLowerCase(), etape: snaps[i].etape, created: snaps[i].created_at, source: snaps[i].source });
         }
 
-        // Arrivée étape 9 : premier snapshot à étape 9 (SDANF) quand il y avait une étape différente avant
-        var hadNon9 = false;
-        for (var j = 0; j < statuts.length; j++) {
-          if (statuts[j].etape !== 9) { hadNon9 = true; continue; }
-          if (hadNon9 && SDANF_STATUTS[statuts[j].s] && statuts[j].source !== 'manual' && new Date(statuts[j].created) >= cutoff) {
-            arrivedStep9++;
-          }
-          break;
-        }
-
-        // Pris en charge SDANF (CAA→CAE) : premier snapshot CAE quand le précédent est CAA
+        // Arrivés en contrôle SDANF : premier snapshot controle_sdanf du dossier
         for (var k = 0; k < statuts.length; k++) {
-          if (statuts[k].s === 'controle_a_effectuer') {
-            if (k > 0 && statuts[k - 1].s === 'controle_a_affecter' && statuts[k].source !== 'manual' && new Date(statuts[k].created) >= cutoff) {
-              caaToCAE++;
+          if (statuts[k].s === 'controle_sdanf') {
+            if (statuts[k].source !== 'manual' && new Date(statuts[k].created) >= cutoff) {
+              entreControleSdanf++;
             }
             break;
           }
@@ -1150,7 +1154,7 @@
       });
     }
 
-    var result = { caaToCAE: caaToCAE, sdanfToSCEC: sdanfToSCEC, arrivedStep9: arrivedStep9, arrivedDecret: arrivedDecret };
+    var result = { entreControleSdanf: entreControleSdanf, sdanfToSCEC: sdanfToSCEC, arrivedDecret: arrivedDecret };
     _dailyMovCache[periodDays] = result;
     return result;
   }
@@ -1169,7 +1173,7 @@
     var hasAny = false;
     for (var p = 0; p < periods.length; p++) {
       var m = computeDailyMovements(transitions, periods[p].value, mouvementsState.grouped);
-      if (m.caaToCAE || m.sdanfToSCEC || m.arrivedStep9 || m.arrivedDecret) { hasAny = true; break; }
+      if (m.entreControleSdanf || m.sdanfToSCEC || m.arrivedDecret) { hasAny = true; break; }
     }
     if (!hasAny) {
       section.style.display = 'none';
@@ -1180,10 +1184,10 @@
     // Sélectionner la première période qui a des données
     if (mouvementsState.period === 0) {
       var todayM = computeDailyMovements(transitions, 0, mouvementsState.grouped);
-      if (!todayM.caaToCAE && !todayM.sdanfToSCEC && !todayM.arrivedStep9 && !todayM.arrivedDecret) {
+      if (!todayM.entreControleSdanf && !todayM.sdanfToSCEC && !todayM.arrivedDecret) {
         for (var q = 0; q < periods.length; q++) {
           var qm = computeDailyMovements(transitions, periods[q].value, mouvementsState.grouped);
-          if (qm.caaToCAE || qm.sdanfToSCEC || qm.arrivedStep9 || qm.arrivedDecret) {
+          if (qm.entreControleSdanf || qm.sdanfToSCEC || qm.arrivedDecret) {
             mouvementsState.period = periods[q].value;
             break;
           }
@@ -1223,8 +1227,7 @@
     var m = computeDailyMovements(mouvementsState.transitions, mouvementsState.period, mouvementsState.grouped);
 
     var notifs = [
-      { count: m.arrivedStep9, color: 'violet', type: 'arrivedStep9', text: function(n) { return ANEF.tn('mouv.arrivedStep9', n); } },
-      { count: m.caaToCAE, color: 'primary', type: 'caaToCAE', text: function(n) { return ANEF.tn('mouv.caaToCAE', n); } },
+      { count: m.entreControleSdanf, color: 'primary', type: 'entreControleSdanf', text: function(n) { return ANEF.tn('mouv.entreControleSdanf', n); } },
       { count: m.sdanfToSCEC, color: 'green', type: 'sdanfToSCEC', text: function(n) { return ANEF.tn('mouv.sdanfToSCEC', n); } },
       { count: m.arrivedDecret, color: 'warning', type: 'arrivedDecret', text: function(n) { return ANEF.tn('mouv.arrivedDecret', n); } }
     ];
@@ -1302,22 +1305,11 @@
         statuts.push((snaps[i].statut || '').toLowerCase());
       }
 
-      if (type === 'arrivedStep9') {
-        var hadNon9 = false;
-        for (var j = 0; j < snaps.length; j++) {
-          if (snaps[j].etape !== 9) { hadNon9 = true; continue; }
-          if (hadNon9 && SDANF_STATUTS[statuts[j]] && snaps[j].source !== 'manual' && new Date(snaps[j].created_at) >= cutoff) {
-            results.push(snapshotToTransition(snaps[j], j > 0 ? snaps[j - 1] : null, hash));
-          }
-          break;
-        }
-      }
-
-      if (type === 'caaToCAE') {
+      if (type === 'entreControleSdanf') {
         for (var k = 0; k < snaps.length; k++) {
-          if (statuts[k] === 'controle_a_effectuer') {
-            if (k > 0 && statuts[k - 1] === 'controle_a_affecter' && snaps[k].source !== 'manual' && new Date(snaps[k].created_at) >= cutoff) {
-              results.push(snapshotToTransition(snaps[k], snaps[k - 1], hash));
+          if (statuts[k] === 'controle_sdanf') {
+            if (snaps[k].source !== 'manual' && new Date(snaps[k].created_at) >= cutoff) {
+              results.push(snapshotToTransition(snaps[k], k > 0 ? snaps[k - 1] : null, hash));
             }
             break;
           }
@@ -1353,8 +1345,7 @@
   }
 
   var MOVEMENT_TITLES = {
-    arrivedStep9: 'Dossiers pass\u00e9s \u00e0 l\u2019\u00e9tape SDANF',
-    caaToCAE: 'Dossiers pris en charge par la SDANF',
+    entreControleSdanf: 'Dossiers arrivés en contrôle SDANF',
     sdanfToSCEC: 'Dossiers transf\u00e9r\u00e9s au SCEC',
     arrivedDecret: 'Dossiers ins\u00e9r\u00e9s dans le d\u00e9cret'
   };
@@ -1444,8 +1435,7 @@
   // ─── Mouvements Chart ───────────────────────────────────
 
   var MOUVEMENT_SERIES = [
-    { key: 'arrivedStep9', label: 'Arriv\u00e9s SDANF', color: '#8b5cf6' },
-    { key: 'caaToCAE', label: 'Pris en charge SDANF', color: '#3b82f6' },
+    { key: 'entreControleSdanf', label: 'Arrivés contrôle SDANF', color: '#3b82f6' },
     { key: 'sdanfToSCEC', label: 'Transf\u00e9r\u00e9s SCEC', color: '#10b981' },
     { key: 'arrivedDecret', label: 'Ins\u00e9r\u00e9s d\u00e9cret', color: '#f59e0b' }
   ];
@@ -1470,10 +1460,9 @@
   }
 
   function classifyTransition(t) {
-    var r = { arrivedStep9: 0, caaToCAE: 0, sdanfToSCEC: 0, arrivedDecret: 0 };
-    if (t.fromStatut === 'controle_a_affecter' && t.toStatut === 'controle_a_effectuer') r.caaToCAE = 1;
+    var r = { entreControleSdanf: 0, sdanfToSCEC: 0, arrivedDecret: 0 };
+    if (t.toStatut === 'controle_sdanf' && t.fromStatut !== 'controle_sdanf') r.entreControleSdanf = 1;
     if (t.type !== 'first_seen' && SCEC_STATUTS[t.toStatut] && !SCEC_STATUTS[t.fromStatut]) r.sdanfToSCEC = 1;
-    if (t.type === 'step_change' && t.toStep === 9 && t.fromStep !== 9 && SDANF_STATUTS[t.toStatut]) r.arrivedStep9 = 1;
     if (t.type === 'step_change' && t.toStep === 11 && t.fromStep !== 11) r.arrivedDecret = 1;
     return r;
   }
@@ -1490,11 +1479,10 @@
       if (toDate && d > toDate) continue;
 
       var label = granularity === 'month' ? getMonthLabel(t.created_at) : getWeekLabel(t.created_at);
-      if (!buckets[label]) buckets[label] = { arrivedStep9: 0, caaToCAE: 0, sdanfToSCEC: 0, arrivedDecret: 0, _sort: d };
+      if (!buckets[label]) buckets[label] = { entreControleSdanf: 0, sdanfToSCEC: 0, arrivedDecret: 0, _sort: d };
 
       var cls = classifyTransition(t);
-      buckets[label].arrivedStep9 += cls.arrivedStep9;
-      buckets[label].caaToCAE += cls.caaToCAE;
+      buckets[label].entreControleSdanf += cls.entreControleSdanf;
       buckets[label].sdanfToSCEC += cls.sdanfToSCEC;
       buckets[label].arrivedDecret += cls.arrivedDecret;
     }
@@ -1510,7 +1498,7 @@
     var hasData = false;
     for (var i = 0; i < transitions.length; i++) {
       var cls = classifyTransition(transitions[i]);
-      if (cls.arrivedStep9 || cls.caaToCAE || cls.sdanfToSCEC || cls.arrivedDecret) { hasData = true; break; }
+      if (cls.entreControleSdanf || cls.sdanfToSCEC || cls.arrivedDecret) { hasData = true; break; }
     }
     if (!hasData) { section.style.display = 'none'; return; }
     section.style.display = '';

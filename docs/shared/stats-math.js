@@ -264,6 +264,151 @@
     return curve;
   }
 
+  // ─────────────────────────────────────────────────────────────
+  //  Vague 2 — Prévision : branches probables + estimation décomposée
+  //  Branches au niveau STATUT (CAA/CAE/controle_sdanf DISTINCTS). L'estimation
+  //  décomposée, elle, replie les 3 sous-états de contrôle SDANF en un seul nœud
+  //  (même phase, ères d'API différentes) pour ne pas sur-compter l'étape 9.
+  // ─────────────────────────────────────────────────────────────
+
+  /** Nœud de statut normalisé pour un snapshot : { key, phase, rang } ou null.
+   *  Statut BRUT : CAA/CAE/controle_sdanf restent distincts (branches par sous-état). */
+  function _statutNode(snap) {
+    var raw = (snap && snap.statut ? String(snap.statut) : '').toLowerCase().trim();
+    if (!raw) return null;
+    var info = ANEF.constants.STATUTS[raw];
+    return {
+      key: raw,
+      phase: info ? info.phase : (snap.phase || raw),
+      rang: info ? info.rang : (Number(snap.etape) || 0) * 100
+    };
+  }
+
+  /**
+   * Branches probables : pour chaque statut SOURCE, les statuts CIBLE observés en
+   * transition, avec part (%) et délai médian. Le « ça ou ça » de la prévision.
+   * @param {Map} grouped  hash → snapshots triés par date
+   * @returns {Object} { <statutSource>: { from, from_phase, from_rang, total,
+   *            branches: [{to, to_phase, to_rang, count, pct, median_days, sample}] } }
+   */
+  function computeBranchesByStatus(grouped) {
+    var out = {};
+    grouped.forEach(function(snaps) {
+      if (!snaps || snaps.length < 2) return;
+      for (var i = 1; i < snaps.length; i++) {
+        var pm = _statutNode(snaps[i - 1]);
+        var cm = _statutNode(snaps[i]);
+        if (!pm || !cm || pm.key === cm.key) continue;
+        if (!snaps[i - 1].date_statut || !snaps[i].date_statut) continue;
+        var days = ANEF.utils.daysDiff(snaps[i - 1].date_statut, snaps[i].date_statut);
+        if (days === null || days < 0) continue;
+        if (!out[pm.key]) out[pm.key] = { from: pm.key, from_phase: pm.phase, from_rang: pm.rang, total: 0, _t: {} };
+        var o = out[pm.key];
+        if (!o._t[cm.key]) o._t[cm.key] = { to: cm.key, to_phase: cm.phase, to_rang: cm.rang, days: [] };
+        o._t[cm.key].days.push(days);
+        o.total++;
+      }
+    });
+    var res = {};
+    Object.keys(out).forEach(function(k) {
+      var o = out[k];
+      var branches = Object.keys(o._t).map(function(tk) {
+        var t = o._t[tk];
+        return {
+          to: t.to, to_phase: t.to_phase, to_rang: t.to_rang,
+          count: t.days.length,
+          pct: Math.round(t.days.length / o.total * 100),
+          median_days: Math.round(ANEF.utils.medianCalc(t.days)),
+          sample: t.days.length
+        };
+      }).sort(function(a, b) { return b.count - a.count; });
+      res[k] = { from: o.from, from_phase: o.from_phase, from_rang: o.from_rang, total: o.total, branches: branches };
+    });
+    return res;
+  }
+
+  /**
+   * Estimation DÉCOMPOSÉE du temps restant jusqu'au décret : somme la durée médiane
+   * (p25/p50/p75) de chaque étape/statut À VENIR (rang > courant, avant le décret),
+   * triée par rang. Les 3 sous-états de contrôle SDANF (controle_sdanf / _a_affecter /
+   * _a_effectuer) sont repliés en un seul nœud pour ne pas sur-compter l'étape 9.
+   * @param {string} currentStatut
+   * @param {Array}  waitTimesArr  sortie de data.computeStepWaitTimes (par statut)
+   * @returns {{chain, p25, p50, p75, sample, confidence, reachedDecret}}
+   */
+  function estimateToDecret(currentStatut, waitTimesArr) {
+    var C = ANEF.constants;
+    var DECRET_RANG = 1101; // inseree_dans_decret : au-delà = terminal
+    var SDANF_CTRL = { 'controle_sdanf': 1, 'controle_a_affecter': 1, 'controle_a_effectuer': 1 };
+    var code = String(currentStatut || '').toLowerCase();
+    var cinfo = C.STATUTS[code];
+    var currentRang = cinfo ? cinfo.rang : 0;
+
+    // Buckets non-SDANF → nœuds ordinaires (par statut étape 9 hors contrôle, par étape
+    // sinon). Les 3 sous-états de contrôle SDANF sont mis de côté (nœud unique plus bas).
+    var nodes = {};
+    var sdanf = {};
+    (waitTimesArr || []).forEach(function(w) {
+      if (!w) return;
+      var raw = w.statut ? String(w.statut).toLowerCase() : null;
+      if (raw && SDANF_CTRL[raw]) { sdanf[raw] = (sdanf[raw] || []).concat(w.days || []); return; }
+      var key, rang, phase;
+      if (w.statut) { var fi = C.STATUTS[raw]; key = 'statut:' + raw; rang = fi ? fi.rang : w.rang; phase = fi ? fi.phase : w.phase; }
+      else { key = 'etape:' + w.etape; rang = w.rang; phase = w.phase; }
+      if (!nodes[key]) nodes[key] = { rang: rang, phase: phase, days: [] };
+      nodes[key].days = nodes[key].days.concat(w.days || []);
+    });
+
+    // Liste des nœuds prêts { rang, phase, p25, p50, p75, sample }.
+    var list = [];
+    Object.keys(nodes).forEach(function(k) {
+      var n = nodes[k];
+      if (!n.days.length) return;
+      list.push({ rang: n.rang, phase: n.phase, sample: n.days.length,
+        p25: Math.round(percentile(n.days, 25)), p50: Math.round(percentile(n.days, 50)), p75: Math.round(percentile(n.days, 75)) });
+    });
+
+    // Nœud SDANF UNIQUE : le code unifié controle_sdanf s'il a des données (ère post-API,
+    // durée en un seul bucket) ; SINON la SOMME séquentielle des sous-états historiques
+    // (à affecter PUIS à effectuer = vraie durée de la phase). Jamais les deux ensemble
+    // → pas de double-compte, pas de sous-estimation.
+    var sdInfo = C.STATUTS['controle_sdanf'];
+    var sdRang = sdInfo ? sdInfo.rang : 900, sdPhase = sdInfo ? sdInfo.phase : 'Contrôle SDANF';
+    var pc = function(arr, p) { return arr && arr.length ? percentile(arr, p) : 0; };
+    var newer = sdanf['controle_sdanf'] || [];
+    if (newer.length) {
+      list.push({ rang: sdRang, phase: sdPhase, sample: newer.length,
+        p25: Math.round(pc(newer, 25)), p50: Math.round(pc(newer, 50)), p75: Math.round(pc(newer, 75)) });
+    } else {
+      var caa = sdanf['controle_a_affecter'] || [], cae = sdanf['controle_a_effectuer'] || [];
+      if (caa.length || cae.length) {
+        list.push({ rang: sdRang, phase: sdPhase,
+          sample: Math.min(caa.length || cae.length, cae.length || caa.length),
+          p25: Math.round(pc(caa, 25) + pc(cae, 25)), p50: Math.round(pc(caa, 50) + pc(cae, 50)), p75: Math.round(pc(caa, 75) + pc(cae, 75)) });
+      }
+    }
+
+    // Chaîne = nœuds À VENIR (rang > courant) jusqu'au décret, triés par rang.
+    var chain = [];
+    var sampleMin = Infinity;
+    list.filter(function(n) { return n.rang > currentRang && n.rang < DECRET_RANG; })
+      .sort(function(a, b) { return a.rang - b.rang; })
+      .forEach(function(n) {
+        chain.push({ phase: n.phase, rang: n.rang, p25: n.p25, p50: n.p50, p75: n.p75, sample: n.sample });
+        if (n.sample < sampleMin) sampleMin = n.sample;
+      });
+
+    var totalP25 = 0, totalP50 = 0, totalP75 = 0;
+    chain.forEach(function(c) { totalP25 += c.p25; totalP50 += c.p50; totalP75 += c.p75; });
+    return {
+      chain: chain,
+      p25: totalP25, p50: totalP50, p75: totalP75,
+      sample: sampleMin === Infinity ? 0 : sampleMin,
+      confidence: sampleMin >= 10 ? 'high' : sampleMin >= 5 ? 'medium' : 'low',
+      reachedDecret: currentRang >= DECRET_RANG
+    };
+  }
+
   ANEF.math = {
     percentile: percentile,
     quartiles: quartiles,
@@ -271,6 +416,8 @@
     computeCohorts: computeCohorts,
     estimateRemainingDuration: estimateRemainingDuration,
     computeTransitionsDetailed: computeTransitionsDetailed,
-    survivalCurve: survivalCurve
+    survivalCurve: survivalCurve,
+    computeBranchesByStatus: computeBranchesByStatus,
+    estimateToDecret: estimateToDecret
   };
 })();

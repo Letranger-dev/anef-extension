@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.35.1';
+  var SITE_VERSION = '1.36.0';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -193,6 +193,13 @@
     },
 
     // ── Étape 9 : Contrôle SDANF & SCEC ─────────────────────────
+    // Statut unifié « Contrôle SDANF » (nouveaux dossiers depuis le changement d'API
+    // juillet 2026). Les anciens dossiers gardent controle_a_affecter / controle_a_effectuer.
+    "controle_sdanf": {
+      phase: "Contrôle SDANF", explication: "Contrôle ministériel SDANF", etape: 9, rang: 900,
+      description: "Votre dossier est à la Sous-Direction de l'Accès à la Nationalité Française (SDANF) à Rezé (44) pour le contrôle ministériel : vérification des pièces d'état civil, cohérence des informations, respect des conditions légales. Cette étape peut prendre plusieurs semaines.",
+      icon: "🏛️"
+    },
     "controle_a_affecter": {
       phase: "Contrôle SDANF", explication: "Arrivé à la SDANF, attente affectation", etape: 9, rang: 901,
       description: "Votre dossier est arrivé à la Sous-Direction de l'Accès à la Nationalité Française (SDANF) à Rezé (44). Il attend d'être attribué à un agent pour le contrôle ministériel.",

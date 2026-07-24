@@ -375,6 +375,7 @@
       { key: 6, label: ANEF.t('prefectures.hm_complet'), title: C.PHASE_NAMES[6] },
       { key: 7, label: ANEF.t('prefectures.hm_entretien'), title: C.PHASE_NAMES[7] },
       { key: 8, label: ANEF.t('prefectures.hm_decision'), title: C.PHASE_NAMES[8] },
+      { key: 'controle_sdanf', label: 'SDANF', title: ANEF.t('prefectures.hm_sdanf_title') },
       { key: 'controle_a_affecter', label: 'CAA', title: ANEF.t('prefectures.hm_caa_title') },
       { key: 'controle_a_effectuer', label: 'CAE', title: ANEF.t('prefectures.hm_cae_title') },
       { key: 'controle_en_attente_pec', label: 'CEAP', title: ANEF.t('prefectures.hm_ceap_title') },

@@ -170,6 +170,8 @@
   function updateEstimator() {
     var statut = estimatorStatut;
     var pref = estimatorPrefecture || null;
+    // Isolé : une erreur de prévision ne doit pas casser les 3 cartes d'estimation.
+    try { renderPrevision(statut, pref); } catch (e) { console.warn('[Délais] prévision indisponible:', e); }
     var currentInfo = C.STATUTS[statut];
     var currentRang = currentInfo ? currentInfo.rang : 0;
 
@@ -266,8 +268,90 @@
       });
   }
 
+  // ─── Prévision (Vague 2) : branches probables + chaîne décomposée ───
+  // CAA et CAE restent DISTINCTS (statut brut) — cohérent avec le reste du site.
+  function _prevGrouped(pref) {
+    if (!pref) return state.grouped;
+    var fg = new Map();
+    state.grouped.forEach(function(snaps, h) {
+      for (var x = 0; x < snaps.length; x++) {
+        if (snaps[x].prefecture === pref) { fg.set(h, snaps); break; }
+      }
+    });
+    return fg;
+  }
+
+  function renderPrevision(statut, pref) {
+    var el = document.getElementById('est-breakdown');
+    if (!el) return;
+    var code = (statut || '').toLowerCase();
+    var info = C.STATUTS[code];
+    var rang = info ? info.rang : 0;
+
+    if (rang >= 1101) { el.innerHTML = '<p class="prev-note">' + ANEF.t('delais.prev_at_decret') + '</p>'; return; }
+
+    var grp = _prevGrouped(pref);
+    var branches, waitTimes;
+    if (!pref) {
+      if (!state._branchesAll) state._branchesAll = M.computeBranchesByStatus(grp);
+      if (!state._waitAll) state._waitAll = D.computeStepWaitTimes(grp);
+      branches = state._branchesAll; waitTimes = state._waitAll;
+    } else {
+      branches = M.computeBranchesByStatus(grp);
+      waitTimes = D.computeStepWaitTimes(grp);
+    }
+    var est = M.estimateToDecret(statut, waitTimes);
+    var br = branches[code];
+
+    // Branches sortantes : avancée (to_rang > courant) avec assez d'échantillon (≥3).
+    var fwd = br ? br.branches.filter(function(b) { return b.to_rang > rang && b.sample >= 3; }) : [];
+    var totalFwd = 0; fwd.forEach(function(b) { totalFwd += b.count; });
+    fwd = fwd.slice(0, 5);
+
+    if (!fwd.length && !est.chain.length) {
+      el.innerHTML = '<p class="prev-note">' + ANEF.t('delais.prev_empty') + '</p>';
+      return;
+    }
+
+    var html = '';
+    if (fwd.length) {
+      html += '<div class="prev-block"><div class="prev-head">' + U.escapeHtml(ANEF.t('delais.prev_branches_title')) +
+        ' <span class="prev-basis">· ' + ANEF.tn('delais.prev_branches_basis', totalFwd) + '</span></div><ul class="prev-branches">';
+      for (var i = 0; i < fwd.length; i++) {
+        var b = fwd[i];
+        var pct = totalFwd ? Math.round(b.count / totalFwd * 100) : b.pct;
+        var bInfo = C.STATUTS[b.to];
+        var label = (bInfo && (bInfo.explication || bInfo.phase)) || b.to_phase || b.to;
+        html += '<li class="prev-branch">' +
+          '<span class="pb-label" title="' + U.escapeHtml(label) + '">' + U.escapeHtml(label) + '</span>' +
+          '<span class="pb-bar"><span class="pb-fill" style="width:' + pct + '%"></span></span>' +
+          '<span class="pb-pct">' + pct + '%</span>' +
+          '<span class="pb-med">~' + U.escapeHtml(U.formatDuration(b.median_days)) + '</span></li>';
+      }
+      html += '</ul></div>';
+    }
+
+    if (est.chain.length) {
+      html += '<div class="prev-block"><div class="prev-head">' + U.escapeHtml(ANEF.t('delais.prev_chain_title')) +
+        ' <span class="prev-basis">· ' + U.escapeHtml(ANEF.t('delais.prev_chain_total')) + ' ≈ ' + U.escapeHtml(U.formatDuration(est.p50)) + '</span></div>' +
+        '<div class="prev-chain">';
+      for (var j = 0; j < est.chain.length; j++) {
+        var c = est.chain[j];
+        // Préfixe le n° de sous-étape (9.1/9.2/…) pour distinguer p.ex. les 2 sous-états SDANF.
+        var sub = (c.rang % 100 !== 0) ? (C.formatSubStep(c.rang) + ' ') : '';
+        html += (j > 0 ? '<span class="chain-arrow">→</span>' : '') +
+          '<span class="chain-node"><span class="cn-phase">' + U.escapeHtml(sub + c.phase) + '</span>' +
+          '<span class="cn-days">' + U.escapeHtml(U.formatDuration(c.p50)) + '</span></span>';
+      }
+      html += '</div></div>';
+    }
+
+    el.innerHTML = html;
+  }
+
   // Short names for step 9 sub-statuts (acronyms SDANF/SCEC kept, descriptor i18n)
   var STEP9_SHORT = {
+    'controle_sdanf': 'SDANF ' + ANEF.t('delais.step9_control'),
     'controle_a_affecter': 'SDANF ' + ANEF.t('delais.step9_affect'),
     'controle_a_effectuer': 'SDANF ' + ANEF.t('delais.step9_control'),
     'controle_en_attente_pec': 'SCEC ' + ANEF.t('delais.step9_transmit'),
@@ -320,7 +404,7 @@
     var isMobile = containerW < 500;
     var chartLabels = durations.map(isMobile ? compactLabel : shortLabel);
     var fullLabels = durations.map(labelWithStatus);
-    var step9Colors = { 'controle_a_affecter': '#f59e0b', 'controle_a_effectuer': '#d97706', 'controle_en_attente_pec': '#b45309', 'controle_pec_a_faire': '#92400e' };
+    var step9Colors = { 'controle_sdanf': '#f59e0b', 'controle_a_affecter': '#f59e0b', 'controle_a_effectuer': '#d97706', 'controle_en_attente_pec': '#b45309', 'controle_pec_a_faire': '#92400e' };
     var colors = durations.map(function(d) {
       if (d.statut && step9Colors[d.statut]) return step9Colors[d.statut];
       return C.STEP_COLORS[d.etape] || C.STEP_COLORS[0];

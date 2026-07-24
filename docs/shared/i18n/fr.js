@@ -167,6 +167,7 @@
 
     // ── Pills SDANF (label long + court) ──
     'pill.controle_a_affecter.label': 'Contrôle à affecter', 'pill.controle_a_affecter.short': 'À affecter',
+    'pill.controle_sdanf.label': 'Contrôle SDANF', 'pill.controle_sdanf.short': 'Contrôle',
     'pill.controle_a_effectuer.label': 'Contrôle à effectuer', 'pill.controle_a_effectuer.short': 'À effectuer',
     'pill.controle_en_attente_pec.label': 'En attente PEC', 'pill.controle_en_attente_pec.short': 'Attente PEC',
     'pill.controle_pec_a_faire.label': 'PEC à faire', 'pill.controle_pec_a_faire.short': 'PEC à faire',
@@ -176,6 +177,7 @@
 
     // ── Sous-labels KPI bar SDANF ──
     'sublabel.controle_a_affecter': 'Attente affectation',
+    'sublabel.controle_sdanf': 'Contrôle ministériel',
     'sublabel.controle_a_effectuer': 'Contrôle en cours',
     'sublabel.controle_en_attente_pec': 'Transmis SCEC',
     'sublabel.controle_pec_a_faire': 'Vérif. état civil',
@@ -207,8 +209,7 @@
     'badge.status_changed': 'Statut modifié',
 
     // ── Mouvements du jour (phrases au pluriel) ──
-    'mouv.arrivedStep9': { one: 'dossier passé à l’étape SDANF', other: 'dossiers passés à l’étape SDANF' },
-    'mouv.caaToCAE': { one: 'dossier pris en charge par la SDANF', other: 'dossiers pris en charge par la SDANF' },
+    'mouv.entreControleSdanf': { one: 'dossier arrivé en contrôle SDANF', other: 'dossiers arrivés en contrôle SDANF' },
     'mouv.sdanfToSCEC': { one: 'dossier transféré au SCEC', other: 'dossiers transférés au SCEC' },
     'mouv.arrivedDecret': { one: 'dossier inséré dans le décret', other: 'dossiers insérés dans le décret' },
 

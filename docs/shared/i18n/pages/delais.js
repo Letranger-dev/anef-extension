@@ -54,7 +54,13 @@
     'delais.step9_affect': 'aff.',
     'delais.step9_control': 'ctrl',
     'delais.step9_transmit': 'trans.',
-    'delais.step9_verify': 'vérif.'
+    'delais.step9_verify': 'vérif.',
+    'delais.prev_branches_title': 'Prochaine étape probable',
+    'delais.prev_branches_basis': { one: '{n} dossier passé par ici', other: '{n} dossiers passés par ici' },
+    'delais.prev_chain_title': 'Chemin type jusqu’au décret',
+    'delais.prev_chain_total': 'cumul médian',
+    'delais.prev_empty': 'Trop peu de transitions observées depuis cette étape pour projeter.',
+    'delais.prev_at_decret': 'Votre dossier est déjà au stade décret — plus de projection nécessaire.'
   });
 
   ANEF.i18n.register('en', {
@@ -101,7 +107,13 @@
     'delais.step9_affect': 'assign',
     'delais.step9_control': 'ctrl',
     'delais.step9_transmit': 'transm.',
-    'delais.step9_verify': 'verif.'
+    'delais.step9_verify': 'verif.',
+    'delais.prev_branches_title': 'Likely next step',
+    'delais.prev_branches_basis': { one: '{n} case came through here', other: '{n} cases came through here' },
+    'delais.prev_chain_title': 'Typical path to decree',
+    'delais.prev_chain_total': 'median cumulative',
+    'delais.prev_empty': 'Too few observed transitions from this step to project.',
+    'delais.prev_at_decret': 'Your case is already at the decree stage — no projection needed.'
   });
 
   ANEF.i18n.register('es', {
@@ -148,7 +160,13 @@
     'delais.step9_affect': 'asign.',
     'delais.step9_control': 'ctrl',
     'delais.step9_transmit': 'transm.',
-    'delais.step9_verify': 'verif.'
+    'delais.step9_verify': 'verif.',
+    'delais.prev_branches_title': 'Próxima etapa probable',
+    'delais.prev_branches_basis': { one: '{n} expediente pasó por aquí', other: '{n} expedientes pasaron por aquí' },
+    'delais.prev_chain_title': 'Camino típico hasta el decreto',
+    'delais.prev_chain_total': 'acumulado mediano',
+    'delais.prev_empty': 'Muy pocas transiciones observadas desde esta etapa para proyectar.',
+    'delais.prev_at_decret': 'Su expediente ya está en la etapa de decreto — no se necesita proyección.'
   });
 
   ANEF.i18n.register('ar', {
@@ -195,7 +213,13 @@
     'delais.step9_affect': 'تخصيص',
     'delais.step9_control': 'مراقبة',
     'delais.step9_transmit': 'إحالة',
-    'delais.step9_verify': 'تحقّق'
+    'delais.step9_verify': 'تحقّق',
+    'delais.prev_branches_title': 'المرحلة التالية المحتملة',
+    'delais.prev_branches_basis': { one: '{n} ملف مرّ من هنا', other: '{n} ملفات مرّت من هنا' },
+    'delais.prev_chain_title': 'المسار النموذجي حتى المرسوم',
+    'delais.prev_chain_total': 'التراكم الوسيط',
+    'delais.prev_empty': 'عدد التحوّلات المرصودة من هذه المرحلة قليل جدًا للتوقّع.',
+    'delais.prev_at_decret': 'ملفك بالفعل في مرحلة المرسوم — لا حاجة للتوقّع.'
   });
 
   ANEF.i18n.register('zh', {
@@ -242,6 +266,12 @@
     'delais.step9_affect': '分配',
     'delais.step9_control': '核查',
     'delais.step9_transmit': '转交',
-    'delais.step9_verify': '复核'
+    'delais.step9_verify': '复核',
+    'delais.prev_branches_title': '可能的下一步',
+    'delais.prev_branches_basis': { one: '{n} 份案卷经过此处', other: '{n} 份案卷经过此处' },
+    'delais.prev_chain_title': '到法令的典型路径',
+    'delais.prev_chain_total': '中位累计',
+    'delais.prev_empty': '从此阶段观察到的转变太少，无法预测。',
+    'delais.prev_at_decret': '您的案卷已进入法令阶段 — 无需预测。'
   });
 })();

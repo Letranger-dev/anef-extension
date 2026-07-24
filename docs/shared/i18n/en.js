@@ -148,6 +148,7 @@
     'accueil.sans_entretien_warning': 'Case in the decision phase without having gone through the interview — adjournment or early closure likely',
 
     'pill.controle_a_affecter.label': 'Control to assign', 'pill.controle_a_affecter.short': 'To assign',
+    'pill.controle_sdanf.label': 'SDANF control', 'pill.controle_sdanf.short': 'SDANF',
     'pill.controle_a_effectuer.label': 'Control to perform', 'pill.controle_a_effectuer.short': 'To perform',
     'pill.controle_en_attente_pec.label': 'Awaiting SCEC', 'pill.controle_en_attente_pec.short': 'Await SCEC',
     'pill.controle_pec_a_faire.label': 'Civil status check', 'pill.controle_pec_a_faire.short': 'Civil check',
@@ -156,6 +157,7 @@
     'pill.inseree_dans_decret.label': 'Added to decree', 'pill.inseree_dans_decret.short': 'In decree',
 
     'sublabel.controle_a_affecter': 'Awaiting assignment',
+    'sublabel.controle_sdanf': 'Ministerial control',
     'sublabel.controle_a_effectuer': 'Control in progress',
     'sublabel.controle_en_attente_pec': 'Sent to SCEC',
     'sublabel.controle_pec_a_faire': 'Civil status check',
@@ -183,8 +185,7 @@
     'badge.waiting': 'Pending',
     'badge.status_changed': 'Status changed',
 
-    'mouv.arrivedStep9': { one: 'case moved to the SDANF step', other: 'cases moved to the SDANF step' },
-    'mouv.caaToCAE': { one: 'case taken over by SDANF', other: 'cases taken over by SDANF' },
+    'mouv.entreControleSdanf': { one: 'case entering SDANF review', other: 'cases entering SDANF review' },
     'mouv.sdanfToSCEC': { one: 'case transferred to SCEC', other: 'cases transferred to SCEC' },
     'mouv.arrivedDecret': { one: 'case added to the decree', other: 'cases added to the decree' },
 
@@ -308,6 +309,7 @@
     'short.prop_decision_pref_prop_a_editer': 'Drafting decision',
     'short.prop_decision_pref_en_attente_retour_signataire': 'Prefect signature',
     'short.controle_a_affecter': 'SDANF wait',
+    'short.controle_sdanf': 'SDANF control',
     'short.controle_a_effectuer': 'SDANF control',
     'short.controle_en_attente_pec': 'SCEC sent',
     'short.controle_pec_a_faire': 'SCEC check',
@@ -429,6 +431,9 @@
     'status.controle_a_affecter.phase': 'SDANF control',
     'status.controle_a_affecter.explication': 'Arrived at SDANF, awaiting assignment',
     'status.controle_a_affecter.description': 'Your case has arrived at the Sub-Directorate for Access to French Nationality (SDANF) in Rezé (44). It is waiting to be assigned to an officer for the ministerial control.',
+    'status.controle_sdanf.phase': 'SDANF control',
+    'status.controle_sdanf.explication': 'Ministerial SDANF review',
+    'status.controle_sdanf.description': 'Your case is at the SDANF (Rezé, 44) for the ministerial review: civil-status document checks, consistency, legal conditions. This step can take several weeks.',
 
     'status.controle_a_effectuer.phase': 'SDANF control',
     'status.controle_a_effectuer.explication': 'Ministerial control in progress',

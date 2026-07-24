@@ -149,6 +149,7 @@
     'accueil.sans_entretien_warning': '案卷在未经面谈的情况下进入决定阶段——可能被延期或提前结案',
 
     'pill.controle_a_affecter.label': '待分配审核', 'pill.controle_a_affecter.short': '待分配',
+    'pill.controle_sdanf.label': 'SDANF 审核', 'pill.controle_sdanf.short': 'SDANF',
     'pill.controle_a_effectuer.label': '待执行审核', 'pill.controle_a_effectuer.short': '待执行',
     'pill.controle_en_attente_pec.label': '等待 SCEC', 'pill.controle_en_attente_pec.short': '等待 SCEC',
     'pill.controle_pec_a_faire.label': '户籍核验', 'pill.controle_pec_a_faire.short': '户籍核验',
@@ -157,6 +158,7 @@
     'pill.inseree_dans_decret.label': '已列入法令', 'pill.inseree_dans_decret.short': '已列入',
 
     'sublabel.controle_a_affecter': '等待分配',
+    'sublabel.controle_sdanf': '部级审核',
     'sublabel.controle_a_effectuer': '审核进行中',
     'sublabel.controle_en_attente_pec': '已发往 SCEC',
     'sublabel.controle_pec_a_faire': '户籍核验',
@@ -184,8 +186,7 @@
     'badge.waiting': '待进行',
     'badge.status_changed': '状态已变更',
 
-    'mouv.arrivedStep9': { other: '个案卷进入 SDANF 阶段' },
-    'mouv.caaToCAE': { other: '个案卷已由 SDANF 接手' },
+    'mouv.entreControleSdanf': { other: '个进入 SDANF 审核的案卷' },
     'mouv.sdanfToSCEC': { other: '个案卷已转至 SCEC' },
     'mouv.arrivedDecret': { other: '个案卷已列入法令' },
 
@@ -307,6 +308,7 @@
     'short.prop_decision_pref_prop_a_editer': '决定起草',
     'short.prop_decision_pref_en_attente_retour_signataire': '省长签字',
     'short.controle_a_affecter': 'SDANF 等待',
+    'short.controle_sdanf': 'SDANF 审核',
     'short.controle_a_effectuer': 'SDANF 审核',
     'short.controle_en_attente_pec': 'SCEC 已发',
     'short.controle_pec_a_faire': 'SCEC 核验',
@@ -427,6 +429,9 @@
     'status.controle_a_affecter.phase': 'SDANF 审核',
     'status.controle_a_affecter.explication': '已到 SDANF，等待分配',
     'status.controle_a_affecter.description': '您的案卷已到达法国国籍准入分局（SDANF），位于 Rezé（44）。它正等待分配给工作人员进行部级审核。',
+    'status.controle_sdanf.phase': 'SDANF 审核',
+    'status.controle_sdanf.explication': 'SDANF 部级审核',
+    'status.controle_sdanf.description': '您的案卷正在 SDANF（Rezé，44）接受部级审核：核对民事状况文件、一致性、法律条件。此阶段可能需要数周。',
 
     'status.controle_a_effectuer.phase': 'SDANF 审核',
     'status.controle_a_effectuer.explication': '部级审核进行中',
