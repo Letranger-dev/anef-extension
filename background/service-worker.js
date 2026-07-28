@@ -9,7 +9,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, isPositiveStatus, isNegativeStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
+import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
 import { deriveStatus, parseStatutField } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
@@ -417,8 +417,13 @@ async function handleDossierData(data) {
     const newEtape = getStatusExplanation(data.statut)?.etape ?? null;
     const issueTerminale = newEtape === 12 || isNegativeStatus(data.statut);
     const complementDemande = !!dossierApiData?.complementInstruction;
+    // Décret publié = procédure close : AUCUN recul n'est possible, même avec un
+    // complément demandé (le drapeau reste souvent positionné après coup). Sans
+    // cette exception à l'exception, un dossier naturalisé retombait à l'étape 11.
+    const dossierClos = prevStatus?.statut ? isClosedStatus(prevStatus.statut) : false;
+    const reculAcceptable = !dossierClos && (issueTerminale || complementDemande);
 
-    if (prevEtape && newEtape && newEtape < prevEtape && !issueTerminale && !complementDemande) {
+    if (prevEtape && newEtape && newEtape < prevEtape && !reculAcceptable) {
       logger.warn('⏪ Recul d\'étape ignoré (statut précédent conservé)', {
         dossierId: newId,
         de: `${prevStatus.statut} (ét.${prevEtape})`,
