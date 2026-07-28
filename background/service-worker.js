@@ -403,6 +403,32 @@ async function handleDossierData(data) {
 
     // Comparaison de statut SCOPED au dossier reçu (pas le primaire)
     const prevStatus = newId ? (await storage.getLastStatus(newId)) : null;
+
+    // ── Garde anti-régression d'étape (v2.8.4) ──
+    // La frise de la nouvelle API est plus grossière que l'ancien statut
+    // granulaire : un dossier connu à l'étape 6 peut être re-décrit « étape 5 »,
+    // voire « étape 2 », sans qu'il ait reculé. Sans garde, on écrit une fausse
+    // transition en arrière — dans l'historique local ET dans les statistiques
+    // communautaires. On refuse donc de reculer, SAUF si l'issue est terminale
+    // (décision, recours) ou si un complément est demandé : là, ANEF renvoie
+    // réellement le dossier en instruction.
+    const dossierApiData = newId ? ((await storage.getApiData(newId)) || apiData) : apiData;
+    const prevEtape = prevStatus?.statut ? (getStatusExplanation(prevStatus.statut)?.etape ?? null) : null;
+    const newEtape = getStatusExplanation(data.statut)?.etape ?? null;
+    const issueTerminale = newEtape === 12 || isNegativeStatus(data.statut);
+    const complementDemande = !!dossierApiData?.complementInstruction;
+
+    if (prevEtape && newEtape && newEtape < prevEtape && !issueTerminale && !complementDemande) {
+      logger.warn('⏪ Recul d\'étape ignoré (statut précédent conservé)', {
+        dossierId: newId,
+        de: `${prevStatus.statut} (ét.${prevEtape})`,
+        vers: `${data.statut} (ét.${newEtape})`,
+        friseKey: data.friseKey ?? null
+      });
+      data.statut = prevStatus.statut;
+      data.date_statut = prevStatus.date_statut;
+    }
+
     const hasChanged = !prevStatus
       || prevStatus.date_statut !== data.date_statut
       || (prevStatus.statut || '').toLowerCase() !== (data.statut || '').toLowerCase();
