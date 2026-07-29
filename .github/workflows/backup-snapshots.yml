@@ -1,0 +1,80 @@
+name: Backup Snapshots
+
+# Sauvegarde quotidienne chiffrée de la table dossier_snapshots.
+#
+# Pourquoi : la table n'a aucun filet. Les corrections manuelles (SQL Editor)
+# et tout incident côté Supabase sont irréversibles sans copie.
+#
+# ⚠️ Le dépôt est PUBLIC : un artefact GitHub Actions y est téléchargeable par
+# n'importe qui. Le dump contient `dossier_hash`, donc il est chiffré avec une
+# passphrase (secret BACKUP_PASSPHRASE) avant d'être stocké.
+#
+# Restauration :
+#   gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" \
+#       --decrypt backup-snapshots.json.gpg > backup.json
+
+on:
+  schedule:
+    # 03:42 UTC — creux d'activité, décalé des autres crons du dépôt
+    - cron: '42 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Vérifier la présence des secrets
+        env:
+          SB_URL: ${{ secrets.SUPABASE_URL }}
+          SB_SERVICE: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SB_URL" ] || [ -z "$SB_SERVICE" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_SERVICE_KEY manquant"
+            exit 1
+          fi
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE manquant — sans lui la sauvegarde serait publique en clair"
+            exit 1
+          fi
+
+      - name: Exporter la table
+        run: node scripts/backup-snapshots.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: Chiffrer la sauvegarde
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$PASSPHRASE" \
+              --output backup-snapshots.json.gpg \
+              backup-snapshots.json
+          rm -f backup-snapshots.json
+          ls -lh backup-snapshots.json.gpg
+
+      - name: Nommer la sauvegarde
+        id: nom
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Déposer l'artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ steps.nom.outputs.date }}
+          path: backup-snapshots.json.gpg
+          retention-days: 90
+          if-no-files-found: error

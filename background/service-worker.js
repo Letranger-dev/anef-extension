@@ -567,6 +567,20 @@ async function handleApiData(data) {
       return null;
     });
 
+    // ── Auto-réparation d'un état local dégradé (v2.8.6) ──
+    // Le serveur a refusé l'instantané parce qu'il décrit une étape inférieure
+    // à ce qu'il connaît du dossier. C'est le symptôme d'un état local faussé :
+    // l'extension croit le dossier moins avancé qu'il ne l'est, et l'affiche
+    // ainsi à l'utilisateur. On restaure depuis l'historique serveur, qui fait
+    // foi. Une fois réparé, le garde local empêche toute nouvelle rechute.
+    if (result?.skipped === 'stage_regression' && result.history?.length) {
+      try {
+        await healLocalStatusFromServer(result.history, apiData.dossierId, result);
+      } catch (e) {
+        logger.warn('Auto-réparation échouée', e.message);
+      }
+    }
+
     // Rehydrate local depuis le serveur si on vient de basculer sur un dossier déjà connu
     if (isPostSwitch && result?.history?.length) {
       try {
@@ -581,6 +595,58 @@ async function handleApiData(data) {
       }
     }
   }
+}
+
+/**
+ * Restaure le statut local depuis l'historique serveur quand celui-ci est plus
+ * avancé que ce que l'extension croit. Utilisé après un refus
+ * `stage_regression` de l'Edge Function.
+ *
+ * On retient l'étape la plus avancée connue du serveur — un dossier ne recule
+ * pas — et, à étape égale, la date de statut la plus récente.
+ *
+ * @param {Array} history - historique renvoyé par l'Edge Function
+ * @param {string} dossierId
+ * @param {Object} info - { etape_recue, etape_connue } pour le journal
+ */
+async function healLocalStatusFromServer(history, dossierId, info = {}) {
+  let best = null;
+  let bestEtape = -1;
+
+  for (const h of history) {
+    if (!h?.statut) continue;
+    const etape = getStatusExplanation(h.statut)?.etape ?? 0;
+    const plusAvance = etape > bestEtape;
+    const memeEtapePlusRecent = etape === bestEtape
+      && String(h.date_statut || '') > String(best?.date_statut || '');
+    if (plusAvance || memeEtapePlusRecent) {
+      best = h;
+      bestEtape = etape;
+    }
+  }
+  if (!best) return;
+
+  const actuel = await storage.getLastStatus(dossierId);
+  if ((actuel?.statut || '').toLowerCase() === (best.statut || '').toLowerCase()) return;
+
+  // Historique + dates manuelles d'abord, puis le statut courant
+  await rehydrateLocalHistoryFromServer(history, dossierId);
+  await storage.saveStatus({
+    statut: String(best.statut).toLowerCase(),
+    date_statut: best.date_statut,
+    id: dossierId
+  });
+
+  const primaryId = await storage.getPrimaryDossierId();
+  if (!primaryId || String(dossierId) === String(primaryId)) {
+    await updateBadge(best.statut);
+  }
+
+  logger.info('🩹 État local réparé depuis le serveur', {
+    dossierId,
+    avant: `${actuel?.statut || 'aucun'} (ét.${info.etape_recue ?? '?'})`,
+    apres: `${best.statut} (ét.${bestEtape})`
+  });
 }
 
 /** Marque le site en maintenance */
