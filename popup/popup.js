@@ -7,7 +7,7 @@
  * - Les détails du dossier
  */
 
-import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, daysBetween, isPositiveStatus, isNegativeStatus, isClosedStatus, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, daysBetween, isPositiveStatus, isNegativeStatus, isClosedStatus, formatSubStep, resolveEntretienDate, STEP_DEFAULTS } from '../lib/status-parser.js';
 import { downloadLogs } from '../lib/logger.js';
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
@@ -1137,13 +1137,17 @@ async function shareStatusText() {
 
     // Fusionner toutes les sources de dates par statut
     const dateByStatut = {};
+    const manualByStatut = {};
     for (const h of history) {
       const key = (h.statut || '').toLowerCase();
       if (key && h.date_statut) dateByStatut[key] = h.date_statut;
     }
     for (const sd of stepDates) {
       const key = (sd.statut || '').toLowerCase();
-      if (key && sd.date_statut) dateByStatut[key] = sd.date_statut; // stepDates prioritaires
+      if (key && sd.date_statut) {
+        dateByStatut[key] = sd.date_statut; // stepDates prioritaires
+        manualByStatut[key] = sd.date_statut;
+      }
     }
 
     // Construire la timeline avec durée passée à chaque étape
@@ -1152,7 +1156,13 @@ async function shareStatusText() {
       const key = step.statut.toLowerCase();
       let date = dateByStatut[key];
       if (!date && step.etape === 2 && apiData?.dateDepot) date = apiData.dateDepot;
-      if (!date && step.etape === 7 && apiData?.dateEntretien) date = apiData.dateEntretien;
+      // Étape 7 : l'historique date la CONVOCATION (passage en « en attente
+      // d'entretien »), pas l'entretien lui-même — le REX affichait donc la
+      // mauvaise date sous le libellé « Entretien d'assimilation ». Le
+      // rendez-vous réel fait foi ; une date saisie à la main reste prioritaire.
+      if (step.etape === 7 && !manualByStatut[key]) {
+        date = resolveEntretienDate(apiData?.dateEntretien, date);
+      }
       if (date) stepsWithDates.push({ ...step, date });
     }
 

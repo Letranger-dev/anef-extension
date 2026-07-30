@@ -10,7 +10,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, resolveEntretienDate, STEP_DEFAULTS } from '../lib/status-parser.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM (initialisés dans DOMContentLoaded)
@@ -382,7 +382,6 @@ async function loadStepDates() {
   // Dates auto : apiData + statut actuel + historique observé
   const autoByStatut = {};
   if (apiData.dateDepot) autoByStatut['dossier_depose'] = toDateStr(apiData.dateDepot);
-  if (apiData.dateEntretien) autoByStatut['ea_en_attente_ea'] = toDateStr(apiData.dateEntretien);
   // Remplir depuis l'historique (statuts passés observés par l'extension)
   for (const h of history) {
     const key = (h.statut || '').toLowerCase();
@@ -392,6 +391,14 @@ async function loadStepDates() {
   // Le statut actuel a priorité (date la plus récente)
   if (lastStatus?.date_statut) {
     autoByStatut[lastStatus.statut.toLowerCase()] = toDateStr(lastStatus.date_statut);
+  }
+  // Étape 7 : historique et statut courant datent la CONVOCATION, pas
+  // l'entretien. Le rendez-vous réel fait foi une fois passé (cf.
+  // resolveEntretienDate) — appliqué en dernier pour ne pas être réécrasé.
+  if (apiData.dateEntretien) {
+    autoByStatut['ea_en_attente_ea'] = toDateStr(
+      resolveEntretienDate(apiData.dateEntretien, autoByStatut['ea_en_attente_ea'])
+    );
   }
 
   // Dates manuelles (saisies par l'utilisateur)
@@ -605,6 +612,11 @@ async function handleSaveStepDates() {
         manual: true,
         timestamp: new Date().toISOString()
       });
+    } else if (isoVal && existing) {
+      // Saisie manuelle devenue identique à la date auto (ex. l'étape 7 est
+      // désormais datée par le rendez-vous réel) : `entries` remplace la liste
+      // entière, ne rien pousser ici effacerait l'entrée déjà enregistrée.
+      entries.push(existing);
     } else if (!isoVal && existing) {
       // Champ vidé mais date existante → garder l'ancienne (pas de suppression)
       entries.push(existing);

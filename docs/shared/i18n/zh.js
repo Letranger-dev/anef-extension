@@ -88,6 +88,7 @@
     'common.close': '关闭',
     'common.error': '错误',
     'common.interview_label': '面谈',
+    'common.no_filter_result': '没有符合这些筛选条件的档案',
     'common.dossier_count': { other: '{n} 个案卷' },
     'common.event_count': { other: '{n} 个事件' },
 

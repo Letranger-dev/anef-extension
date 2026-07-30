@@ -88,6 +88,7 @@
     'common.close': 'إغلاق',
     'common.error': 'خطأ',
     'common.interview_label': 'المقابلة',
+    'common.no_filter_result': 'لا يوجد ملف يطابق هذه المرشحات',
     'common.dossier_count': { one: 'ملف واحد', two: 'ملفان', few: '{n} ملفات', many: '{n} ملفًا', other: '{n} ملف' },
     'common.event_count': { one: 'حدث واحد', two: 'حدثان', few: '{n} أحداث', many: '{n} حدثًا', other: '{n} حدث' },
 

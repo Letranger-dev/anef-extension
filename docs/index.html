@@ -260,6 +260,19 @@
             <option value="days-asc" data-i18n="toolbar.wait_asc">Attente &uarr;</option>
             <option value="pref" data-i18n="toolbar.pref">Préfecture</option>
           </select>
+          <div class="date-filter-range" title="Entretien entre deux dates (une seule suffit)" data-i18n-attr="title:toolbar.interview_date_tip">
+            <div class="date-filter-field" id="sdanf-date-min-field">
+              <input type="text" id="sdanf-date-min" class="date-filter-input date-filter-input-from" placeholder="Entretien du : jj/mm/aaaa" maxlength="10" data-i18n-attr="placeholder:toolbar.interview_from_ph" autocomplete="off">
+              <input type="date" id="sdanf-date-min-picker" class="date-filter-picker" tabindex="-1" aria-hidden="true">
+              <button type="button" id="sdanf-date-min-clear" class="date-filter-clear" style="display:none" title="Effacer" data-i18n-attr="title:toolbar.clear">&times;</button>
+            </div>
+            <span class="date-sep">&rarr;</span>
+            <div class="date-filter-field" id="sdanf-date-max-field">
+              <input type="text" id="sdanf-date-max" class="date-filter-input date-filter-input-to" placeholder="au : jj/mm/aaaa" maxlength="10" data-i18n-attr="placeholder:toolbar.interview_to_ph" autocomplete="off">
+              <input type="date" id="sdanf-date-max-picker" class="date-filter-picker" tabindex="-1" aria-hidden="true">
+              <button type="button" id="sdanf-date-max-clear" class="date-filter-clear" style="display:none" title="Effacer" data-i18n-attr="title:toolbar.clear">&times;</button>
+            </div>
+          </div>
           <div id="sdanf-pref-filter-container"></div>
           <label class="toggle-filter" id="sdanf-changed-label" title="Afficher uniquement les dossiers dont le statut a changé" data-i18n-attr="title:toolbar.changed_tip">
             <input type="checkbox" id="sdanf-changed-filter">

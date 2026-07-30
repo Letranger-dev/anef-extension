@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.36.0';
+  var SITE_VERSION = '1.37.0';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [

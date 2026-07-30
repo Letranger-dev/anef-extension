@@ -9,7 +9,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
+import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, isStatusRegression, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
 import { deriveStatus, parseStatutField } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
@@ -404,10 +404,12 @@ async function handleDossierData(data) {
     // Comparaison de statut SCOPED au dossier reçu (pas le primaire)
     const prevStatus = newId ? (await storage.getLastStatus(newId)) : null;
 
-    // ── Garde anti-régression d'étape (v2.8.4) ──
+    // ── Garde anti-régression d'étape et de sous-étape (v2.8.4, étendu v2.8.7) ──
     // La frise de la nouvelle API est plus grossière que l'ancien statut
     // granulaire : un dossier connu à l'étape 6 peut être re-décrit « étape 5 »,
-    // voire « étape 2 », sans qu'il ait reculé. Sans garde, on écrit une fausse
+    // voire « étape 2 », sans qu'il ait reculé. Elle ne connaît en plus qu'un
+    // seul nœud par étape : un dossier en 8.2 (retour hiérarchique) est
+    // re-décrit « 8.1 » (avis à effectuer). Sans garde, on écrit une fausse
     // transition en arrière — dans l'historique local ET dans les statistiques
     // communautaires. On refuse donc de reculer, SAUF si l'issue est terminale
     // (décision, recours) ou si un complément est demandé : là, ANEF renvoie
@@ -415,28 +417,56 @@ async function handleDossierData(data) {
     const dossierApiData = newId ? ((await storage.getApiData(newId)) || apiData) : apiData;
     const prevEtape = prevStatus?.statut ? (getStatusExplanation(prevStatus.statut)?.etape ?? null) : null;
     const newEtape = getStatusExplanation(data.statut)?.etape ?? null;
+
+    // Référence de comparaison : le statut précédent, remplacé par une
+    // sous-étape plus avancée retrouvée dans l'historique local de la MÊME
+    // étape. Les installations déjà rétrogradées avant ce correctif ont un
+    // `lastStatus` faux (8.1) mais gardent le bon statut (8.2) en historique :
+    // sans cette relecture, le garde ne verrait plus aucun recul et le dossier
+    // resterait figé sur la sous-étape basse. Restreint à l'étape courante, ce
+    // rattrapage ne peut jamais épingler le dossier sur une mauvaise étape.
+    let reference = prevStatus;
+    if (prevStatus?.statut && prevEtape) {
+      const historique = newId ? await storage.getHistory(newId) : [];
+      for (const entree of historique) {
+        // `date_statut` obligatoire : la référence sert aussi à réécrire la date
+        // du statut, une entrée sans date produirait un `date_statut: undefined`
+        // enregistré puis envoyé au serveur.
+        if (!entree?.statut || !entree.date_statut) continue;
+        if ((getStatusExplanation(entree.statut)?.etape ?? null) !== prevEtape) continue;
+        if (isStatusRegression(entree.statut, reference.statut)) reference = entree;
+      }
+    }
+
     const issueTerminale = newEtape === 12 || isNegativeStatus(data.statut);
     const complementDemande = !!dossierApiData?.complementInstruction;
     // Décret publié = procédure close : AUCUN recul n'est possible, même avec un
     // complément demandé (le drapeau reste souvent positionné après coup). Sans
     // cette exception à l'exception, un dossier naturalisé retombait à l'étape 11.
-    const dossierClos = prevStatus?.statut ? isClosedStatus(prevStatus.statut) : false;
+    const dossierClos = reference?.statut ? isClosedStatus(reference.statut) : false;
     const reculAcceptable = !dossierClos && (issueTerminale || complementDemande);
 
-    if (prevEtape && newEtape && newEtape < prevEtape && !reculAcceptable) {
-      logger.warn('⏪ Recul d\'étape ignoré (statut précédent conservé)', {
+    // Vrai quand on ne fait que restaurer la sous-étape perdue par l'API : le
+    // dossier n'a pas bougé, seul l'état local était faux → réparation
+    // silencieuse, sans notification de « changement de statut ».
+    let reparationSilencieuse = false;
+
+    if (reference?.statut && !reculAcceptable && isStatusRegression(reference.statut, data.statut)) {
+      logger.warn('⏪ Recul ignoré (statut connu conservé)', {
         dossierId: newId,
-        de: `${prevStatus.statut} (ét.${prevEtape})`,
+        de: `${reference.statut} (ét.${getStatusExplanation(reference.statut)?.etape})`,
         vers: `${data.statut} (ét.${newEtape})`,
-        friseKey: data.friseKey ?? null
+        friseKey: data.friseKey ?? null,
+        repare: reference !== prevStatus
       });
-      data.statut = prevStatus.statut;
-      data.date_statut = prevStatus.date_statut;
+      reparationSilencieuse = reference !== prevStatus;
+      data.statut = reference.statut;
+      data.date_statut = reference.date_statut;
     }
 
-    const hasChanged = !prevStatus
+    const hasChanged = !reparationSilencieuse && (!prevStatus
       || prevStatus.date_statut !== data.date_statut
-      || (prevStatus.statut || '').toLowerCase() !== (data.statut || '').toLowerCase();
+      || (prevStatus.statut || '').toLowerCase() !== (data.statut || '').toLowerCase());
 
     // Écrire un enregistrement LÉGER (saveStatus route via .id + l'ajoute à
     // l'historique). On exclut notifications/dossier/frise pour ne pas gonfler
@@ -602,8 +632,10 @@ async function handleApiData(data) {
  * avancé que ce que l'extension croit. Utilisé après un refus
  * `stage_regression` de l'Edge Function.
  *
- * On retient l'étape la plus avancée connue du serveur — un dossier ne recule
- * pas — et, à étape égale, la date de statut la plus récente.
+ * On retient le statut le plus avancé connu du serveur — un dossier ne recule
+ * pas — en comparant l'étape PUIS la sous-étape (`isStatusRegression`), sinon
+ * on pourrait restaurer un 8.1 daté d'hier par-dessus le 8.2 réel. À
+ * avancement égal, la date de statut la plus récente départage.
  *
  * @param {Array} history - historique renvoyé par l'Edge Function
  * @param {string} dossierId
@@ -611,20 +643,22 @@ async function handleApiData(data) {
  */
 async function healLocalStatusFromServer(history, dossierId, info = {}) {
   let best = null;
-  let bestEtape = -1;
 
   for (const h of history) {
     if (!h?.statut) continue;
-    const etape = getStatusExplanation(h.statut)?.etape ?? 0;
-    const plusAvance = etape > bestEtape;
-    const memeEtapePlusRecent = etape === bestEtape
-      && String(h.date_statut || '') > String(best?.date_statut || '');
-    if (plusAvance || memeEtapePlusRecent) {
+    if (!best) { best = h; continue; }
+    // `best` est-il moins avancé que `h` ?
+    if (isStatusRegression(h.statut, best.statut)) { best = h; continue; }
+    // Ni l'un ni l'autre n'est un recul → même niveau d'avancement : la date
+    // de statut la plus récente fait foi (cas des issues de l'étape 12, dont
+    // les rangs ne décrivent pas une progression).
+    if (!isStatusRegression(best.statut, h.statut)
+        && String(h.date_statut || '') > String(best.date_statut || '')) {
       best = h;
-      bestEtape = etape;
     }
   }
   if (!best) return;
+  const bestEtape = getStatusExplanation(best.statut)?.etape ?? 0;
 
   const actuel = await storage.getLastStatus(dossierId);
   if ((actuel?.statut || '').toLowerCase() === (best.statut || '').toLowerCase()) return;

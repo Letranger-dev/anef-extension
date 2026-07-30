@@ -496,13 +496,83 @@
 
   // ─── File d'attente SDANF ────────────────────────────────
 
-  var sdanfState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false };
+  var sdanfState = { all: [], page: 1, pageSize: 5, sort: 'days-desc', pref: '', statut: '', changed: false, dateMin: '', dateMax: '' };
 
   var FRESHNESS_DAYS = 20;
 
   function isFreshDossier(s) {
     if (!s.lastChecked) return false;
     return new Date(s.lastChecked).getTime() >= Date.now() - FRESHNESS_DAYS * 86400000;
+  }
+
+  /**
+   * Filtre « date d'entretien entre deux bornes » (chacune optionnelle) :
+   * champ texte jj/mm/aaaa + datepicker natif caché, une paire par borne.
+   * Partagé par les sections « Phase entretien » et « Contrôle SDANF & SCEC »
+   * — chacune passe son état, son préfixe d'ids et son rendu.
+   */
+  function bindDateRangeFilter(state, prefix, onChange) {
+    function isoToFr(iso) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+    }
+    function bindBound(stateKey, suffix) {
+      var base = prefix + '-date-' + suffix;
+      var text = document.getElementById(base);
+      var picker = document.getElementById(base + '-picker');
+      var clear = document.getElementById(base + '-clear');
+      var field = document.getElementById(base + '-field');
+      if (!text || !picker || !clear || !field) return;   // section sans filtre de dates
+      function apply(iso) {
+        state[stateKey] = iso || '';
+        text.value = isoToFr(iso);
+        clear.style.display = iso ? '' : 'none';
+        field.classList.toggle('active', !!iso);
+        state.page = 1;
+        onChange();
+      }
+      text.addEventListener('click', function() {
+        picker.value = state[stateKey] || '';
+        try { picker.showPicker(); } catch (e) { /* fallback navigateurs anciens : saisie manuelle */ }
+      });
+      picker.addEventListener('change', function() {
+        apply(picker.value);
+      });
+      text.addEventListener('blur', function() {
+        var val = text.value.trim();
+        if (!val) { apply(''); return; }
+        var m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(val);
+        if (m) {
+          var day = parseInt(m[1], 10), month = parseInt(m[2], 10);
+          var iso = m[3] + '-' + ('0' + month).slice(-2) + '-' + ('0' + day).slice(-2);
+          var check = new Date(iso + 'T00:00:00');
+          if (!isNaN(check.getTime()) && check.getDate() === day && check.getMonth() + 1 === month) {
+            apply(iso);
+            return;
+          }
+        }
+        // Saisie invalide → on restaure la dernière valeur valide
+        text.value = isoToFr(state[stateKey]);
+      });
+      text.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
+      });
+      clear.addEventListener('click', function() { apply(''); });
+    }
+    bindBound('dateMin', 'min');
+    bindBound('dateMax', 'max');
+  }
+
+  /** Applique les bornes de date d'entretien d'un état de section à une liste. */
+  function filterByEntretienDate(data, state) {
+    if (!state.dateMin && !state.dateMax) return data;
+    return data.filter(function(s) {
+      var d = (s.dateEntretien || '').slice(0, 10);
+      if (!d) return false;                                // sans date connue : hors filtre
+      if (state.dateMin && d < state.dateMin) return false;
+      if (state.dateMax && d > state.dateMax) return false;
+      return true;
+    });
   }
 
   // Regroupement d'AFFICHAGE des sous-états de contrôle SDANF dans la section
@@ -583,6 +653,7 @@
     if (sdanfState.changed) {
       data = data.filter(function(s) { return !!s.previousStatut; });
     }
+    data = filterByEntretienDate(data, sdanfState);
     // Trier : dossiers frais d'abord, obsolètes (>20j) en dernier
     var fresh = data.filter(isFreshDossier);
     var stale = data.filter(function(s) { return !isFreshDossier(s); });
@@ -612,6 +683,17 @@
       toolbar.style.display = 'none';
       kpis.innerHTML = '';
       list.innerHTML = '<p class="no-data">' + ANEF.t('accueil.sdanf_empty') + '</p>';
+      return;
+    }
+    // Filtres trop restrictifs : la barre reste affichée pour pouvoir les relâcher
+    if (!data.length) {
+      toolbar.style.display = 'flex';
+      document.getElementById('sdanf-count').textContent = ANEF.tn('common.dossier_count', 0);
+      document.getElementById('sdanf-page-info').textContent = '1/1';
+      document.getElementById('sdanf-btn-prev').disabled = true;
+      document.getElementById('sdanf-btn-next').disabled = true;
+      kpis.innerHTML = '';
+      list.innerHTML = '<p class="no-data">' + ANEF.t('common.no_filter_result') + '</p>';
       return;
     }
 
@@ -765,6 +847,7 @@
       var totalPages = Math.ceil(getSdanfFiltered().length / sdanfState.pageSize);
       if (sdanfState.page < totalPages) { sdanfState.page++; renderSdanfPage(); }
     });
+    bindDateRangeFilter(sdanfState, 'sdanf', renderSdanfPage);
   }
 
   // ─── Phase entretien & decision prefecture ──────────────
@@ -845,15 +928,7 @@
     if (entretienState.changed) {
       data = data.filter(function(s) { return !!s.previousStatut; });
     }
-    if (entretienState.dateMin || entretienState.dateMax) {
-      data = data.filter(function(s) {
-        var d = (s.dateEntretien || '').slice(0, 10);
-        if (!d) return false;
-        if (entretienState.dateMin && d < entretienState.dateMin) return false;
-        if (entretienState.dateMax && d > entretienState.dateMax) return false;
-        return true;
-      });
-    }
+    data = filterByEntretienDate(data, entretienState);
     // Trier : dossiers frais d'abord, obsolètes (>20j) en dernier (comme SDANF)
     var fresh = data.filter(isFreshDossier);
     var stale = data.filter(function(s) { return !isFreshDossier(s); });
@@ -902,6 +977,17 @@
       toolbar.style.display = 'none';
       kpis.innerHTML = '';
       list.innerHTML = '<p class="no-data">' + ANEF.t('accueil.entretien_empty') + '</p>';
+      return;
+    }
+    // Filtres trop restrictifs : la barre reste affichée pour pouvoir les relâcher
+    if (!data.length) {
+      toolbar.style.display = 'flex';
+      document.getElementById('entretien-count').textContent = ANEF.tn('common.dossier_count', 0);
+      document.getElementById('entretien-page-info').textContent = '1/1';
+      document.getElementById('entretien-btn-prev').disabled = true;
+      document.getElementById('entretien-btn-next').disabled = true;
+      kpis.innerHTML = '';
+      list.innerHTML = '<p class="no-data">' + ANEF.t('common.no_filter_result') + '</p>';
       return;
     }
 
@@ -1039,54 +1125,7 @@
       if (entretienState.page < totalPages) { entretienState.page++; renderEntretienPage(); }
     });
 
-    // Filtre par intervalle de date d'entretien (bornes optionnelles) :
-    // champ texte jj/mm/aaaa + datepicker natif caché, un par borne
-    function isoToFr(iso) {
-      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
-      return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
-    }
-    function bindEntretienDateBound(stateKey, textId, pickerId, clearId, fieldId) {
-      var text = document.getElementById(textId);
-      var picker = document.getElementById(pickerId);
-      var clear = document.getElementById(clearId);
-      function apply(iso) {
-        entretienState[stateKey] = iso || '';
-        text.value = isoToFr(iso);
-        clear.style.display = iso ? '' : 'none';
-        document.getElementById(fieldId).classList.toggle('active', !!iso);
-        entretienState.page = 1;
-        renderEntretienPage();
-      }
-      text.addEventListener('click', function() {
-        picker.value = entretienState[stateKey] || '';
-        try { picker.showPicker(); } catch (e) { /* fallback navigateurs anciens : saisie manuelle */ }
-      });
-      picker.addEventListener('change', function() {
-        apply(picker.value);
-      });
-      text.addEventListener('blur', function() {
-        var val = text.value.trim();
-        if (!val) { apply(''); return; }
-        var m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(val);
-        if (m) {
-          var day = parseInt(m[1], 10), month = parseInt(m[2], 10);
-          var iso = m[3] + '-' + ('0' + month).slice(-2) + '-' + ('0' + day).slice(-2);
-          var check = new Date(iso + 'T00:00:00');
-          if (!isNaN(check.getTime()) && check.getDate() === day && check.getMonth() + 1 === month) {
-            apply(iso);
-            return;
-          }
-        }
-        // Saisie invalide → on restaure la dernière valeur valide
-        text.value = isoToFr(entretienState[stateKey]);
-      });
-      text.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
-      });
-      clear.addEventListener('click', function() { apply(''); });
-    }
-    bindEntretienDateBound('dateMin', 'entretien-date-min', 'entretien-date-min-picker', 'entretien-date-min-clear', 'entretien-date-min-field');
-    bindEntretienDateBound('dateMax', 'entretien-date-max', 'entretien-date-max-picker', 'entretien-date-max-clear', 'entretien-date-max-field');
+    bindDateRangeFilter(entretienState, 'entretien', renderEntretienPage);
   }
 
   // ─── Mouvements du jour ────────────────────────────────

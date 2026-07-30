@@ -87,6 +87,7 @@
     'common.close': 'Close',
     'common.error': 'Error',
     'common.interview_label': 'Interview',
+    'common.no_filter_result': 'No case matches these filters',
     'common.dossier_count': { one: '{n} case', other: '{n} cases' },
     'common.event_count': { one: '{n} event', other: '{n} events' },
 

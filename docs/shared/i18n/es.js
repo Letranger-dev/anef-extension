@@ -87,6 +87,7 @@
     'common.close': 'Cerrar',
     'common.error': 'Error',
     'common.interview_label': 'Entrevista',
+    'common.no_filter_result': 'Ningún expediente coincide con estos filtros',
     'common.dossier_count': { one: '{n} expediente', other: '{n} expedientes' },
     'common.event_count': { one: '{n} evento', other: '{n} eventos' },
 

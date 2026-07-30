@@ -102,6 +102,7 @@
     'common.close': 'Fermer',
     'common.error': 'Erreur',
     'common.interview_label': 'Entretien',
+    'common.no_filter_result': 'Aucun dossier ne correspond à ces filtres',
     'common.dossier_count': { one: '{n} dossier', other: '{n} dossiers' },
     'common.event_count': { one: '{n} événement', other: '{n} événements' },
 
