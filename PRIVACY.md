@@ -1,6 +1,6 @@
 # Politique de confidentialité — ANEF Status Tracker
 
-*Dernière mise à jour : 23 avril 2026*
+*Dernière mise à jour : 13 août 2026*
 
 ## Données collectées
 
@@ -10,9 +10,12 @@
 - **Paramètres** : préférences de notifications et de vérification automatique
 - **Journal des vérifications** : horodatage des vérifications automatiques (conservé 24h)
 - **Préférence d'affichage du mode privé** : état activé/désactivé du bouton de masquage visuel
+- **Demande de modification du décret (DMR)** : si vous en avez déposé une sur votre espace ANEF, l'extension en lit le suivi — état de la demande, date de dépôt, décret concerné, personnes que vous avez demandé à ajouter (prénom, nom, date et lieu de naissance), types de justificatifs joints, et le lien temporaire vers votre attestation de dépôt
+
+> **À noter** : la rubrique DMR est la seule à faire apparaître des noms — les vôtres et ceux des personnes que vous avez demandé à ajouter au décret, généralement vos enfants. Ces informations proviennent de votre propre espace ANEF, restent sur votre appareil, ne sont ni synchronisées ni envoyées à un serveur, et disparaissent si vous désinstallez l'extension ou effacez ses données.
 
 ### Mode privé (masquage visuel)
-Un bouton en forme d'œil dans l'interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d'entretien, numéro de décret, type de demande. Cette fonctionnalité est purement locale : aucune donnée n'est transmise ou modifiée, seul l'affichage est altéré pour faciliter le partage d'écran ou les captures.
+Un bouton en forme d'œil dans l'interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d'entretien, numéro de décret, type de demande, ainsi que les noms et dates de naissance affichés dans le suivi de la demande de modification du décret. Cette fonctionnalité est purement locale : aucune donnée n'est transmise ou modifiée, seul l'affichage est altéré pour faciliter le partage d'écran ou les captures.
 
 ### Statistiques anonymes
 Les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :
@@ -45,21 +48,25 @@ Les données suivantes sont envoyées à Supabase (hébergé en UE) pour aliment
 - Horodatage de la vérification
 - Source de la donnée (automatique ou saisie manuelle)
 
+**Ce qui n'est jamais transmis**, bien que présent sur votre appareil : vos identifiants ANEF, l'adresse de votre domicile, l'ensemble du suivi de votre demande de modification du décret (noms, dates de naissance, justificatifs, attestation). L'envoi anonyme repose sur une liste fermée de champs — les champs ci-dessus n'y figurent pas et ne peuvent pas s'y ajouter par accident.
+
 Ces données sont **pseudonymisées** : aucun nom, email, numéro de dossier en clair ou donnée d'identification directe n'est collecté ni transmis. Cependant, la combinaison de certains champs (code postal, ville, lieu d'entretien) pourrait théoriquement permettre une ré-identification dans les préfectures traitant peu de dossiers.
 
 ### Note sur les données antérieures au 23 avril 2026
 
 Un renforcement de la pseudonymisation a été déployé le 23 avril 2026. Les nouvelles données suivent le modèle décrit ci-dessus. Des exports antérieurs à cette date, s'ils ont été téléchargés et archivés par des tiers avant la mise à jour, restent hors de notre contrôle. Si vous souhaitez que votre dossier soit retiré de la base communautaire, contactez-nous via GitHub.
 
-## Données NON collectées
-- Aucun nom, email ou information personnelle
+## Données jamais transmises
+Ces éléments ne quittent jamais votre appareil — ni vers nos statistiques, ni vers un tiers :
+- Aucun nom, email ou information personnelle (y compris le suivi DMR, qui en contient et reste local)
 - Aucun numéro de dossier ANEF
+- Aucun identifiant de connexion
 - Aucun cookie ou donnée de navigation
 - Aucune donnée vendue ou partagée avec des tiers
 
 ## Stockage
 - Les données locales sont stockées via `chrome.storage.local` sur votre appareil
-- L'historique est sauvegardé via `chrome.storage.sync` pour la synchronisation entre vos appareils Chrome
+- L'historique des statuts est sauvegardé via `chrome.storage.sync` pour la synchronisation entre vos appareils Chrome. Cette sauvegarde ne porte que sur l'historique des statuts, le statut courant et vos dates corrigées manuellement : ni les identifiants, ni les détails du dossier, ni le suivi DMR n'y figurent
 - Les statistiques anonymes sont stockées sur Supabase (hébergé en UE)
 
 ## Autorisations

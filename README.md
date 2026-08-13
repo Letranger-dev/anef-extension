@@ -17,8 +17,9 @@ Extension Chrome pour suivre votre statut de naturalisation française en temps 
 - **Actualisation en arrière-plan** - Rafraîchissez vos données sans quitter votre onglet
 - **Export d'image** - Téléchargez une image de votre suivi à partager
 - **Notifications** - Soyez alerté lors d'un changement de statut
-- **Mode privé** - Masque en un clic les données sensibles (numéros, dates, préfecture, décret) pour partager votre écran en toute sérénité
+- **Mode privé** - Masque en un clic les données sensibles (numéros, dates, préfecture, décret, noms) pour partager votre écran en toute sérénité
 - **Vérification automatique** - Toutes les heures en arrière-plan (configurable), avec gestion intelligente des échecs
+- **Suivi de la modification du décret (DMR)** - Si vous avez demandé une modification de votre décret (ajout d'un enfant, rectification), retrouvez dans le popup l'état de la demande, ce que vous avez demandé, les évènements ANEF associés et votre attestation de dépôt. Ces données restent sur votre appareil et ne sont jamais transmises
 
 ## Installation
 
@@ -115,6 +116,8 @@ anef-extension/
 ├── lib/
 │   ├── storage.js          # Gestion du stockage
 │   ├── status-parser.js    # Dictionnaire des statuts
+│   ├── anef-mapper.js      # Recombinaison des signaux de l'API ANEF
+│   ├── dmr.js              # Modification du décret (libellés + utilitaires)
 │   ├── constants.js        # Constantes (Supabase, etc.)
 │   ├── anonymous-stats.js  # Envoi des stats anonymes
 │   └── logger.js           # Module de logging
