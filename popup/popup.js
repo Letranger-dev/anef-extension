@@ -9,6 +9,7 @@
 
 import { getStatusExplanation, formatDuration, formatDate, formatDateShort, formatTimestamp, daysSince, daysBetween, isPositiveStatus, isNegativeStatus, isClosedStatus, formatSubStep, resolveEntretienDate, STEP_DEFAULTS } from '../lib/status-parser.js';
 import { downloadLogs } from '../lib/logger.js';
+import { getDmrStatut, formatDmrEtape, isDmrLinkValid, dmrEventNeedsAction, DMR_EVENT_MOTIFS, DMR_MOTIFS_AJOUT, DMR_JUSTIFICATIFS } from '../lib/dmr.js';
 // ─────────────────────────────────────────────────────────────
 // Citations sur la patience
 // ─────────────────────────────────────────────────────────────
@@ -350,6 +351,8 @@ function attachEventListeners() {
   elements.btnLogin?.addEventListener('click', () => openAnefPage('login'));
   elements.btnCheck?.addEventListener('click', () => openAnefPage('mon-compte'));
   document.getElementById('btn-renew-password')?.addEventListener('click', () => openAnefPage('login'));
+  document.getElementById('btn-password-expired-close')?.addEventListener('click', dismissPasswordExpiredView);
+  document.getElementById('btn-password-expired-dismiss')?.addEventListener('click', dismissPasswordExpiredView);
   elements.btnRefresh?.addEventListener('click', refreshInBackground);
   elements.btnShare?.addEventListener('click', shareStatusText);
   elements.btnSettings?.addEventListener('click', () => chrome.runtime.openOptionsPage());
@@ -411,6 +414,51 @@ async function handleMakePrimary() {
   } else {
     alert('Erreur : ' + (response?.error || 'impossible de changer le principal'));
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Avertissements fermables définitivement
+// ─────────────────────────────────────────────────────────────
+// Chaque avertissement (vue "mot de passe expiré", bannière "identifiants non
+// enregistrés") a son drapeau dans chrome.storage.local. Une fois fermé, il ne
+// se réaffiche plus tant que la situation n'a pas été résolue puis reproduite.
+
+/** Vrai si l'utilisateur a fermé cet avertissement. */
+async function isBannerDismissed(key) {
+  try {
+    const result = await chrome.storage.local.get(key);
+    return result[key] === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Mémorise la fermeture d'un avertissement. */
+async function setBannerDismissed(key) {
+  try {
+    await chrome.storage.local.set({ [key]: true });
+  } catch (e) {
+    console.warn('[Popup] Impossible de mémoriser la fermeture:', e);
+  }
+}
+
+/** Réarme un avertissement (situation résolue). */
+async function clearBannerDismissed(key) {
+  try {
+    if (await isBannerDismissed(key)) await chrome.storage.local.remove(key);
+  } catch { /* ignore */ }
+}
+
+/** Le drapeau "mot de passe expiré" est remis à zéro par le service worker dès
+ *  qu'une vérification aboutit (le mot de passe fonctionne à nouveau). */
+function isPasswordExpiredDismissed() {
+  return isBannerDismissed('passwordExpiredDismissed');
+}
+
+/** Ferme la vue "mot de passe expiré" : elle ne se réaffichera plus. */
+async function dismissPasswordExpiredView() {
+  await setBannerDismissed('passwordExpiredDismissed');
+  await loadData();
 }
 
 function showRefreshErrorBanner(title, message) {
@@ -543,7 +591,7 @@ async function loadData() {
       return;
     }
 
-    if (response.passwordExpired) {
+    if (response.passwordExpired && !(await isPasswordExpiredDismissed())) {
       showView('passwordExpired');
       return;
     }
@@ -577,7 +625,13 @@ async function loadData() {
     // Avertissement si primaire sans creds (et qu'on est en train de voir le primaire)
     const noCredsBanner = document.getElementById('no-creds-banner');
     if (noCredsBanner) {
-      const showBanner = response.primaryHasCredentials === false && !isViewingSecondary;
+      // Les identifiants sont enregistrés → on réarme la bannière pour le jour
+      // où elle redeviendrait pertinente (identifiants supprimés).
+      if (response.primaryHasCredentials === true) {
+        await clearBannerDismissed('noCredsBannerDismissed');
+      }
+      const showBanner = response.primaryHasCredentials === false && !isViewingSecondary &&
+        !(await isBannerDismissed('noCredsBannerDismissed'));
       noCredsBanner.classList.toggle('hidden', !showBanner);
       if (showBanner) {
         const btn = document.getElementById('btn-no-creds-open-settings');
@@ -586,6 +640,14 @@ async function loadData() {
           btn.addEventListener('click', () => {
             chrome.runtime.openOptionsPage();
             window.close();
+          });
+        }
+        const closeBtn = document.getElementById('btn-no-creds-close');
+        if (closeBtn && !closeBtn.dataset.bound) {
+          closeBtn.dataset.bound = '1';
+          closeBtn.addEventListener('click', async () => {
+            noCredsBanner.classList.add('hidden');
+            await setBannerDismissed('noCredsBannerDismissed');
           });
         }
       }
@@ -712,7 +774,180 @@ function displayStatus(statusData, apiData, lastCheck) {
   displayClosureBanner(statusData, apiData, closed);
   displayTemporalStats(statusData, apiData, closed);
   displayDetails(statusData, apiData);
+  displayDmr(apiData);
   displayStatusBadges(apiData);
+}
+
+/**
+ * Affiche le suivi de la demande de modification du décret (DMR).
+ *
+ * L'API ANEF (/api/anf/usager/dmr) ne donne qu'un statut grossier
+ * (BROUILLON / DEPOT_CONFIRME / TRAITEMENT_TERMINE) : le détail de
+ * l'instruction arrive par les notifications, d'où le bloc « Suivi ».
+ * Rien de tout ceci ne quitte le navigateur.
+ */
+function displayDmr(apiData) {
+  const section = document.getElementById('dmr-section');
+  if (!section) return;
+
+  const dmr = apiData?.dmr;
+  if (!dmr?.statut) { section.classList.add('hidden'); return; }
+
+  const info = getDmrStatut(dmr.statut);
+
+  const badge = document.getElementById('dmr-statut-badge');
+  if (badge) {
+    badge.textContent = `${info.icon} ${info.label}`;
+    badge.className = 'dmr-badge tone-' + (info.tone || 'pending');
+  }
+  const hint = document.getElementById('dmr-hint');
+  if (hint) hint.textContent = info.hint || '';
+
+  // Dates
+  const dateEl = document.getElementById('dmr-date-depot');
+  if (dateEl) dateEl.textContent = dmr.date_depot ? formatDate(dmr.date_depot) : '—';
+
+  const ageEl = document.getElementById('dmr-age');
+  if (ageEl) {
+    const days = dmr.date_depot ? daysSince(dmr.date_depot) : null;
+    // Une demande terminée n'a plus de compteur qui court
+    ageEl.textContent = (days != null && dmr.statut !== 'TRAITEMENT_TERMINE')
+      ? formatDuration(days)
+      : '—';
+  }
+
+  const decretEl = document.getElementById('dmr-decret');
+  const decretItem = document.getElementById('dmr-decret-item');
+  if (decretEl && decretItem) {
+    if (dmr.decret_id) {
+      decretEl.textContent = 'n° ' + dmr.decret_id;
+      decretItem.classList.remove('hidden');
+    } else {
+      decretItem.classList.add('hidden');
+    }
+  }
+
+  // Progression du formulaire : n'a de sens que tant que la demande n'est pas déposée
+  const etapeRow = document.getElementById('dmr-etape-row');
+  const etapeEl = document.getElementById('dmr-etape');
+  const etapeLabel = formatDmrEtape(dmr.etape_actuelle);
+  if (etapeRow && etapeEl) {
+    if (etapeLabel && dmr.statut === 'BROUILLON') {
+      etapeEl.textContent = etapeLabel;
+      etapeRow.classList.remove('hidden');
+    } else {
+      etapeRow.classList.add('hidden');
+    }
+  }
+
+  renderDmrEnfants(dmr.enfants);
+  renderDmrEvents(apiData.dmrEvents);
+  renderDmrAttestation(dmr.attestation);
+
+  section.classList.remove('hidden');
+}
+
+/** Liste des enfants demandés à l'ajout (ce qu'on a réellement soumis) */
+function renderDmrEnfants(enfants) {
+  const block = document.getElementById('dmr-enfants-block');
+  const list = document.getElementById('dmr-enfants');
+  const title = document.getElementById('dmr-enfants-title');
+  if (!block || !list) return;
+
+  list.textContent = '';
+  if (!Array.isArray(enfants) || enfants.length === 0) {
+    block.classList.add('hidden');
+    return;
+  }
+
+  if (title) title.textContent = enfants.length > 1 ? `Enfants ajoutés (${enfants.length})` : 'Enfant ajouté';
+
+  for (const e of enfants) {
+    const li = document.createElement('li');
+
+    const nom = document.createElement('span');
+    nom.className = 'dmr-enfant-nom';
+    nom.textContent = [e.prenoms, e.nom].filter(Boolean).join(' ') || 'Enfant';
+    li.appendChild(nom);
+
+    const parts = [];
+    if (e.date_naissance) parts.push('né(e) le ' + formatDate(e.date_naissance));
+    if (e.lieu_naissance) parts.push(e.lieu_naissance);
+    if (e.motif_ajout) parts.push(DMR_MOTIFS_AJOUT[e.motif_ajout] || e.motif_ajout);
+    if (parts.length) {
+      const detail = document.createElement('span');
+      detail.className = 'dmr-enfant-detail';
+      detail.textContent = parts.join(' · ');
+      li.appendChild(detail);
+    }
+
+    if (Array.isArray(e.justificatifs) && e.justificatifs.length) {
+      const justif = document.createElement('span');
+      justif.className = 'dmr-enfant-detail';
+      justif.textContent = '📎 ' + e.justificatifs
+        .map(t => DMR_JUSTIFICATIFS[t] || t)
+        .join(', ');
+      li.appendChild(justif);
+    }
+
+    list.appendChild(li);
+  }
+  block.classList.remove('hidden');
+}
+
+/** Évènements ANEF liés à la DMR (compléments demandés, décision, publication) */
+function renderDmrEvents(events) {
+  const block = document.getElementById('dmr-events-block');
+  const list = document.getElementById('dmr-events');
+  if (!block || !list) return;
+
+  list.textContent = '';
+  if (!Array.isArray(events) || events.length === 0) {
+    block.classList.add('hidden');
+    return;
+  }
+
+  // Plus récent en premier
+  for (const ev of [...events].reverse()) {
+    const li = document.createElement('li');
+    if (dmrEventNeedsAction(ev.motif)) li.classList.add('needs-action');
+
+    const date = document.createElement('span');
+    date.className = 'dmr-event-date';
+    date.textContent = ev.date ? formatDateShort(ev.date) : '—';
+    li.appendChild(date);
+
+    const label = document.createElement('span');
+    label.textContent = DMR_EVENT_MOTIFS[ev.motif]?.label || ev.motif;
+    li.appendChild(label);
+
+    list.appendChild(li);
+  }
+  block.classList.remove('hidden');
+}
+
+/** Bouton d'attestation : le lien ANEF est signé et n'est valable que 24 h */
+function renderDmrAttestation(attestation) {
+  const btn = document.getElementById('btn-dmr-attestation');
+  const stale = document.getElementById('dmr-attestation-stale');
+  if (!btn || !stale) return;
+
+  if (isDmrLinkValid(attestation)) {
+    btn.dataset.url = attestation.url;
+    if (attestation.nom) btn.title = attestation.nom;
+    btn.classList.remove('hidden');
+    stale.classList.add('hidden');
+    if (!btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        if (btn.dataset.url) chrome.tabs.create({ url: btn.dataset.url });
+      });
+    }
+  } else {
+    btn.classList.add('hidden');
+    // On ne signale l'expiration que si une attestation existe bel et bien
+    stale.classList.toggle('hidden', !attestation?.url);
+  }
 }
 
 /** Affiche les badges d'état déduits des drapeaux ANEF (décision, décret, recours) */
@@ -1060,7 +1295,17 @@ async function refreshInBackground() {
     }
 
     if (result?.passwordExpired) {
-      showView('passwordExpired');
+      if (await isPasswordExpiredDismissed()) {
+        // Avertissement masqué par l'utilisateur → on reste sur le statut connu,
+        // avec juste une bannière (fermable) puisqu'il a demandé l'actualisation.
+        await loadData();
+        showRefreshErrorBanner(
+          'Mot de passe ANEF expiré',
+          'Renouvelle ton mot de passe sur le portail ANEF, puis relance une vérification.'
+        );
+      } else {
+        showView('passwordExpired');
+      }
       return;
     }
 

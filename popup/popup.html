@@ -51,7 +51,8 @@
 
     <!-- Vue: Mot de passe expiré -->
     <div id="view-password-expired" class="view hidden">
-      <div class="card card-warning">
+      <div class="card card-warning card-dismissible">
+        <button id="btn-password-expired-close" class="card-close" type="button" title="Fermer" aria-label="Fermer">&times;</button>
         <div class="card-icon-wrapper warning">
           <span class="card-icon">🔑</span>
         </div>
@@ -63,6 +64,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
           </svg>
         </button>
+        <button id="btn-password-expired-dismiss" class="btn btn-ghost btn-sm btn-dismiss-block" type="button">Fermer et ne plus afficher</button>
+        <p class="hint-text hint-dismiss">Une fois ferm&eacute;, cet avertissement ne r&eacute;appara&icirc;tra plus.</p>
       </div>
     </div>
 
@@ -159,6 +162,7 @@
 
     <!-- Bannière : pas d'identifiants enregistrés pour le primaire -->
     <div id="no-creds-banner" class="no-creds-banner hidden">
+      <button id="btn-no-creds-close" class="banner-close" type="button" title="Fermer" aria-label="Fermer">&times;</button>
       <div class="no-creds-banner-content">
         <span class="no-creds-banner-icon">🔑</span>
         <div class="no-creds-banner-text">
@@ -206,6 +210,52 @@
 
     <!-- Vue: Statut -->
     <div id="view-status" class="view hidden">
+
+      <!-- Demande de modification du décret (DMR) — en tête : c'est la démarche
+           en cours, elle doit être visible sans faire défiler le popup -->
+      <section id="dmr-section" class="dmr-section hidden">
+        <header class="dmr-header">
+          <span class="dmr-title">📝 Modification du décret</span>
+          <span id="dmr-statut-badge" class="dmr-badge">—</span>
+        </header>
+        <p id="dmr-hint" class="dmr-hint">—</p>
+
+        <div class="dmr-meta">
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">Déposée le</span>
+            <span class="dmr-meta-value" id="dmr-date-depot">—</span>
+          </div>
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">En attente depuis</span>
+            <span class="dmr-meta-value" id="dmr-age">—</span>
+          </div>
+          <div class="dmr-meta-item" id="dmr-decret-item">
+            <span class="dmr-meta-label">Décret visé</span>
+            <span class="dmr-meta-value" id="dmr-decret">—</span>
+          </div>
+        </div>
+
+        <div id="dmr-etape-row" class="dmr-etape hidden">
+          Formulaire : <span id="dmr-etape">—</span>
+        </div>
+
+        <div id="dmr-enfants-block" class="dmr-block hidden">
+          <span class="dmr-block-title" id="dmr-enfants-title">Enfants ajoutés</span>
+          <ul id="dmr-enfants" class="dmr-list"></ul>
+        </div>
+
+        <div id="dmr-events-block" class="dmr-block hidden">
+          <span class="dmr-block-title">Suivi</span>
+          <ul id="dmr-events" class="dmr-list dmr-timeline"></ul>
+        </div>
+
+        <button id="btn-dmr-attestation" class="btn btn-secondary btn-sm dmr-attestation hidden">
+          <span>📄 Attestation de dépôt (PDF)</span>
+        </button>
+        <p id="dmr-attestation-stale" class="dmr-hint dmr-hint-muted hidden">
+          Lien d'attestation expiré — actualise pour le régénérer.
+        </p>
+      </section>
 
       <!-- Carte principale -->
       <div class="status-card">

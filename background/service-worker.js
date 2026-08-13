@@ -13,6 +13,7 @@ import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatu
 import { deriveStatus, parseStatutField } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
+import { extractDmrEvents, getDmrStatut, DMR_EVENT_MOTIFS } from '../lib/dmr.js';
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -390,6 +391,13 @@ async function handleDossierData(data) {
       await storage.saveApiData(apiData);
     }
 
+    // Le mot de passe fonctionne à nouveau : on réarme la vue "mot de passe
+    // expiré" que l'utilisateur avait pu fermer définitivement (popup).
+    const { passwordExpiredDismissed } = await chrome.storage.local.get('passwordExpiredDismissed');
+    if (passwordExpiredDismissed) {
+      await chrome.storage.local.remove('passwordExpiredDismissed');
+    }
+
     // ── Routage multi-dossier (v2.6.0+) ──
     // Chaque dossier a son propre record dans `dossiers[id]`. Pas de wipe :
     // on écrit dans le record correspondant à data.id. Si c'est un nouveau
@@ -574,8 +582,21 @@ async function handleApiData(data) {
     canRapo: derived.canRapo,
     rawTaxePayee: data.raw_taxe_payee,
     rawEntretien: data.raw_entretien,
+    // ── Demande de modification du décret (DMR) ──
+    // Données strictement locales : la liste blanche de buildAnonymousPayload
+    // ne les reprend pas, rien n'en part vers Supabase.
+    dmr: data.dmr || null,
+    dmrEvents: extractDmrEvents(data.notifications),
     lastUpdate: new Date().toISOString()
   };
+
+  // Suivi du DMR : mémorise les changements d'état et prévient l'utilisateur.
+  // On relit l'apiData DU MÊME dossier (multi-dossier : sans id, getApiData
+  // renvoie l'entrée legacy globale, pas le dossier courant).
+  const previousApiData = apiData.dossierId
+    ? await storage.getApiData(apiData.dossierId)
+    : await storage.getApiData();
+  await trackDmrChange(previousApiData, apiData);
 
   await storage.saveApiData(apiData);
   logger.info('✅ Données API sauvegardées', { timeline: derived.timeline?.length || 0 });
@@ -624,6 +645,93 @@ async function handleApiData(data) {
         logger.warn('Rehydrate échoué', e.message);
       }
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Suivi de la demande de modification du décret (DMR)
+// ─────────────────────────────────────────────────────────────
+
+const DMR_HISTORY_LIMIT = 20;
+
+/**
+ * Journalise les évolutions d'une DMR et prévient l'utilisateur.
+ *
+ * Deux signaux distincts :
+ *   • le `statut` renvoyé par /anf/usager/dmr (BROUILLON → DEPOT_CONFIRME →
+ *     TRAITEMENT_TERMINE) ;
+ *   • les notifications ANEF liées à la DMR (complément demandé, décision,
+ *     publication d'un décret rectificatif) — c'est là qu'arrive l'information
+ *     utile pendant l'instruction.
+ *
+ * La première observation d'une DMR est enregistrée sans notifier : elle décrit
+ * une démarche que l'utilisateur vient de faire lui-même.
+ */
+async function trackDmrChange(previousApiData, apiData) {
+  const current = apiData?.dmr;
+  if (!current?.statut) return;
+
+  const dossierId = apiData.dossierId ? String(apiData.dossierId) : null;
+  const { dmrHistory = [] } = await chrome.storage.local.get('dmrHistory');
+  const ownHistory = dmrHistory.filter(e => !e.dossierId || !dossierId || e.dossierId === dossierId);
+
+  // C'est `dmrHistory` — et non l'apiData précédent — qui fait foi : si le
+  // record du dossier a été recréé (switch, réinstallation), `previousApiData`
+  // revient à null et on réécrirait la même ligne à chaque vérification.
+  const lastRecorded = ownHistory.length ? ownHistory[ownHistory.length - 1].statut : null;
+
+  // 1) Changement d'état de la demande
+  if (current.statut !== lastRecorded) {
+    const entry = {
+      dossierId,
+      statut: current.statut,
+      etape_actuelle: current.etape_actuelle ?? null,
+      timestamp: new Date().toISOString()
+    };
+    const updated = [...dmrHistory, entry].slice(-DMR_HISTORY_LIMIT);
+    await chrome.storage.local.set({ dmrHistory: updated });
+    logger.info('📝 DMR : nouvel état', entry);
+
+    // Pas de notification à la première observation : la démarche vient d'être
+    // faite par l'utilisateur lui-même.
+    if (lastRecorded) {
+      const info = getDmrStatut(current.statut);
+      await sendDmrNotification('Modification du décret', `Votre demande est passée à « ${info.label} ».`);
+    }
+  }
+
+  // 2) Nouvel évènement d'instruction (notification ANEF).
+  // Sans apiData précédent, on n'a aucun point de comparaison : tout
+  // paraîtrait nouveau, y compris des évènements vieux de plusieurs mois.
+  if (!previousApiData) return;
+
+  const previousEvents = Array.isArray(previousApiData.dmrEvents) ? previousApiData.dmrEvents : [];
+  const seen = new Set(previousEvents.map(e => `${e.motif}|${e.date}`));
+  const fresh = (apiData.dmrEvents || []).filter(e => !seen.has(`${e.motif}|${e.date}`));
+
+  if (fresh.length) {
+    const last = fresh[fresh.length - 1];
+    const label = DMR_EVENT_MOTIFS[last.motif]?.label || last.motif;
+    await sendDmrNotification('Modification du décret', label);
+  }
+}
+
+/** Notification liée au suivi DMR (respecte le réglage global). */
+async function sendDmrNotification(title, message) {
+  const settings = await storage.getSettings();
+  if (!settings.notificationsEnabled) return;
+  try {
+    await chrome.notifications.create('anef-dmr-' + Date.now(), {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL('assets/icon-128.png'),
+      title,
+      message,
+      priority: 1,
+      silent: true,
+      requireInteraction: false
+    });
+  } catch (error) {
+    logger.error('Erreur notification DMR:', error.message);
   }
 }
 
@@ -801,7 +909,7 @@ async function sendStatusChangeNotification(data) {
 
 // Clic sur la notification → ouvre le popup
 chrome.notifications.onClicked.addListener((notifId) => {
-  if (notifId.startsWith('anef-status-') || notifId.startsWith('anef-dossier-switch-')) {
+  if (notifId.startsWith('anef-status-') || notifId.startsWith('anef-dossier-switch-') || notifId.startsWith('anef-dmr-')) {
     chrome.notifications.clear(notifId);
   }
 });

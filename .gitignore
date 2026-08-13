@@ -54,6 +54,9 @@ docs/swap-nav.js
 .claude/
 CLAUDE.md
 
+# Graphe de connaissance généré localement (2,9 Mo, dérivé du code)
+graphify-out/
+
 # Store screenshots (dev only)
 assets/store-screenshots.html
 

@@ -49,7 +49,8 @@
     STEPPER: ROOT + '/anf/dossier-stepper',
     FRISE: ROOT + '/anf/usager/dossiers/frise-stepper',
     NOTIFICATIONS: ROOT + '/notifications',
-    DETAILS: ROOT + '/anf/usager/dossiers/'
+    DETAILS: ROOT + '/anf/usager/dossiers/',
+    DMR: ROOT + '/anf/usager/dmr'      // demande de modification du décret
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -129,6 +130,63 @@
     return null;
   }
 
+  /**
+   * Date d'expiration d'un lien de fichier ANEF.
+   * Les `_links.data` sont signés par un JWT (`?signature=`) valable 24 h ;
+   * on lit `exp` du payload (base64url, aucune vérification de signature —
+   * on ne fait que dater le lien pour ne pas proposer un bouton mort).
+   */
+  function extractLinkExpiry(path) {
+    try {
+      const sig = new URL(ROOT + path).searchParams.get('signature');
+      if (!sig) return null;
+      const payload = JSON.parse(atob(sig.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return payload?.exp ? new Date(payload.exp * 1000).toISOString() : null;
+    } catch { return null; }
+  }
+
+  /**
+   * Demande de modification du décret (DMR) — voir lib/dmr.js.
+   * On ne retient que ce que le popup affiche : l'état de la demande, ce qui a
+   * été demandé, et le lien (signé, éphémère) de l'attestation de dépôt.
+   * Ces données restent locales : elles ne sont jamais incluses dans
+   * l'instantané anonyme envoyé à Supabase (liste blanche de champs).
+   */
+  async function fetchDmr() {
+    try {
+      const res = await getJson(API.DMR);
+      const d = res.json ? (res.json.data ?? res.json) : null;
+      if (!d || !d.statut) return null;
+
+      const enfants = Array.isArray(d.formulaire?.nouveaux_enfants) ? d.formulaire.nouveaux_enfants : [];
+      const links = d.attestation_depot?._links || null;
+
+      return {
+        statut: d.statut,
+        etape_actuelle: d.etape_actuelle ?? null,
+        date_depot: d.date_depot || null,
+        decret_id: d.decret?.id != null ? String(d.decret.id) : null,
+        enfants: enfants.map(e => ({
+          prenoms: Array.isArray(e.prenoms) ? e.prenoms.filter(Boolean).join(' ') : (e.prenoms || null),
+          nom: e.nom || null,
+          date_naissance: e.date_naissance || null,
+          lieu_naissance: e.lieu_naissance || null,
+          motif_ajout: e.motif_ajout || null,
+          justificatifs: (Array.isArray(e.justificatifs) ? e.justificatifs : [])
+            .map(j => j?.type).filter(Boolean)
+        })),
+        attestation: links?.data ? {
+          nom: links.name || null,
+          url: ROOT + links.data,
+          expire: extractLinkExpiry(links.data)
+        } : null
+      };
+    } catch (e) {
+      log('DMR indisponible: ' + e.message);
+      return null;
+    }
+  }
+
   async function fetchNotifications() {
     try {
       const res = await getJson(API.NOTIFICATIONS);
@@ -200,6 +258,13 @@
     const currentStep = detail?.current_step ?? null;
     if (numeroDecret) log('📜 Décret assigné: ' + numeroDecret);
 
+    // DMR : uniquement pour les dossiers qui peuvent en déposer une (drapeau
+    // CAN_ACCESS_DMR ou décret déjà assigné) — inutile d'appeler l'API pour
+    // les dossiers encore en instruction.
+    const canDmr = String(statutRaw).includes('CAN_ACCESS_DMR') || !!numeroDecret;
+    const dmr = canDmr ? await fetchDmr() : null;
+    if (dmr) log('📝 DMR: ' + dmr.statut + ' (' + dmr.enfants.length + ' enfant(s))');
+
     // Envoi du statut principal (le service worker recombine via anef-mapper)
     sendToExtension('DOSSIER_DATA', {
       statut_raw: statutRaw,
@@ -214,12 +279,12 @@
 
     // Détails enrichis (à partir du détail déjà récupéré)
     if (detail) {
-      sendApiData(dossier.id, detail, statutRaw, frise, notifications);
+      sendApiData(dossier.id, detail, statutRaw, frise, notifications, dmr);
     }
     return true;
   }
 
-  function sendApiData(dossierId, d, statutRaw, frise, notifications) {
+  function sendApiData(dossierId, d, statutRaw, frise, notifications, dmr) {
     try {
       const ea = d?.entretien_assimilation || null;
       const dateDepot = d?.taxe_payee?.date_consommation || d?.date_creation || d?._created || d?.date_depot;
@@ -247,6 +312,7 @@
         statut_raw: statutRaw,
         frise,
         notifications,
+        dmr: dmr || null,                                                  // NOUVEAU
         raw_taxe_payee: d?.taxe_payee,
         raw_entretien: ea
       });

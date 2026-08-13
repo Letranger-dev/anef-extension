@@ -248,6 +248,72 @@ body {
   margin-bottom: 16px;
 }
 
+/* ─── Carte fermable (croix en haut à droite) ──────────────── */
+
+.card-dismissible {
+  position: relative;
+}
+
+.card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--slate-500);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.card-close:hover {
+  background: var(--slate-200);
+  color: var(--slate-700, #334155);
+}
+
+/* Croix de fermeture d'une bannière (coin haut droit) */
+.banner-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.banner-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.btn-dismiss-block {
+  display: block;
+  margin: 10px auto 0;
+}
+
+.hint-dismiss {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
 .link-settings {
   color: var(--france-blue);
   text-decoration: none;
@@ -967,10 +1033,11 @@ body {
 /* ─── No credentials banner ───────────────────────────────── */
 
 .no-creds-banner {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 12px 30px 12px 14px;
   margin: 8px 12px 4px;
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   border: 1px solid #f59e0b;
@@ -979,6 +1046,8 @@ body {
 }
 
 .no-creds-banner.hidden { display: none; }
+
+.no-creds-banner .banner-close { color: #78350f; }
 
 .no-creds-banner-content {
   display: flex;
@@ -1024,6 +1093,186 @@ body {
   background: #d97706;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+/* ─── Demande de modification du décret (DMR) ──────────────── */
+
+.dmr-section {
+  margin: 0 0 12px;
+  padding: 14px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-left: 4px solid var(--france-blue);
+  border-radius: var(--radius-md);
+}
+
+.dmr-section.hidden { display: none; }
+
+.dmr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dmr-title {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--france-blue);
+}
+
+.dmr-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72em;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--warning-light);
+  color: #78350f;
+}
+
+.dmr-badge.tone-done {
+  background: var(--success-light);
+  color: #065f46;
+}
+
+.dmr-badge.tone-draft {
+  background: var(--slate-200);
+  color: var(--slate-700);
+}
+
+.dmr-hint {
+  font-size: 0.78em;
+  color: var(--slate-600);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.dmr-hint-muted {
+  color: var(--slate-500);
+  font-style: italic;
+  margin: 6px 0 0;
+}
+
+.dmr-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dmr-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.dmr-meta-label {
+  font-size: 0.66em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--slate-500);
+}
+
+.dmr-meta-value {
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--slate-800);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dmr-etape {
+  font-size: 0.76em;
+  color: var(--slate-600);
+  margin-bottom: 8px;
+}
+
+.dmr-etape.hidden { display: none; }
+
+.dmr-block {
+  margin-top: 10px;
+}
+
+.dmr-block.hidden { display: none; }
+
+.dmr-block-title {
+  display: block;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--slate-500);
+  margin-bottom: 5px;
+}
+
+.dmr-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dmr-list li {
+  font-size: 0.8em;
+  color: var(--slate-700);
+  line-height: 1.35;
+  padding: 6px 9px;
+  background: #fff;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+}
+
+.dmr-enfant-nom {
+  font-weight: 600;
+  color: var(--slate-800);
+}
+
+.dmr-enfant-detail {
+  display: block;
+  font-size: 0.92em;
+  color: var(--slate-500);
+}
+
+.dmr-timeline li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dmr-event-date {
+  font-size: 0.9em;
+  color: var(--slate-500);
+  white-space: nowrap;
+}
+
+.dmr-timeline li.needs-action {
+  border-color: var(--warning);
+  background: var(--warning-light);
+  color: #78350f;
+}
+
+.dmr-attestation {
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.dmr-attestation.hidden { display: none; }
+
+/* Mode privé : les données d'état civil des enfants sont floutées */
+.privacy-mode .dmr-enfant-nom,
+.privacy-mode .dmr-enfant-detail,
+.privacy-mode #dmr-decret,
+.privacy-mode #dmr-date-depot {
+  filter: blur(6px);
+  user-select: none;
 }
 
 /* ─── Generic refresh error banner ─────────────────────────── */
