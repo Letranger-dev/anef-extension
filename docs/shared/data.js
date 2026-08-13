@@ -7,8 +7,8 @@
   window.ANEF = window.ANEF || {};
 
   var _cfg = window.__SB_CONFIG__ || {};
-  var _SB_URL = _cfg.url || '__SUPABASE_URL__';
-  var _SB_KEY = _cfg.key || '__SUPABASE_ANON_KEY__';
+  var _SB_URL = _cfg.url || null;
+  var _SB_KEY = _cfg.key || null;
   delete window.__SB_CONFIG__;
 
   var CACHE_KEY = 'anef_snapshots';
