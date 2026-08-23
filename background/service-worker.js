@@ -254,6 +254,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // Consentement statistiques : état courant pour l'UI
+    case 'GET_STATS_CONSENT':
+      (async () => {
+        const settings = await storage.getSettings();
+        sendResponse({
+          needsConsent: storage.needsStatsConsent(settings),
+          granted: storage.hasStatsConsent(settings),
+          decidedAt: settings.statsConsentAt || null
+        });
+      })();
+      return true;
+
+    // Consentement statistiques : enregistrer la décision (accord ou retrait)
+    case 'SET_STATS_CONSENT':
+      (async () => {
+        try {
+          const granted = await storage.recordStatsConsent(message.granted === true);
+          logger.info(granted
+            ? '✅ Consentement statistiques accordé'
+            : '🚫 Statistiques communautaires refusées — aucun envoi');
+          sendResponse({ success: true, granted });
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+      })();
+      return true;
+
     // Paramètres modifiés → reconfigurer l'alarme auto-check
     case 'SETTINGS_CHANGED':
       logger.info('⚙️ Paramètres modifiés, reconfiguration auto-check');
@@ -1804,6 +1831,17 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     } else if (!currentSettings._intervalMigrated60) {
       await storage.saveSettings({ _intervalMigrated60: true });
     }
+    // Migration v2.10.0 — opt-in RGPD des statistiques communautaires.
+    // Les installations antérieures ont `anonymousStatsEnabled: true` écrit en
+    // storage sans avoir jamais donné de consentement explicite : un opt-out
+    // implicite n'est pas un consentement (RGPD art. 4-11). On suspend donc la
+    // collecte et on laisse le popup poser la question. Répondre — oui ou non —
+    // pose `statsConsentAsked`, ce qui rend ce bloc inopérant les fois suivantes.
+    if (currentSettings.statsConsentAsked !== true && currentSettings.anonymousStatsEnabled) {
+      await storage.saveSettings({ anonymousStatsEnabled: false });
+      logger.info('🔒 Statistiques communautaires suspendues en attente du consentement');
+    }
+
     // Migration v2.2.0 : supprimer disabledByFailure obsolète, reset compteur
     const meta = await storage.getAutoCheckMeta();
     if (meta.disabledByFailure !== undefined) {

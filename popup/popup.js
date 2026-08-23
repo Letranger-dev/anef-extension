@@ -175,10 +175,69 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   attachEventListeners();
+  // Posée avant tout le reste : la question du consentement ne doit dépendre
+  // d'aucun chargement de données qui pourrait échouer.
+  await initStatsConsent();
   await renderDossierTabs(); // barre d'onglets multi-dossier
   await loadData();
   await checkDossierSwitchNotice();
 });
+
+// ─────────────────────────────────────────────────────────────
+// Consentement aux statistiques communautaires (opt-in)
+// ─────────────────────────────────────────────────────────────
+// La bannière n'apparaît que tant que la question n'a pas été tranchée. Elle
+// n'empêche aucun usage de l'extension : refuser n'enlève aucune fonction, ce
+// qui est la condition pour qu'un consentement soit libre (RGPD art. 7-4).
+
+async function initStatsConsent() {
+  const banner = document.getElementById('stats-consent-banner');
+  if (!banner) return;
+
+  let state = null;
+  try {
+    state = await chrome.runtime.sendMessage({ type: 'GET_STATS_CONSENT' });
+  } catch (e) {
+    console.warn('[Popup] État du consentement indisponible:', e);
+  }
+
+  // En cas d'erreur on n'affiche rien : mieux vaut ne pas poser la question
+  // qu'enregistrer une réponse sur un état inconnu (le service worker, lui,
+  // reste muet tant qu'aucun consentement n'est enregistré).
+  if (!state?.needsConsent) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  banner.classList.remove('hidden');
+
+  const accept = document.getElementById('btn-stats-consent-accept');
+  const decline = document.getElementById('btn-stats-consent-decline');
+  if (accept && !accept.dataset.bound) {
+    accept.dataset.bound = '1';
+    accept.addEventListener('click', () => submitStatsConsent(true));
+  }
+  if (decline && !decline.dataset.bound) {
+    decline.dataset.bound = '1';
+    decline.addEventListener('click', () => submitStatsConsent(false));
+  }
+}
+
+/** Enregistre la réponse de l'utilisateur et referme la bannière. */
+async function submitStatsConsent(granted) {
+  const banner = document.getElementById('stats-consent-banner');
+  const buttons = banner ? banner.querySelectorAll('button') : [];
+  buttons.forEach(b => { b.disabled = true; });
+
+  try {
+    const res = await chrome.runtime.sendMessage({ type: 'SET_STATS_CONSENT', granted });
+    if (!res?.success) throw new Error(res?.error || 'réponse invalide');
+    banner?.classList.add('hidden');
+  } catch (e) {
+    console.warn('[Popup] Enregistrement du consentement échoué:', e);
+    buttons.forEach(b => { b.disabled = false; });
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Multi-dossier — barre d'onglets

@@ -32,6 +32,32 @@
       </div>
     </header>
 
+    <!-- Bannière : consentement aux statistiques communautaires (opt-in RGPD).
+         Placée juste sous l'en-tête pour être visible quelle que soit la vue
+         active — y compris « Aucune donnée », au tout premier lancement. -->
+    <div id="stats-consent-banner" class="stats-consent-banner hidden">
+      <div class="stats-consent-header">
+        <span class="stats-consent-icon">📊</span>
+        <strong>Participer aux statistiques communautaires ?</strong>
+      </div>
+      <p class="stats-consent-text">
+        Avec ton accord, l'extension partage l'avancement de ton dossier
+        (étape, dates au jour près, préfecture, lieu d'entretien) pour alimenter
+        les statistiques publiques sur les délais de naturalisation. Ton numéro
+        de dossier est remplacé par un identifiant non réversible ; aucun nom,
+        e-mail ni identifiant de connexion n'est transmis.
+      </p>
+      <p class="stats-consent-text stats-consent-muted">
+        Si tu refuses, rien n'est envoyé et l'extension fonctionne exactement
+        pareil. Tu peux changer d'avis à tout moment dans les paramètres.
+      </p>
+      <div class="stats-consent-actions">
+        <button id="btn-stats-consent-decline" class="btn btn-sm stats-consent-btn stats-consent-decline" type="button">Refuser</button>
+        <button id="btn-stats-consent-accept" class="btn btn-sm stats-consent-btn stats-consent-accept" type="button">Accepter</button>
+      </div>
+      <a class="stats-consent-link" href="https://github.com/Letranger-dev/anef-extension/blob/main/PRIVACY.md" target="_blank" rel="noopener">Politique de confidentialité</a>
+    </div>
+
     <!-- Vue: Maintenance -->
     <div id="view-maintenance" class="view hidden">
       <div class="card card-maintenance">

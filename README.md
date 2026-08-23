@@ -65,6 +65,11 @@ L'extension propose un **tableau de bord public** avec des statistiques anonymes
 
 **[Voir les statistiques](https://letranger-dev.github.io/anef-extension/)**
 
+> **Participation sur accord explicite (opt-in).** Aucune donnée n'est envoyée tant
+> que vous n'avez pas répondu « oui » à la question posée dans le popup. Refuser
+> n'enlève aucune fonctionnalité, et l'accord se retire à tout moment depuis
+> *Paramètres → Statistiques communautaires*, avec effet immédiat.
+
 ### Ce que vous y trouverez
 
 - **Vue d'ensemble** des dossiers suivis par etape
@@ -77,6 +82,7 @@ L'extension propose un **tableau de bord public** avec des statistiques anonymes
 
 La confidentialite de vos donnees est notre priorite absolue. Voici les garanties :
 
+- **Rien sans votre accord** : la collecte est desactivee par defaut et ne demarre qu'apres un consentement explicite, retirable a tout moment
 - **Aucune donnee personnelle n'est collectee** : ni nom, ni email, ni numero de dossier en clair
 - **Pseudonymisation renforcee** : le numero de dossier est remplace par un identifiant opaque non-reversible vers le numero d'origine
 - **Zero identifiant visible dans l'interface** : les dossiers sont affiches uniquement par leurs metadonnees (statut, prefecture, dates)

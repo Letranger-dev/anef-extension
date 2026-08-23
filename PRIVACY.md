@@ -1,6 +1,6 @@
 # Politique de confidentialité — ANEF Status Tracker
 
-*Dernière mise à jour : 13 août 2026*
+*Dernière mise à jour : 23 août 2026*
 
 ## Données collectées
 
@@ -14,11 +14,23 @@
 
 > **À noter** : la rubrique DMR est la seule à faire apparaître des noms — les vôtres et ceux des personnes que vous avez demandé à ajouter au décret, généralement vos enfants. Ces informations proviennent de votre propre espace ANEF, restent sur votre appareil, ne sont ni synchronisées ni envoyées à un serveur, et disparaissent si vous désinstallez l'extension ou effacez ses données.
 
+### Choix de partage
+- **Réponse au consentement** : votre accord ou votre refus concernant les statistiques communautaires, la date de cette décision et la version de la notice affichée (voir plus bas)
+
 ### Mode privé (masquage visuel)
 Un bouton en forme d'œil dans l'interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d'entretien, numéro de décret, type de demande, ainsi que les noms et dates de naissance affichés dans le suivi de la demande de modification du décret. Cette fonctionnalité est purement locale : aucune donnée n'est transmise ou modifiée, seul l'affichage est altéré pour faciliter le partage d'écran ou les captures.
 
 ### Statistiques anonymes
-Les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :
+
+> **Rien n'est envoyé sans votre accord explicite.** Le partage est **désactivé par défaut**. À la première ouverture, l'extension pose la question dans son popup ; tant que vous n'avez pas répondu « Accepter », aucune donnée ne quitte votre appareil. La base juridique de ce traitement est votre consentement (RGPD art. 6-1-a).
+
+**Comment retirer votre accord.** À tout moment, dans *Paramètres → Statistiques communautaires*, l'interrupteur « Partager mes données anonymisées » coupe immédiatement les envois — en un clic, sans confirmation, sans redémarrer l'extension (RGPD art. 7-3). Refuser ou se rétracter n'enlève aucune fonctionnalité : suivi du statut, notifications, historique, vérification automatique et suivi DMR fonctionnent à l'identique.
+
+**Ce que l'extension mémorise de votre choix.** Uniquement, en local : la réponse (oui/non), sa date, et la version de la notice d'information qui vous a été présentée. Ces trois éléments ne sont jamais transmis ; ils servent à ne pas reposer la question et à pouvoir justifier du consentement (RGPD art. 7-1).
+
+**Utilisateurs des versions antérieures à la 2.10.0.** Ces versions envoyaient les statistiques par défaut. Un réglage activé d'office n'est pas un consentement : à la mise à jour, la collecte est **suspendue** et la question vous est posée. Elle ne reprend que si vous répondez « Accepter ». Les données déjà présentes dans la base communautaire restent pseudonymisées et non rattachables à votre identité ; pour en demander le retrait, ouvrez une issue sur le dépôt GitHub.
+
+Si vous acceptez, les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :
 
 **Identifiant pseudonymisé :**
 - Le numéro de dossier est transformé en identifiant opaque au moyen d'une pseudonymisation cryptographique à double étage incluant une clé secrète serveur. Il est non-réversible vers le numéro d'origine.

@@ -107,7 +107,7 @@
               </button>
             </div>
           </div>
-          <p class="step-dates-hint">Renseignez les dates de vos changements d'étape pour enrichir les statistiques communautaires.</p>
+          <p class="step-dates-hint">Renseignez les dates de vos changements d'&eacute;tape pour enrichir les statistiques communautaires. Ces dates ne sont partag&eacute;es que si vous avez accept&eacute; le partage dans les param&egrave;tres.</p>
           <div id="step-dates-timeline" class="step-dates-timeline"></div>
         </div>
 
@@ -257,14 +257,25 @@
         <div class="settings-group">
           <h3>Statistiques communautaires</h3>
 
+          <label class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Partager mes donn&eacute;es anonymis&eacute;es</span>
+              <span class="setting-description">D&eacute;sactiv&eacute; par d&eacute;faut. Rien n'est envoy&eacute; tant que vous n'avez pas donn&eacute; votre accord, et vous pouvez le retirer &agrave; tout moment.</span>
+            </div>
+            <input type="checkbox" id="setting-anonymous-stats" class="toggle">
+          </label>
+
+          <p id="stats-consent-state" class="stats-consent-state">&mdash;</p>
+
           <div class="credential-warning">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <span>Les statistiques anonymes sont partag&eacute;es automatiquement pour alimenter les donn&eacute;es communautaires. Donn&eacute;es envoy&eacute;es : &eacute;tape, dates (jour uniquement), pr&eacute;fecture. Votre num&eacute;ro de dossier est remplac&eacute; par un hash irr&eacute;versible.
-            <a href="https://letranger-dev.github.io/anef-extension/" target="_blank">Voir les statistiques</a></span>
+            <span>Donn&eacute;es envoy&eacute;es si vous acceptez : &eacute;tape et statut, dates au jour pr&egrave;s (d&eacute;p&ocirc;t, changement de statut, entretien), pr&eacute;fecture, code postal et ville du domicile, lieu d'entretien, num&eacute;ro de d&eacute;cret, type de demande et version de l'extension. Votre num&eacute;ro de dossier est remplac&eacute; par un identifiant non r&eacute;versible. Ni vos identifiants ANEF, ni votre adresse, ni le suivi de votre demande de modification du d&eacute;cret ne quittent votre appareil.
+            <a href="https://github.com/Letranger-dev/anef-extension/blob/main/PRIVACY.md" target="_blank" rel="noopener">Politique de confidentialit&eacute;</a> &middot;
+            <a href="https://letranger-dev.github.io/anef-extension/" target="_blank" rel="noopener">Voir les statistiques</a></span>
           </div>
         </div>
 

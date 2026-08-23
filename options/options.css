@@ -1146,6 +1146,18 @@ body {
   margin-top: 16px;
 }
 
+/* État du consentement aux statistiques communautaires */
+.stats-consent-state {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.stats-consent-state.is-granted {
+  color: #047857;
+  font-weight: 500;
+}
+
 .credential-warning {
   display: flex;
   align-items: flex-start;
