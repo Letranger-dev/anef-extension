@@ -41,7 +41,6 @@ function initializeElements() {
 
     // Paramètres
     settingNotifications: document.getElementById('setting-notifications'),
-    settingAnonymousStats: document.getElementById('setting-anonymous-stats'),
     statsConsentState: document.getElementById('stats-consent-state'),
     settingHistoryLimit: document.getElementById('setting-history-limit'),
     btnSaveSettings: document.getElementById('btn-save-settings'),
@@ -145,7 +144,6 @@ function attachEventListeners() {
   elements.btnSaveSettings?.addEventListener('click', handleSaveSettings);
   // Le partage de données s'applique sans passer par « Sauvegarder » : retirer
   // son consentement doit être aussi immédiat que le donner (RGPD art. 7-3).
-  elements.settingAnonymousStats?.addEventListener('change', handleStatsConsentToggle);
   elements.btnResetSettings?.addEventListener('click', handleResetSettings);
 
   // Identifiants
@@ -697,52 +695,9 @@ async function loadSettings() {
   renderStatsConsentState(settings);
 }
 
-/** Reflet du consentement : état de l'interrupteur + phrase explicite dessous. */
-function renderStatsConsentState(settings) {
-  const granted = storage.hasStatsConsent(settings);
-  if (elements.settingAnonymousStats) elements.settingAnonymousStats.checked = granted;
-  if (!elements.statsConsentState) return;
-
-  let text;
-  if (granted) {
-    text = settings.statsConsentAt
-      ? `Partage activé — accord donné le ${formatConsentDate(settings.statsConsentAt)}.`
-      : 'Partage activé.';
-  } else if (settings.statsConsentAsked) {
-    text = settings.statsConsentAt
-      ? `Aucune donnée n'est envoyée — refus enregistré le ${formatConsentDate(settings.statsConsentAt)}.`
-      : "Aucune donnée n'est envoyée.";
-  } else {
-    text = "Aucune donnée n'est envoyée : la question ne vous a pas encore été posée.";
-  }
-  elements.statsConsentState.textContent = text;
-  elements.statsConsentState.classList.toggle('is-granted', granted);
-}
-
-/** Date de décision au format jj/mm/aaaa (vide si illisible). */
-function formatConsentDate(iso) {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('fr-FR');
-}
-
-/** Accord ou retrait immédiat, sans attendre « Sauvegarder ». */
-async function handleStatsConsentToggle() {
-  const granted = elements.settingAnonymousStats?.checked === true;
-  try {
-    await storage.recordStatsConsent(granted);
-    renderStatsConsentState(await storage.getSettings());
-    showToast(granted
-      ? 'Merci — partage des statistiques activé'
-      : 'Partage désactivé — plus aucune donnée envoyée', 'success');
-  } catch (e) {
-    console.warn('[Options] Enregistrement du consentement échoué:', e);
-    // Le choix n'a pas été enregistré : remettre l'interrupteur sur l'état réel
-    // plutôt que de laisser croire à un partage activé (ou coupé) à tort.
-    try { renderStatsConsentState(await storage.getSettings()); } catch { /* storage HS */ }
-    showToast("Impossible d'enregistrer ce choix", 'error');
-  }
-}
+/** Le bloc « Statistiques communautaires » n'est plus un réglage : son texte est
+ *  statique dans le HTML (description + liens). Rien à rendre dynamiquement. */
+function renderStatsConsentState() { /* no-op depuis la 2.11.0 */ }
 
 async function handleSaveSettings() {
   const autoCheckEnabled = elements.settingAutoCheck?.checked || false;

@@ -65,10 +65,13 @@ L'extension propose un **tableau de bord public** avec des statistiques anonymes
 
 **[Voir les statistiques](https://letranger-dev.github.io/anef-extension/)**
 
-> **Participation sur accord explicite (opt-in).** Aucune donnée n'est envoyée tant
-> que vous n'avez pas répondu « oui » à la question posée dans le popup. Refuser
-> n'enlève aucune fonctionnalité, et l'accord se retire à tout moment depuis
-> *Paramètres → Statistiques communautaires*, avec effet immédiat.
+> **Depuis la version 2.11.0, la participation fait partie de l'utilisation de
+> l'extension.** Installer et utiliser ANEF Status Tracker vaut acceptation du
+> partage : ces statistiques n'existent que parce que chaque utilisateur y
+> contribue. Il n'y a plus d'interrupteur pour s'y soustraire — si vous ne
+> souhaitez pas participer, n'installez pas l'extension ou désinstallez-la.
+> Le détail exact des champs transmis est dans la
+> [politique de confidentialité](PRIVACY.md).
 
 ### Ce que vous y trouverez
 
@@ -82,7 +85,8 @@ L'extension propose un **tableau de bord public** avec des statistiques anonymes
 
 La confidentialite de vos donnees est notre priorite absolue. Voici les garanties :
 
-- **Rien sans votre accord** : la collecte est desactivee par defaut et ne demarre qu'apres un consentement explicite, retirable a tout moment
+- **Champs strictement minimises** : seules les donnees necessaires au calcul des delais sont transmises, jamais plus
+- **Pseudonymise, et nous le disons** : l'empreinte du dossier est stable pour pouvoir calculer des durees, ce qui en fait une donnee personnelle au sens du RGPD ; elle est traitee comme telle et publiee uniquement sous forme agregee
 - **Aucune donnee personnelle n'est collectee** : ni nom, ni email, ni numero de dossier en clair
 - **Pseudonymisation renforcee** : le numero de dossier est remplace par un identifiant opaque non-reversible vers le numero d'origine
 - **Zero identifiant visible dans l'interface** : les dossiers sont affiches uniquement par leurs metadonnees (statut, prefecture, dates)

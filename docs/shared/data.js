@@ -229,19 +229,75 @@
       // - Rectification manuelle en avance sur l'auto (user annonce sa publication)
       // - Backtracking ANEF normal entre steps 9 ↔ 10 (préparation décret)
       // - Fin de trajectoire (dernier snapshot, pas de "suivant")
+      var CODES_REPLI_GROSSIER = {
+        instruction_recepisse_completude_a_envoyer: 1,  // repli macro « en cours »
+        instruction_date_ea_a_fixer: 1,                 // notification récépissé de complétude
+        instruction_a_affecter: 1,                      // notification récépissé de dépôt
+        dossier_depose: 1,                              // notification dépôt, ou id_active coercé à 0
+        draft: 1
+      };
+
       var out = [];
       for (var ci = 0; ci < deduped.length; ci++) {
         var cur2 = deduped[ci];
         var prev2 = ci > 0 ? deduped[ci - 1] : null;
         var next2 = ci < deduped.length - 1 ? deduped[ci + 1] : null;
         // Pic suspect = étape bien plus haute que prev ET suivie d'une régression profonde
+        // Le suivant doit être une vraie ligne : s'il porte un code de repli
+        // grossier, c'est LUI l'artefact, pas le pic. Sans cette condition, un
+        // dossier passé en RAPO (étape 12) puis victime d'un tour dégradé était
+        // amputé de son RAPO — le filtre censé nettoyer effaçait l'événement
+        // le plus important de la trajectoire.
         var isPhantomPeak = prev2 && next2
+          && !CODES_REPLI_GROSSIER[next2.statut]
           && (cur2.etape || 0) >= 11
           && (next2.etape || 0) < 10
           && (cur2.etape - prev2.etape) >= 3;
         if (!isPhantomPeak) out.push(cur2);
       }
       deduped = out;
+
+      // Filet symétrique : le "creux isolé". Quand la frise ET le détail ANEF
+      // échouaient dans le même tour, l'extension retombait sur le statut macro
+      // — identique de l'étape 4 à l'étape 11 — et enregistrait une fausse
+      // rétrogradation (663 lignes en base, dont 224 en `instruction_recepisse_
+      // completude_a_envoyer`). Corrigé dans l'extension 2.10.1, mais les lignes
+      // déjà écrites restent : 45 dossiers s'affichaient à l'étape 5 ou 2 alors
+      // qu'ils étaient au décret, voire naturalisés (issue #17).
+      //
+      // Creux = une ligne qu'un tour dégradé a pu fabriquer, et elle seule.
+      // Le discriminant n'est pas la forme de la chute mais le CODE atteint :
+      // quand la frise et le détail ANEF échouent ensemble, le mapper ne peut
+      // produire que le repli macro « en cours » ou le dernier événement daté,
+      // c'est-à-dire l'un des cinq codes ci-dessous. Une vraie transition
+      // n'atterrit jamais dessus après une chute de 3 étapes.
+      //
+      // Cette liste blanche est ce qui rend le filtre sûr. Sans elle, il
+      // effaçait 38 reprises après recours — un dossier passé en RAPO qui
+      // repart au contrôle (`controle_en_attente_pec`, étape 9) ressemble à un
+      // creux, mais c'est la meilleure nouvelle possible pour son titulaire, et
+      // ce code n'est produit QUE par la frise. Un RAPO qui plonge à l'étape 5,
+      // en revanche, est bien le bug : un recours qui aboutit renvoie au
+      // pipeline contrôle/décret, jamais au récépissé de complétude.
+      //
+      // Mesuré sur les 17 500 lignes publiques : 138 retraits, tous sur ces
+      // cinq codes, et plus aucun dossier avancé affiché à une étape basse.
+      var out2 = [];
+      for (var di = 0; di < deduped.length; di++) {
+        var cur3 = deduped[di];
+        // Référence = dernier point CONSERVÉ, pour attraper deux tours dégradés
+        // consécutifs (9 → 5 → 6). Sans risque ici : la liste blanche interdit
+        // au filtre de toucher autre chose qu'un code de repli.
+        var prev3 = out2.length ? out2[out2.length - 1] : null;
+        var next3 = di < deduped.length - 1 ? deduped[di + 1] : null;
+        var isPhantomDip = prev3
+          && cur3.source !== 'manual'
+          && CODES_REPLI_GROSSIER[cur3.statut]
+          && (cur3.etape || 0) <= (prev3.etape || 0) - 3
+          && (!next3 || (next3.etape || 0) > (cur3.etape || 0));
+        if (!isPhantomDip) out2.push(cur3);
+      }
+      deduped = out2;
       map.set(hash, deduped);
     });
     return map;

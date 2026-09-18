@@ -14,21 +14,30 @@
 
 > **À noter** : la rubrique DMR est la seule à faire apparaître des noms — les vôtres et ceux des personnes que vous avez demandé à ajouter au décret, généralement vos enfants. Ces informations proviennent de votre propre espace ANEF, restent sur votre appareil, ne sont ni synchronisées ni envoyées à un serveur, et disparaissent si vous désinstallez l'extension ou effacez ses données.
 
-### Choix de partage
-- **Réponse au consentement** : votre accord ou votre refus concernant les statistiques communautaires, la date de cette décision et la version de la notice affichée (voir plus bas)
+### Partage des statistiques
+- **Date de première activation du partage**, conservée localement pour information (voir plus bas)
 
 ### Mode privé (masquage visuel)
 Un bouton en forme d'œil dans l'interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d'entretien, numéro de décret, type de demande, ainsi que les noms et dates de naissance affichés dans le suivi de la demande de modification du décret. Cette fonctionnalité est purement locale : aucune donnée n'est transmise ou modifiée, seul l'affichage est altéré pour faciliter le partage d'écran ou les captures.
 
-### Statistiques anonymes
+### Statistiques communautaires
 
-> **Rien n'est envoyé sans votre accord explicite.** Le partage est **désactivé par défaut**. À la première ouverture, l'extension pose la question dans son popup ; tant que vous n'avez pas répondu « Accepter », aucune donnée ne quitte votre appareil. La base juridique de ce traitement est votre consentement (RGPD art. 6-1-a).
+> **À partir de la version 2.11.0, le partage fait partie de l'utilisation de l'extension.** Installer et utiliser ANEF Status Tracker vaut acceptation du partage décrit ci-dessous. Il n'y a plus d'interrupteur pour le désactiver : les statistiques publiques sur les délais de naturalisation n'existent que parce que chaque utilisateur y contribue. Si vous ne souhaitez pas participer, n'installez pas l'extension, ou désinstallez-la — c'est le seul moyen d'interrompre les envois.
 
-**Comment retirer votre accord.** À tout moment, dans *Paramètres → Statistiques communautaires*, l'interrupteur « Partager mes données anonymisées » coupe immédiatement les envois — en un clic, sans confirmation, sans redémarrer l'extension (RGPD art. 7-3). Refuser ou se rétracter n'enlève aucune fonctionnalité : suivi du statut, notifications, historique, vérification automatique et suivi DMR fonctionnent à l'identique.
+**Ce que « partagé » veut dire exactement.** Le partage est conçu pour qu'on ne puisse pas remonter jusqu'à vous :
 
-**Ce que l'extension mémorise de votre choix.** Uniquement, en local : la réponse (oui/non), sa date, et la version de la notice d'information qui vous a été présentée. Ces trois éléments ne sont jamais transmis ; ils servent à ne pas reposer la question et à pouvoir justifier du consentement (RGPD art. 7-1).
+- **Votre numéro de dossier n'est jamais transmis.** Il est réduit sur votre appareil à une empreinte à sens unique, puis re-transformé sur le serveur avec une clé secrète que l'extension ne possède pas. L'identifiant publié sur le site public n'est donc pas re-calculable : même en téléchargeant l'intégralité des données, personne ne peut retrouver un numéro de dossier.
+- **Ne quittent jamais votre appareil** : votre nom, votre adresse e-mail, vos identifiants de connexion ANEF, votre numéro national, l'adresse de votre domicile, et l'intégralité du suivi de votre demande de modification du décret — y compris les noms et dates de naissance de vos enfants.
+- **Les dates sont tronquées au jour**, jamais d'heure.
+- **Rien n'est publié individuellement** : le site n'affiche que des agrégats (médianes, délais par étape, comparaisons entre préfectures).
+- **Aucune publicité, aucun traceur, aucun tiers.** Les données ne sont ni revendues, ni partagées avec qui que ce soit, ni utilisées à d'autres fins que ces statistiques.
+- **Le code de collecte est ouvert** et tient dans un seul fichier (`lib/anonymous-stats.js`) : la liste des champs transmis est fermée et vérifiable ligne à ligne.
 
-**Utilisateurs des versions antérieures à la 2.10.0.** Ces versions envoyaient les statistiques par défaut. Un réglage activé d'office n'est pas un consentement : à la mise à jour, la collecte est **suspendue** et la question vous est posée. Elle ne reprend que si vous répondez « Accepter ». Les données déjà présentes dans la base communautaire restent pseudonymisées et non rattachables à votre identité ; pour en demander le retrait, ouvrez une issue sur le dépôt GitHub.
+**Pourquoi nous ne disons pas « anonyme ».** Par honnêteté. L'empreinte du dossier est stable dans le temps, pour pouvoir relier entre eux les instantanés d'une même demande — c'est ce qui permet de calculer combien de temps dure chaque étape. Cette stabilité suffit, au sens du RGPD, à qualifier la donnée de **pseudonymisée** plutôt que d'anonyme. Concrètement, cela ne change rien à ce qui précède : l'identifiant publié n'est pas re-calculable, et nous ne détenons aucun élément permettant de vous nommer. Mais nous préférons employer le mot juste plutôt que de promettre plus que ce que la technique garantit.
+
+**Vos droits.** Vous pouvez à tout moment demander l'accès aux données rattachées à votre demande, leur rectification ou leur effacement, en ouvrant une issue sur le dépôt GitHub (voir *Contact*). La désinstallation de l'extension arrête immédiatement tout nouvel envoi.
+
+**Utilisateurs des versions 2.10.0 à 2.10.x.** Ces versions demandaient votre accord avant tout envoi. À la mise à jour vers la 2.11.0, le partage devient systématique, y compris si vous aviez répondu « non ». Ce document et le README en font état ; si ce changement ne vous convient pas, la désinstallation reste possible à tout moment.
 
 Si vous acceptez, les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :
 
@@ -79,7 +88,7 @@ Ces éléments ne quittent jamais votre appareil — ni vers nos statistiques, n
 ## Stockage
 - Les données locales sont stockées via `chrome.storage.local` sur votre appareil
 - L'historique des statuts est sauvegardé via `chrome.storage.sync` pour la synchronisation entre vos appareils Chrome. Cette sauvegarde ne porte que sur l'historique des statuts, le statut courant et vos dates corrigées manuellement : ni les identifiants, ni les détails du dossier, ni le suivi DMR n'y figurent
-- Les statistiques anonymes sont stockées sur Supabase (hébergé en UE)
+- Les statistiques communautaires sont stockées sur Supabase (hébergé en UE)
 
 ## Autorisations
 - **storage** : stockage local des données du dossier et des paramètres

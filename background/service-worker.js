@@ -10,7 +10,7 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, isStatusRegression, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
-import { deriveStatus, parseStatutField } from '../lib/anef-mapper.js';
+import { deriveStatus, parseStatutField, isComplementPending } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
 import { extractDmrEvents, getDmrStatut, DMR_EVENT_MOTIFS } from '../lib/dmr.js';
@@ -168,9 +168,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleMaintenance().catch(e => logger.error('handleMaintenance error', e));
       break;
 
-    // Session expirée (JWT invalide / mot de passe expiré)
+    // Session expirée (JWT invalide / HTTP 401-403). PAS un mot de passe expiré.
     case 'EXPIRED_SESSION':
-      logger.warn('🔑 Session expirée détectée (JWT invalide)');
+      logger.warn('🔒 Session ANEF expirée (JWT invalide)');
       handleExpiredSession().catch(e => logger.error('handleExpiredSession error', e));
       break;
 
@@ -259,8 +259,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (async () => {
         const settings = await storage.getSettings();
         sendResponse({
-          needsConsent: storage.needsStatsConsent(settings),
-          granted: storage.hasStatsConsent(settings),
+          needsConsent: false,   // 2.11.0 : plus aucune question posée
+          granted: true,         // le partage fait partie de l'usage
           decidedAt: settings.statsConsentAt || null
         });
       })();
@@ -401,7 +401,15 @@ async function handleDossierData(data) {
     data.friseKey = derived.friseKey;
     data.friseIndex = derived.friseIndex;
     data.friseTotal = derived.friseTotal;
-    logger.info('🧭 Statut recombiné', { code: data.statut, friseKey: derived.friseKey, macro: derived.macro });
+    // Qualité de la dérivation + timeline datée : le garde anti-régression
+    // ci-dessous en a besoin (repli grossier, demande de complément réelle).
+    data.derivedFrom = derived.derivedFrom;
+    data.coarse = derived.coarse;
+    data.timeline = derived.timeline;
+    data.canRapo = derived.canRapo;
+    logger.info('🧭 Statut recombiné', {
+      code: data.statut, friseKey: derived.friseKey, macro: derived.macro, via: derived.derivedFrom
+    });
   }
 
   if (!data?.statut) {
@@ -412,17 +420,26 @@ async function handleDossierData(data) {
   try {
     // Réinitialiser les états d'erreur
     const apiData = await storage.getApiData() || {};
-    if (apiData.inMaintenance || apiData.passwordExpired) {
+    // `passwordExpiredPending` retient l'état d'AVANT ce cycle : backgroundRefresh
+    // remet `passwordExpired` à false avant de revérifier, sinon l'information
+    // « ce dossier était bloqué sur un mot de passe expiré » serait perdue ici.
+    const { passwordExpiredPending } = await chrome.storage.local.get('passwordExpiredPending');
+    const motDePasseEtaitExpire = !!(apiData.passwordExpired || passwordExpiredPending);
+
+    if (apiData.inMaintenance || apiData.passwordExpired || apiData.sessionExpired) {
       apiData.inMaintenance = false;
       apiData.passwordExpired = false;
+      apiData.sessionExpired = false;
       await storage.saveApiData(apiData);
     }
 
-    // Le mot de passe fonctionne à nouveau : on réarme la vue "mot de passe
-    // expiré" que l'utilisateur avait pu fermer définitivement (popup).
-    const { passwordExpiredDismissed } = await chrome.storage.local.get('passwordExpiredDismissed');
-    if (passwordExpiredDismissed) {
-      await chrome.storage.local.remove('passwordExpiredDismissed');
+    // Réarmer la vue « mot de passe expiré » que l'utilisateur avait fermée
+    // définitivement — mais UNIQUEMENT après une vraie transition « expiré →
+    // fonctionne à nouveau ». Cette suppression était inconditionnelle : la
+    // moindre vérification réussie effaçait le choix de l'utilisateur, et le
+    // bouton « Fermer et ne plus afficher » ne tenait jamais plus d'un cycle.
+    if (motDePasseEtaitExpire) {
+      await chrome.storage.local.remove(['passwordExpiredDismissed', 'passwordExpiredPending']);
     }
 
     // ── Routage multi-dossier (v2.6.0+) ──
@@ -474,12 +491,37 @@ async function handleDossierData(data) {
     }
 
     const issueTerminale = newEtape === 12 || isNegativeStatus(data.statut);
-    const complementDemande = !!dossierApiData?.complementInstruction;
+    // Complément d'instruction : seule la notification ANEF datée fait foi, et
+    // seulement si elle est postérieure au statut connu. `complementInstruction`
+    // (champ brut `demande_complement` du détail) était truthy sur 76 % des
+    // dossiers : il ouvrait l'exception en permanence et neutralisait ce garde.
+    // Si l'appel notifications a échoué ce tour-ci (timeline vide), on retombe
+    // sur la dernière timeline connue du dossier plutôt que de conclure « pas
+    // de complément » — sinon un tour dégradé bloquerait un recul légitime.
+    const timelineConnue = data.timeline?.length
+      ? data.timeline
+      : (dossierApiData?.timeline || []);
+    const complementDemande = isComplementPending(timelineConnue, reference?.date_statut || null);
     // Décret publié = procédure close : AUCUN recul n'est possible, même avec un
     // complément demandé (le drapeau reste souvent positionné après coup). Sans
     // cette exception à l'exception, un dossier naturalisé retombait à l'étape 11.
     const dossierClos = reference?.statut ? isClosedStatus(reference.statut) : false;
-    const reculAcceptable = !dossierClos && (issueTerminale || complementDemande);
+    // Reprise après recours : un RAPO qui aboutit renvoie le dossier dans le
+    // pipeline contrôle/décret. C'est un vrai recul, légitime. Il était couvert
+    // par accident tant que `complementInstruction` était truthy pour 76 % des
+    // dossiers ; depuis que le complément est correctement détecté, il fallait
+    // le traiter explicitement, sinon un dossier dont le recours aboutit reste
+    // gelé à vie sur sa décision négative. Plafonné à l'étape 9 comme côté
+    // serveur : un recours ne ramène jamais au récépissé de complétude.
+    // Exempté de la règle `coarse` car la frise DECISION_RAPO est vide par
+    // construction — un dossier sous recours est TOUJOURS en repli macro.
+    const repriseApresRecours = !!data.canRapo && newEtape !== null && newEtape >= 9;
+
+    // Dérivation grossière (frise ET détail indisponibles → repli sur le macro,
+    // identique de l'étape 4 à l'étape 11) : aucune exception ne tient. Un tour
+    // dégradé ne prouve rien, il ne peut donc pas faire reculer un dossier.
+    const reculAcceptable = !dossierClos &&
+      (repriseApresRecours || (!data.coarse && (issueTerminale || complementDemande)));
 
     // Vrai quand on ne fait que restaurer la sous-étape perdue par l'API : le
     // dossier n'a pas bougé, seul l'état local était faux → réparation
@@ -492,11 +534,17 @@ async function handleDossierData(data) {
         de: `${reference.statut} (ét.${getStatusExplanation(reference.statut)?.etape})`,
         vers: `${data.statut} (ét.${newEtape})`,
         friseKey: data.friseKey ?? null,
+        via: data.derivedFrom ?? null,
+        grossier: !!data.coarse,
+        rapo: !!data.canRapo,
         repare: reference !== prevStatus
       });
       reparationSilencieuse = reference !== prevStatus;
       data.statut = reference.statut;
       data.date_statut = reference.date_statut;
+      // Le statut retenu vient désormais de l'historique local, plus du tour
+      // dégradé : il n'a plus rien de « grossier ».
+      data.coarse = false;
     }
 
     const hasChanged = !reparationSilencieuse && (!prevStatus
@@ -512,7 +560,11 @@ async function handleDossierData(data) {
       id: data.id,
       statut_raw: data.statut_raw ?? null,
       flags: data.flags ?? [],
-      friseKey: data.friseKey ?? null
+      friseKey: data.friseKey ?? null,
+      // Qualité de la dérivation, relue par sendAnonymousStats : un statut issu
+      // d'un repli grossier ne doit pas être promu `source: 'manual'`, ce qui
+      // le ferait échapper au garde anti-régression du serveur.
+      coarse: !!data.coarse
     };
     await storage.saveStatus(statusRecord);
     logger.info('✅ Statut sauvegardé', { dossierId: newId, isNew: isNewSecondary });
@@ -596,6 +648,9 @@ async function handleApiData(data) {
     domicileCodePostal: data.domicile_code_postal,
     domicileVille: data.domicile_ville,
     typeDemande: data.type_demande,
+    // Champ brut `demande_complement` du détail ANEF. Conservé pour le
+    // diagnostic UNIQUEMENT : il est truthy sur 76 % des dossiers, donc
+    // inutilisable comme booléen (cf. isComplementPending dans anef-mapper.js).
     complementInstruction: data.complement_instruction,
     currentStep: data.current_step ?? null,             // NOUVEAU (indicatif)
     // ── Enrichissements mapper (juillet 2026) ──
@@ -656,6 +711,28 @@ async function handleApiData(data) {
         await healLocalStatusFromServer(result.history, apiData.dossierId, result);
       } catch (e) {
         logger.warn('Auto-réparation échouée', e.message);
+      }
+    }
+
+    // ── Réhydratation après une installation neuve ──
+    // Une désinstallation/réinstallation vide le stockage local, et aucun des
+    // deux chemins ci-dessus ne se déclenche : pas de dossier précédent (donc
+    // pas de bascule) et instantané accepté (donc pas de rejet à réparer).
+    // L'historique restait vide et les dates des étapes antérieures perdues,
+    // alors que le serveur les connaît (issue #17). Condition volontairement
+    // étroite : au plus une entrée locale — on ne réécrit jamais un historique
+    // déjà constitué, la logique de fusion garde la date la plus ancienne.
+    if (!isPostSwitch && result?.history?.length > 1) {
+      const historiqueLocal = await storage.getHistory(apiData.dossierId);
+      if (historiqueLocal.length <= 1) {
+        try {
+          const count = await rehydrateLocalHistoryFromServer(result.history, apiData.dossierId);
+          logger.info('🌱 Historique reconstruit depuis Supabase (installation neuve)', {
+            entrees: count, dossierId: apiData.dossierId
+          });
+        } catch (e) {
+          logger.warn('Reconstruction post-installation échouée', e.message);
+        }
       }
     }
 
@@ -826,10 +903,24 @@ async function handleMaintenance() {
   await storage.saveApiData(apiData);
 }
 
-/** Marque la session comme expirée (JWT invalide / mot de passe expiré) */
+/**
+ * Marque la SESSION comme expirée (JWT invalide, HTTP 401/403).
+ *
+ * ⚠️ Ne pas confondre avec `passwordExpired`. Une session qui expire est
+ * l'événement le plus banal du site ANEF ; un mot de passe expiré est une
+ * action Keycloak `required-action=UPDATE_PASSWORD`, détectée uniquement par
+ * l'URL (cf. `URLPatterns.isPasswordExpired`). Les confondre affichait la vue
+ * bloquante « votre mot de passe a expiré, renouvelez-le » à chaque session
+ * perdue, et demandait à l'utilisateur de ressaisir des identifiants qu'il
+ * avait pourtant déjà enregistrés.
+ *
+ * Une session expirée n'a besoin d'aucune vue dédiée : la connexion
+ * automatique la traite si des identifiants existent, et le chemin
+ * `needsLogin` du popup prend le relais sinon.
+ */
 async function handleExpiredSession() {
   const apiData = await storage.getApiData() || {};
-  apiData.passwordExpired = true;
+  apiData.sessionExpired = true;
   await storage.saveApiData(apiData);
 }
 
@@ -1144,10 +1235,18 @@ async function backgroundRefresh() {
   // Reset le signal de completion du script injecté
   fetchCompleteSignal = null;
 
-  // Reset le flag mot de passe expiré (on va revérifier)
+  // Reset les flags de blocage (on va revérifier). L'état « mot de passe
+  // expiré » est recopié dans `passwordExpiredPending` : handleDossierData en
+  // a besoin pour distinguer « le mot de passe vient d'être renouvelé » (il
+  // faut réarmer l'avertissement) de « il n'a jamais expiré » (il ne faut pas
+  // effacer la fermeture définitive demandée par l'utilisateur).
   const preApiData = await storage.getApiData() || {};
-  if (preApiData.passwordExpired) {
+  if (preApiData.passwordExpired || preApiData.sessionExpired) {
+    if (preApiData.passwordExpired) {
+      await chrome.storage.local.set({ passwordExpiredPending: true });
+    }
     preApiData.passwordExpired = false;
+    preApiData.sessionExpired = false;
     await storage.saveApiData(preApiData);
   }
 
@@ -1831,15 +1930,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     } else if (!currentSettings._intervalMigrated60) {
       await storage.saveSettings({ _intervalMigrated60: true });
     }
-    // Migration v2.10.0 — opt-in RGPD des statistiques communautaires.
-    // Les installations antérieures ont `anonymousStatsEnabled: true` écrit en
-    // storage sans avoir jamais donné de consentement explicite : un opt-out
-    // implicite n'est pas un consentement (RGPD art. 4-11). On suspend donc la
-    // collecte et on laisse le popup poser la question. Répondre — oui ou non —
-    // pose `statsConsentAsked`, ce qui rend ce bloc inopérant les fois suivantes.
-    if (currentSettings.statsConsentAsked !== true && currentSettings.anonymousStatsEnabled) {
-      await storage.saveSettings({ anonymousStatsEnabled: false });
-      logger.info('🔒 Statistiques communautaires suspendues en attente du consentement');
+    // Migration v2.11.0 — le partage des statistiques communautaires n'est plus
+    // optionnel : utiliser l'extension vaut acceptation (annoncé dans PRIVACY.md,
+    // le README et la page Options). On réaligne donc les installations que la
+    // migration v2.10.0 avait suspendues, ainsi que celles qui avaient répondu
+    // « non » — il n'y a plus de réglage à respecter.
+    if (!currentSettings.anonymousStatsEnabled || currentSettings.statsConsentAsked !== true) {
+      await storage.saveSettings({ anonymousStatsEnabled: true, statsConsentAsked: true });
+      logger.info('📊 Statistiques communautaires : partage systématique (2.11.0)');
     }
 
     // Migration v2.2.0 : supprimer disabledByFailure obsolète, reset compteur
