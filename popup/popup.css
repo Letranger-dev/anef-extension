@@ -107,9 +107,6 @@ body {
   gap: 6px;
 }
 
-.header .flag {
-  font-size: 24px;
-}
 
 .header h1 {
   font-size: 18px;
@@ -411,54 +408,26 @@ body {
   margin-bottom: 16px;
 }
 
+/* Le signal de statut passe par une ombre interne et non par une bordure :
+   une bordure participe au flux et rendait le padding asymetrique (18px a
+   gauche, 14px a droite) une fois la carte v2.12 en place. */
 .status-card.status-success {
-  border-left: 4px solid var(--success);
+  box-shadow: inset 4px 0 0 var(--success), var(--shadow);
 }
 
 .status-card.status-warning {
-  border-left: 4px solid var(--warning);
+  box-shadow: inset 4px 0 0 var(--warning), var(--shadow);
 }
 
 .status-card.status-error {
-  border-left: 4px solid var(--error);
+  box-shadow: inset 4px 0 0 var(--error), var(--shadow);
 }
 
-.status-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.status-icon-wrapper {
-  width: 52px;
-  height: 52px;
-  background: var(--france-blue);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.status-icon-wrapper::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--france-red);
-}
 
 .status-icon {
   font-size: 26px;
 }
 
-.status-info {
-  flex: 1;
-}
 
 .status-phase {
   display: block;
@@ -467,19 +436,6 @@ body {
   color: var(--slate-800);
 }
 
-.status-step {
-  display: block;
-  font-size: 13px;
-  color: var(--slate-500);
-  margin-top: 2px;
-}
-
-.status-code-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-}
 
 .status-code {
   display: inline-block;
@@ -492,38 +448,6 @@ body {
   border: 1px solid rgba(0, 38, 84, 0.1);
 }
 
-.btn-copy {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--slate-400);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-copy:hover {
-  color: var(--france-blue);
-  background: var(--france-blue-lighter);
-}
-
-.btn-copy .icon-check {
-  display: none;
-  color: var(--success);
-}
-
-.btn-copy.copied .icon-copy {
-  display: none;
-}
-
-.btn-copy.copied .icon-check {
-  display: block;
-}
 
 .status-description {
   color: var(--slate-600);
@@ -532,60 +456,6 @@ body {
   margin-bottom: 16px;
 }
 
-/* Progress Bar */
-.progress-container {
-  margin-bottom: 16px;
-}
-
-.progress-bar {
-  height: 10px;
-  background: var(--slate-200);
-  border-radius: 5px;
-  overflow: hidden;
-  border: 1px solid var(--slate-300);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--gradient-tricolor);
-  border-radius: 4px;
-  transition: width 0.5s ease;
-  width: 0%;
-}
-
-.progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--slate-400);
-  margin-top: 6px;
-}
-
-/* Status Date */
-.status-dates {
-  padding-top: 12px;
-  border-top: 1px solid var(--slate-100);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.status-date-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-}
-
-.status-date-label {
-  color: var(--slate-500);
-}
-
-.status-date-value {
-  color: var(--slate-700);
-  font-weight: 600;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    Stats Section
@@ -614,10 +484,11 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-  border-top: 2px solid var(--france-blue);
+/* Survol : `border-top: 2px` faisait grandir la tuile d'1px et sauter le
+   contenu de 2px, puisque la tuile porte desormais une bordure de 1px sur les
+   quatre cotes. On ne change que la couleur. */
+.stats-cards > .stat-card:hover {
+  border-color: var(--fr-blue-200);
 }
 
 .stat-icon {
@@ -648,106 +519,17 @@ body {
    Closure Banner — procédure terminée (décret publié)
    ═══════════════════════════════════════════════════════════════ */
 
-.closure-banner {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #047857 0%, #10b981 55%, #34d399 100%);
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: 20px 18px 16px;
-  margin-bottom: 16px;
-  text-align: center;
-  box-shadow: 0 12px 32px -10px rgba(16, 185, 129, 0.55);
-  animation: closure-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-.closure-banner::before {
-  content: "";
-  position: absolute;
-  inset: -50%;
-  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
-  pointer-events: none;
-}
-
-@keyframes closure-pop {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.closure-confetti {
-  display: block;
-  font-size: 34px;
-  line-height: 1;
-  margin-bottom: 6px;
-  animation: closure-bounce 2.4s ease-in-out infinite;
-}
-
-@keyframes closure-bounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25%      { transform: translateY(-4px) rotate(-6deg); }
-  75%      { transform: translateY(-2px) rotate(6deg); }
-}
-
-.closure-banner-head { position: relative; }
-
-.closure-banner-title {
-  display: block;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-}
-
-.closure-banner-sub {
-  display: block;
-  font-size: 12.5px;
-  opacity: 0.95;
-  margin-top: 2px;
-}
-
-.closure-figures {
-  position: relative;
-  display: flex;
-  gap: 10px;
-  margin: 14px 0 10px;
-}
-
-.closure-figure {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: var(--radius-md);
-  padding: 10px 8px;
-}
-
-.closure-figure-value {
-  display: block;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.closure-figure-label {
-  display: block;
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  opacity: 0.9;
-  margin-top: 4px;
-  line-height: 1.25;
-}
-
-.closure-banner-foot {
-  position: relative;
-  display: block;
-  font-size: 11px;
-  opacity: 0.9;
-}
-
-.closure-banner-foot span { font-weight: 700; }
-
+/* Ce bloc ne visait que `.closure-banner` / `.closure-confetti`, disparues
+   avec la refonte v2.12 — les deux animations INFINIES encore actives n'etaient
+   donc jamais coupees. La citation doit etre forcee a `opacity: 1` : son etat
+   initial est 0 et c'est l'animation qui la revele. */
 @media (prefers-reduced-motion: reduce) {
-  .closure-banner { animation: none; }
-  .closure-confetti { animation: none; }
+  .loading-step.active::before,
+  .btn.loading::after,
+  .step-dates-alert-pulse { animation: none; }
+  .quote-text,
+  .quote-author { animation: none; opacity: 1; transform: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -755,7 +537,7 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 .details-section {
-  margin-bottom: 12px;
+  /* idem : l'espacement vient de .fold, sinon les deux cartes se décalent */
 }
 
 .details-grid {
@@ -764,81 +546,61 @@ body {
   gap: 8px;
 }
 
+/* Lignes de détail (v2.12) : libellé à gauche, valeur à droite, séparées par
+   un filet. L'ancienne version empilait une carte blanche à ombre portée par
+   information — six cartes dans une carte, avec le libellé au-dessus de la
+   valeur, ce qui gaspillait la hauteur et hachait la lecture. */
 .detail-chip {
-  background: white;
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border-left: 3px solid var(--france-blue);
-  transition: transform 0.2s ease;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
 }
-
-.detail-chip:hover {
-  transform: translateY(-1px);
+/* Le filet se pose en HAUT de chaque ligne qui en précède une autre VISIBLE.
+   `:first-child` / `:last-child` raisonnaient sur l'ordre DOM et ignoraient
+   les lignes sans valeur, qui portent `hidden` : sans numéro de décret — le
+   cas courant — un filet pendait sous la dernière ligne affichée. Le sélecteur
+   `~` ne considère que les frères non masqués, donc la première ligne visible
+   n'a jamais de filet et la dernière n'en traîne pas. */
+.detail-chip:not(.hidden) ~ .detail-chip:not(.hidden) {
+  border-top: 1px solid var(--slate-100);
 }
-
-.detail-chip-wide {
-  grid-column: span 2;
-}
+.detail-chip-wide { grid-column: auto; }
 
 /* ── Badges d'état (décision disponible, pipeline décret, recours) ── */
-.status-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
 
-.status-badge {
-  font-size: 11px;
+
+.detail-chip-label {
+  font-size: var(--t-micro);
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: .05em;
   font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 999px;
-  line-height: 1.2;
   white-space: nowrap;
 }
 
-.status-badge.badge-info    { background: var(--info-light);    color: var(--info); }
-.status-badge.badge-success { background: var(--success-light); color: #047857; }
-.status-badge.badge-warning { background: var(--warning-light); color: #b45309; }
-
-.detail-chip-label {
-  font-size: 10px;
-  color: var(--slate-500);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-weight: 500;
-}
-
 .detail-chip-value {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--t-meta);
+  font-weight: 560;
   color: var(--slate-800);
+  text-align: right;
   word-break: break-word;
+  line-height: 1.35;
 }
 
-.detail-chip-success {
-  border-left-color: var(--success);
-  background: var(--success-light);
-}
-
-.detail-chip-success .detail-chip-value {
-  color: var(--success);
-}
+/* Le décret : seule ligne à mériter une couleur, c'est l'aboutissement. */
+.detail-chip-success { background: none; }
+.detail-chip-success .detail-chip-label { color: #047857; }  /* #059669 = 3,77:1 sur blanc */
+.detail-chip-success .detail-chip-value { color: #047857; font-weight: 680; }
 
 /* ═══════════════════════════════════════════════════════════════
    Last Check & Footer
    ═══════════════════════════════════════════════════════════════ */
 
-.last-check {
-  text-align: center;
-  font-size: 12px;
-  color: var(--slate-400);
-  padding: 8px 0;
-}
 
 .last-check-attempt {
   color: var(--warning-color, #e67e22);
@@ -927,7 +689,7 @@ body {
 /* ─── Secondary actions (affichage dossier secondaire) ──────── */
 
 .secondary-actions {
-  margin: 12px 12px 8px;
+  margin: 12px 16px 8px;   /* aligne sur le `padding: 16px` de `.view` */
   padding: 14px;
   background: linear-gradient(135deg, #fef9c3, #fef3c7);
   border: 1px solid #fcd34d;
@@ -1179,30 +941,17 @@ body {
 
 /* ─── Demande de modification du décret (DMR) ──────────────── */
 
+/* Boîte héritée de la v2.9 : la DMR est devenue un <details class="fold">
+   (v2.12), qui porte désormais fond, bordure, rayon et espacement. Laisser
+   ces déclarations ici les empilait sur celles de .fold — d'où une carte DMR
+   plus haute que « Détails du dossier », avec un liseré bleu et un fond gris
+   que l'autre n'avait pas. On ne garde que ce qui reste propre à la section. */
 .dmr-section {
-  margin: 0 0 12px;
-  padding: 14px;
-  background: var(--slate-50);
-  border: 1px solid var(--slate-200);
-  border-left: 4px solid var(--france-blue);
-  border-radius: var(--radius-md);
+  /* volontairement vide : la mise en boîte appartient à .fold */
 }
 
 .dmr-section.hidden { display: none; }
 
-.dmr-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.dmr-title {
-  font-size: 0.95em;
-  font-weight: 700;
-  color: var(--france-blue);
-}
 
 .dmr-badge {
   padding: 3px 9px;
@@ -1266,8 +1015,10 @@ body {
   font-size: 0.82em;
   font-weight: 600;
   color: var(--slate-800);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* `text-overflow` sans `white-space: nowrap` ne produit jamais d'ellipse.
+     Ici on prefere le retour a la ligne : le numero de decret doit rester
+     lisible en entier. */
+  overflow-wrap: anywhere;
 }
 
 .dmr-etape {
@@ -1618,184 +1369,11 @@ body {
   flex-shrink: 0;
 }
 
-/* ─── Auto-check banner ────────────────────────────────────── */
-
-.auto-check-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 16px;
-  margin: 0 16px 8px;
-  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: var(--radius-sm);
-}
-
-.auto-check-banner.hidden {
-  display: none;
-}
-
-.auto-check-banner-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.auto-check-banner-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  flex-shrink: 0;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
-}
-
-.auto-check-banner-text {
-  font-size: 11px;
-  font-weight: 500;
-  color: #065f46;
-  line-height: 1.3;
-}
-
-.auto-check-banner-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  color: #065f46;
-  opacity: 0.5;
-  transition: all 0.2s;
-  text-decoration: none;
-}
-
-.auto-check-banner-link:hover {
-  opacity: 1;
-  background: rgba(16, 185, 129, 0.15);
-}
-
-/* État erreur / suspendu */
-.auto-check-banner.error {
-  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.auto-check-banner.error .auto-check-banner-dot {
-  background: var(--error);
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
-}
-
-.auto-check-banner.error .auto-check-banner-text {
-  color: #991b1b;
-}
-
-.auto-check-banner.error .auto-check-banner-link {
-  color: #991b1b;
-}
-
-/* État en attente (pas d'identifiants) */
-.auto-check-banner.warning {
-  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.auto-check-banner.warning .auto-check-banner-dot {
-  background: var(--warning);
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
-}
-
-.auto-check-banner.warning .auto-check-banner-text {
-  color: #92400e;
-}
-
-.auto-check-banner.warning .auto-check-banner-link {
-  color: #92400e;
-}
-
-/* Stats Banner */
-.stats-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  margin: 0 16px 8px;
-  background: linear-gradient(135deg, var(--france-blue-lighter) 0%, rgba(0, 38, 84, 0.06) 100%);
-  border: 1px solid rgba(0, 38, 84, 0.1);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.stats-banner:hover {
-  background: linear-gradient(135deg, #dbe8fd 0%, rgba(0, 38, 84, 0.1) 100%);
-  border-color: rgba(0, 38, 84, 0.2);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.stats-banner-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.stats-banner-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.stats-banner-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--france-blue);
-}
-
-.stats-banner-hint {
-  font-size: 10px;
-  color: var(--slate-500);
-  line-height: 1.3;
-}
-
-.stats-banner-arrow {
-  flex-shrink: 0;
-  color: var(--slate-400);
-  transition: color 0.2s;
-}
-
-.stats-banner:hover .stats-banner-arrow {
-  color: var(--france-blue);
-}
-
-.footer {
-  text-align: center;
-  padding: 10px;
-  font-size: 11px;
-  color: var(--slate-400);
-  border-top: 3px solid transparent;
-  border-image: var(--gradient-tricolor) 1;
-  background: white;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    Spinner & Loading
    ═══════════════════════════════════════════════════════════════ */
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--slate-200);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 20px;
-}
 
 @keyframes spin {
   to {
@@ -1838,35 +1416,12 @@ body {
   opacity: 1;
 }
 
-.loading-step.done .step-icon {
-  background: var(--success);
-  color: white;
-}
-
-.loading-step.active .step-icon {
-  background: var(--france-blue);
-  color: white;
-  animation: pulse 1.5s ease-in-out infinite;
-}
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
 
-.step-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--slate-300);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
 
 .step-text {
   font-size: 11px;
@@ -1874,12 +1429,9 @@ body {
   font-weight: 500;
 }
 
-.loading-hint {
-  font-size: 12px !important;
-  color: var(--slate-400) !important;
-  margin-bottom: 0 !important;
-  font-style: italic;
-}
+/* .loading-hint : voir le bloc v2.12 en fin de fichier. Les !important qui
+   vivaient ici servaient a battre `.card p` ; le nouveau bloc passe par la
+   specificite (.card-loading .loading-hint), ce qui n'a pas besoin d'eux. */
 
 /* Citations pendant le chargement */
 .quote-container {
@@ -1894,10 +1446,6 @@ body {
   justify-content: center;
 }
 
-.quote-wrapper {
-  text-align: center;
-  position: relative;
-}
 
 .quote-text {
   font-size: 13px;
@@ -1970,3 +1518,484 @@ body {
   user-select: none;
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Refonte de la vue statut (v2.12)
+   L'ancienne vue empilait 13 blocs sur 1657 px pour une fenêtre Chrome
+   qui n'en montre que 600 — soit 2,8 écrans de défilement.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Rampe bleue étendue : le compteur a besoin d'un pas clair pour sa piste. */
+  --fr-blue-500: #17427d;
+  --fr-blue-200: #b9cbe6;
+  --fr-blue-100: #dde7f4;
+
+  /* Échelle typographique — 5 pas, rapport ~1.2 */
+  --t-hero: 30px;
+  --t-title: 15px;
+  --t-body: 12.5px;
+  --t-meta: 11px;
+  --t-micro: 9.5px;
+}
+
+/* ── Carte d'état ────────────────────────────────────────────────── */
+.status-card {
+  position: relative;
+  overflow: hidden;
+  padding: 15px 14px 14px;
+  border-radius: 14px;
+}
+/* Signature tricolore : elle vit dans le décor de la carte, pas dans la
+   marque de données. Le drapeau reste présent là où il ne trompe pas la
+   lecture — l'ancienne barre de progression l'utilisait comme remplissage,
+   et son tiers blanc disparaissait sur la piste claire. */
+.status-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  /* Le tiers central est en slate-200, pas en blanc : la carte EST blanche,
+     et un blanc sur blanc reproduisait exactement le defaut que cette barre
+     etait censee corriger — elle se lisait « bleu | rien | rouge ». */
+  background: linear-gradient(90deg,
+    var(--france-blue) 0 33.33%,
+    var(--slate-200) 33.33% 66.66%,
+    var(--france-red) 66.66% 100%);
+}
+.status-card.is-closed::before {
+  background: linear-gradient(90deg, var(--success) 0%, #34d399 100%);
+}
+
+.state-top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 11px; }
+.state-top .status-icon { font-size: 21px; line-height: 1; flex-shrink: 0; margin-top: 3px; }
+.state-id { flex: 1; min-width: 0; }
+.state-id .status-phase {
+  display: block;
+  font-size: var(--t-title);
+  font-weight: 620;
+  letter-spacing: -0.012em;
+  color: var(--slate-800);
+  line-height: 1.22;
+}
+.status-code-btn {
+  /* Les codes vont de 12 à 70 caractères
+     (`instruction_recepisse_completude_a_envoyer_retour_complement_a_traiter`).
+     La pastille doit donc pouvoir passer à la ligne plutôt que déborder de la
+     carte : `max-width` la borne, `align-items: flex-start` garde l'icône de
+     copie alignée sur la première ligne du code. */
+  display: inline-flex; align-items: flex-start; gap: 5px;
+  max-width: 100%;
+  margin-top: 5px; padding: 2px 6px;
+  background: var(--slate-100);
+  border: 1px solid var(--slate-200);
+  border-radius: 5px;
+  cursor: pointer;
+  /* slate-600 et non slate-500 : le bouton a un fond slate-100, sur lequel
+     slate-500 ne donne que 4,34:1 — sous le seuil AA de 4,5:1. */
+  color: var(--slate-600);
+  text-align: left;
+}
+.status-code-btn:hover { background: var(--slate-200); color: var(--slate-700); }
+.status-code-btn .status-code {
+  /* L'ancienne regle .status-code (popup.css:484) dessine une pastille bleue
+     a rayon 20px. Elle s'appliquait encore ICI, imbriquee dans la pastille
+     grise du bouton : deux fonds, deux bordures, deux rayons. On la neutralise
+     explicitement plutot que de compter sur la specificite. */
+  background: none; border: 0; padding: 0; border-radius: 0; color: inherit;
+  font-family: ui-monospace, 'Cascadia Mono', SFMono-Regular, Menlo, monospace;
+  font-size: 10px; letter-spacing: -0.01em;
+  min-width: 0;
+  /* `anywhere` plutôt que `break-word` : les codes n'ont ni espaces ni
+     césures, seulement des underscores — sans ça, la coupure ne se fait pas. */
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.status-code-btn .icon-copy,
+.status-code-btn .icon-check { margin-top: 2px; flex-shrink: 0; }
+.status-code-btn .icon-check { display: none; }
+.status-code-btn.copied .icon-copy { display: none; }
+.status-code-btn.copied .icon-check { display: inline; color: var(--success); }
+
+/* Figure héros — une seule par vue. Chiffres proportionnels : tabular-nums
+   donnerait à chaque chiffre la largeur d'un 0 et ferait bâiller le nombre. */
+.state-hero { margin: -3px 0 12px; }
+.state-hero-value {
+  display: block;
+  font-size: var(--t-hero);
+  font-weight: 680;
+  line-height: .98;
+  letter-spacing: -0.03em;
+  color: var(--france-blue);
+  font-variant-numeric: proportional-nums;
+}
+.is-closed .state-hero-value { color: #047857; }
+/* `formatDuration` peut produire « 3 ans, 3 mois, 15 j » : à 30 px dans une
+   fenêtre de 380 px, la chaîne passe à la ligne et, avec `line-height: .98`,
+   les deux lignes se chevauchent. */
+.state-hero-value.is-long { font-size: 22px; line-height: 1.15; letter-spacing: -0.02em; }
+.state-hero-label {
+  display: block;
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  /* slate-400 ne donnait que 2,56:1 sur blanc — sous le seuil AA de 4,5:1,
+     et c'est le plus petit texte de l'interface. slate-500 monte à 4,76:1. */
+  color: var(--slate-500);
+  margin-top: 5px;
+}
+
+/* ── Compteur d'étape : 12 segments, un par étape ─────────────────── */
+.meter-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: var(--t-meta); color: var(--slate-500); margin-bottom: 6px;
+}
+.meter-step { font-weight: 600; color: var(--slate-700); flex-shrink: 0; letter-spacing: -0.005em; }
+/* La date et sa duree occupent deja 254px sur les 316 disponibles : sans
+   troncature, un libelle d'etape un peu plus large renvoie la moitie droite
+   a la ligne, en alignement dechire sous `space-between`. */
+.meter-since { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meter {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  height: 7px;
+}
+.meter-seg { background: var(--fr-blue-100); border-radius: 2px; }
+.meter-seg.is-done { background: var(--france-blue); }
+.meter-seg.is-now {
+  background: var(--france-red);
+  box-shadow: 0 0 0 2px rgba(206, 17, 38, .16);
+}
+.is-closed .meter-seg.is-done { background: var(--success); }
+.is-closed .meter-seg.is-now { background: var(--success); box-shadow: none; }
+
+/* ── Récap de clôture, fondu dans la carte ───────────────────────── */
+.closure-strip {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 11px; padding: 9px 11px;
+  background: var(--success-light);
+  border: 1px solid #a7e3c8;
+  border-radius: 10px;
+  font-size: var(--t-meta);
+  color: #046c4e;
+  line-height: 1.45;
+}
+.closure-strip-icon { font-size: 14px; line-height: 1.1; flex-shrink: 0; }
+.closure-strip-text { min-width: 0; }
+.closure-strip-title {
+  display: block;
+  font-weight: 680;
+  letter-spacing: -0.005em;
+  margin-bottom: 3px;
+}
+.closure-strip-figures { display: block; }
+.closure-strip-foot { display: block; font-size: var(--t-micro); opacity: .8; margin-top: 2px; }
+
+/* ── Description repliable ───────────────────────────────────────── */
+.status-description {
+  margin: 12px 0 0;
+  font-size: var(--t-body);
+  line-height: 1.52;
+  color: var(--slate-600);
+}
+.status-description-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.desc-more {
+  display: inline-block; margin-top: 5px; padding: 0;
+  font: inherit; font-size: var(--t-meta); font-weight: 600;
+  color: var(--fr-blue-500); background: none; border: 0; cursor: pointer;
+}
+.desc-more:hover { text-decoration: underline; }
+
+/* ── Signaux d'état : une ligne, détail complet en infobulle ──────── */
+.signals { margin-top: 11px; display: flex; flex-direction: column; gap: 5px; }
+.signal {
+  display: flex; gap: 7px; align-items: baseline;
+  padding: 6px 10px; border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: help;
+}
+.signal-icon { font-size: 12px; line-height: 1; flex-shrink: 0; }
+.signal-title { font-size: var(--t-meta); font-weight: 650; letter-spacing: -0.005em; white-space: nowrap; }
+.signal-hint { font-size: var(--t-micro); opacity: .8; }
+.signal-info { background: var(--fr-blue-100); border-color: var(--fr-blue-200); }
+.signal-info .signal-title { color: var(--france-blue); }
+.signal-info .signal-hint { color: var(--fr-blue-500); }
+.signal-success { background: #e7f7f0; border-color: #a7e3c8; }
+.signal-success .signal-title { color: #046c4e; }
+.signal-success .signal-hint { color: #047857; }
+.signal-warning { background: var(--warning-light); border-color: #fcd34d; }
+.signal-warning .signal-title { color: #92400e; }
+.signal-warning .signal-hint { color: #b45309; }
+
+/* ── Rangée KPI : les trois repères temporels sur une ligne ───────── */
+/* `margin` et non `margin-top` : l'ancienne regle (popup.css:594) posait un
+   `margin-bottom: 16px` qui restait sinon en place. */
+.stats-section { margin: 9px 0 0; }
+.stats-cards {
+  /* Flex plutôt que `repeat(auto-fit, …)` : auto-fit fabriquait 58 colonnes
+     fantômes à 0 px pour deux tuiles affichées. Ici chaque tuile visible prend
+     une part égale, et les tuiles masquées ne comptent tout simplement pas. */
+  display: flex;
+  gap: 5px;
+  margin: 0;
+}
+.stats-cards > .stat-card { flex: 1 1 0; }
+.stat-card {
+  background: #fff; border: 1px solid var(--slate-200); border-radius: 10px;
+  padding: 8px 4px 7px; text-align: center; min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+  /* L'ancienne tuile (popup.css:604) posait `gap: 4px` et une ombre portee.
+     Le gap s'ajoutait aux marges des libelles — 8px la ou on en voulait 4 —
+     et l'ombre empechait la tuile d'etre plate comme les .fold voisines. */
+  gap: 0; box-shadow: none;
+}
+.stat-card .stat-icon { display: none; }
+.stat-label {
+  display: block; font-size: var(--t-micro); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--slate-500); margin-bottom: 4px;
+}
+.stat-value {
+  display: block; font-size: 13.5px; font-weight: 650;
+  letter-spacing: -0.02em; color: var(--slate-800); line-height: 1.15;
+}
+.stat-date { display: block; font-size: var(--t-micro); color: var(--slate-500); margin-top: 3px; white-space: nowrap; }
+
+/* ── Sections repliables (DMR, détails) ──────────────────────────── */
+.fold {
+  margin-top: 7px; background: #fff;
+  border: 1px solid var(--slate-200); border-radius: 11px; overflow: hidden;
+}
+.fold > .fold-head {
+  list-style: none; cursor: pointer; padding: 0 12px;
+  display: flex; align-items: center; gap: 9px;
+  font-size: var(--t-body); font-weight: 560; color: var(--slate-700);
+  /* Hauteur imposée : sans elle, le badge de statut DMR pousse la boîte de
+     ligne et l'en-tête « Modification du décret » dépasse celui de
+     « Détails du dossier » de moins d'un pixel — assez pour que les deux
+     cartes empilées paraissent mal alignées. */
+  min-height: 40px;
+  box-sizing: border-box;
+}
+/* Le badge ne participe plus à la hauteur de l'en-tête. */
+.fold > .fold-head > .dmr-badge {
+  line-height: 1.3;
+  align-self: center;
+  flex-shrink: 0;
+}
+.fold > .fold-head:hover { background: var(--slate-50); }
+.fold > .fold-head::-webkit-details-marker { display: none; }
+.fold-icon { flex-shrink: 0; }
+.fold-title { flex-shrink: 0; }
+.fold-chevron { margin-left: auto; color: var(--slate-400); transition: transform .18s ease; flex-shrink: 0; }
+.fold[open] .fold-chevron { transform: rotate(180deg); }
+.fold-body { padding: 2px 12px 12px; }
+
+/* Les détails sont une liste, plus une grille de cartes. */
+.details-grid { display: block; }
+
+/* ── Pied unique ─────────────────────────────────────────────────── */
+.foot {
+  margin: 11px 12px 0;
+  display: flex; align-items: center; gap: 6px;
+  font-size: var(--t-meta); color: var(--slate-500);
+}
+.foot-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.foot-dot.warning { background: var(--warning); }
+.foot-dot.error { background: var(--error); }
+.foot-dot.off { background: var(--slate-300); }
+.foot-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.foot-item:first-of-type { flex: 0 1 auto; }
+.foot-sep { color: var(--slate-300); }
+.foot-gear { color: var(--slate-400); text-decoration: none; font-size: 11px; }
+.foot-gear:hover { color: var(--slate-600); }
+/* Le lien statistiques est la seule action du pied : il doit se lire comme
+   telle, pas comme du texte bleu. Pastille discrète, cible de clic franche. */
+.foot-link {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  background: var(--fr-blue-100);
+  color: var(--france-blue);
+  font-size: var(--t-micro);
+  font-weight: 650;
+  letter-spacing: .01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease;
+}
+.foot-link:hover { background: var(--fr-blue-200); color: var(--fr-blue-500); }
+.foot-link svg { opacity: .85; flex-shrink: 0; }
+
+/* Le pied porte lui-même la signature tricolore : la barre du <footer>
+   faisait double emploi avec celle de l'en-tête et coupait la vue en deux. */
+.foot {
+  position: relative;
+  /* 16px pour s'aligner sur le `padding` de `.view` : le filet tricolore se
+     lit comme un separateur pleine largeur et debordait des cartes. */
+  margin: 12px 16px;
+  padding-top: 11px;
+}
+.foot::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg,
+    var(--france-blue) 0 33.33%,
+    var(--slate-200) 33.33% 66.66%,
+    var(--france-red) 66.66% 100%);
+  opacity: .5;
+}
+
+/* Mode privé : le héros et les KPI sont des durées, donc non identifiants —
+   on ne les floute pas. Les dates, si. */
+.privacy-mode .meter-since,
+.privacy-mode .closure-strip-foot { filter: blur(5px); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Vue de chargement (v2.12)
+   L'ancienne version signalait la progression deux fois : un spinner qui
+   tourne sans rien dire, et trois pastilles numérotées dans un encadré gris.
+   Elle réutilise désormais le langage du compteur d'étape de la vue statut.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.card-loading {
+  border-left: 0;
+  padding: 22px 16px 18px;
+  text-align: center;
+}
+.card-loading h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--slate-800);
+  margin: 0;
+}
+#loading-message {
+  margin: 5px 0 0;
+  font-size: var(--t-body);
+  color: var(--slate-500);
+  min-height: 1.4em;          /* le texte change à chaque étape : pas de saut */
+}
+
+/* Progression : trois segments, mêmes codes que .meter de la vue statut. */
+.loading-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 16px 0 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+.loading-step {
+  display: block;
+  opacity: 1;
+  position: relative;
+  padding-top: 11px;
+  transition: none;
+}
+/* La barre du segment */
+.loading-step::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--slate-200);
+  transition: background .3s ease, box-shadow .3s ease;
+}
+/* Bleu, blanc, rouge : les trois étapes portent les trois couleurs du drapeau.
+   Ça fonctionne ici — contrairement à l'ancienne barre de progression — parce
+   que la couleur désigne une ÉTAPE, pas une quantité : chaque segment a sa
+   couleur propre, franchie ou non. Le segment blanc reçoit un contour, sans
+   quoi il disparaîtrait purement et simplement sur le fond blanc de la carte. */
+.loading-step:nth-child(1).done::before,
+.loading-step:nth-child(1).active::before { background: var(--france-blue); }
+
+.loading-step:nth-child(2).done::before,
+.loading-step:nth-child(2).active::before {
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--slate-400);
+}
+
+.loading-step:nth-child(3).done::before,
+.loading-step:nth-child(3).active::before { background: var(--france-red); }
+
+.loading-step.active::before {
+  animation: loading-pulse 1.4s ease-in-out infinite;
+}
+
+/* Le libellé reprend la couleur de son segment quand l'étape est en cours. */
+.loading-step:nth-child(1).active .step-text { color: var(--france-blue); }
+.loading-step:nth-child(2).active .step-text { color: var(--slate-600); }
+.loading-step:nth-child(3).active .step-text { color: var(--france-red); }
+@keyframes loading-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .45; }
+}
+
+.loading-step .step-text {
+  display: block;
+  font-size: var(--t-micro);
+  font-weight: 550;
+  letter-spacing: .03em;
+  color: var(--slate-500);
+  transition: color .3s ease;
+}
+.loading-step.done .step-text { color: var(--slate-600); }
+.loading-step.active .step-text { font-weight: 650; }
+
+.card-loading .loading-hint {
+  margin: 12px 0 0;
+  font-size: var(--t-micro);
+  font-style: normal;          /* l'ancienne regle mettait le texte en italique */
+  color: var(--slate-500);
+  letter-spacing: .03em;
+}
+
+/* Citation : un trait, pas une carte. L'encadré gris en faisait un bloc
+   d'interface alors que c'est une respiration. */
+/* Ces trois regles sont portees par `.card-loading` : `.card p` vaut (0,1,1)
+   et battait `.quote-text` / `.quote-author` / `.loading-hint` en (0,1,0). La
+   citation et son auteur s'affichaient a 14px avec 20px de marge basse, donc
+   sans aucune hierarchie entre eux. */
+.card-loading .quote-container {
+  margin: 18px 0 0;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  border-left: 0;
+  border-radius: 0;
+  align-items: stretch;
+  min-height: 52px;           /* évite que la carte saute au changement */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.card-loading .quote-text {
+  margin: 0;
+  font-size: var(--t-body);
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--slate-500);
+}
+.card-loading .quote-author {
+  margin: 6px 0 0;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--slate-500);
+}
+
+

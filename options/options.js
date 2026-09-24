@@ -866,16 +866,23 @@ async function handleClearCredentials() {
     }
     await loadCredentialStatus();
 
-    // Désactiver l'auto-check si actif (plus d'identifiants)
-    const settings = await storage.getSettings();
-    if (settings.autoCheckEnabled) {
-      await storage.saveSettings({ autoCheckEnabled: false });
-      if (elements.settingAutoCheck) elements.settingAutoCheck.checked = false;
-      try {
-        await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
-      } catch (e) { /* ignore */ }
-      await loadAutoCheckStatus();
-    }
+    // ⚠️ NE PAS remettre `autoCheckEnabled` à faux ici. C'est ce que faisait la
+    // version précédente, et c'était à la fois inutile et destructeur :
+    //   - inutile, parce que `scheduleAutoCheck()` refuse déjà de programmer
+    //     l'alarme sans identifiants (`if (!settings.autoCheckEnabled || !hasCreds)`) ;
+    //   - destructeur, parce que rien ne remettait le réglage à vrai quand
+    //     l'utilisateur ressaisissait ses identifiants. Le parcours courant
+    //     « mot de passe ANEF expiré → je supprime et je re-saisis mes
+    //     identifiants » éteignait donc la vérification automatique
+    //     définitivement et sans le dire (constaté dans des logs du 20/09/2026 :
+    //     `⏹️ Auto-check désactivé {"enabled":false,"creds":true}`).
+    // Le réglage reste ce qu'il doit être : un choix de l'utilisateur.
+    // On se contente de faire reprogrammer l'alarme, qui s'annulera d'elle-même
+    // faute d'identifiants, et de rafraîchir l'affichage.
+    try {
+      await chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' });
+    } catch (e) { /* ignore */ }
+    await loadAutoCheckStatus();
 
     showToast('Identifiants supprimés', 'success');
   } catch (error) {

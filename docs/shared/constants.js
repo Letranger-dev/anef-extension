@@ -6,7 +6,7 @@
 
   window.ANEF = window.ANEF || {};
 
-  var SITE_VERSION = '1.37.1';
+  var SITE_VERSION = '1.37.2';
 
   // Palette par étape (index = numéro d'étape)
   const STEP_COLORS = [
@@ -295,17 +295,17 @@
     "decret_naturalisation_publie": {
       phase: "NATURALISE(E)", explication: "Décret publié au Journal Officiel", etape: 12, rang: 1201,
       description: "FÉLICITATIONS ! Votre décret de naturalisation est publié au Journal Officiel de la République Française. Vous êtes officiellement citoyen(ne) français(e) !",
-      icon: "\uD83C\uDDEB\uD83C\uDDF7"
+      icon: "\uD83C\uDFC5"
     },
     "decret_naturalisation_publie_jo": {
       phase: "NATURALISE(E)", explication: "Décret publié au Journal Officiel", etape: 12, rang: 1202,
       description: "FÉLICITATIONS ! Votre décret de naturalisation est publié au Journal Officiel. Vous êtes officiellement français(e) ! La préfecture vous convoquera pour la cérémonie.",
-      icon: "\uD83C\uDDEB\uD83C\uDDF7"
+      icon: "\uD83C\uDFC5"
     },
     "decret_publie": {
       phase: "NATURALISE(E)", explication: "Décret publié", etape: 12, rang: 1203,
       description: "FÉLICITATIONS ! Votre décret de naturalisation est publié. Vous êtes officiellement citoyen(ne) français(e) ! La préfecture vous convoquera pour la cérémonie d'accueil.",
-      icon: "\uD83C\uDDEB\uD83C\uDDF7"
+      icon: "\uD83C\uDFC5"
     },
     "demande_traitee": {
       phase: "Finalisé", explication: "Demande entièrement traitée", etape: 12, rang: 1204,

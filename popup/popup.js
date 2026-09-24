@@ -26,10 +26,26 @@ const QUOTES = [
   { text: "Qui va lentement va sûrement.", author: "Proverbe latin" },
   { text: "La persévérance vient à bout de tout.", author: "Proverbe français" },
   { text: "Un voyage de mille lieues commence par un premier pas.", author: "Lao Tseu" },
-  { text: "L'attente est déjà la moitié du bonheur.", author: "Proverbe chinois" }
+  { text: "L'attente est déjà la moitié du bonheur.", author: "Proverbe chinois" },
+
+  // Formats courts : tiennent sur une ligne à 380 px, donc aucun saut de
+  // hauteur quand le carrousel enchaîne.
+  { text: "Patience passe science.", author: "Proverbe français" },
+  { text: "Chaque chose en son temps.", author: "Proverbe français" },
+  { text: "Pas à pas, on va bien loin.", author: "Proverbe français" },
+  { text: "Après la pluie, le beau temps.", author: "Proverbe français" },
+  { text: "Petit à petit, l'oiseau fait son nid.", author: "Proverbe français" },
+  { text: "La patience adoucit tous les maux.", author: "Proverbe français" },
+  { text: "L'arbre ne tombe pas du premier coup.", author: "Proverbe français" },
+  { text: "Le temps est un grand maître.", author: "Corneille" },
+  { text: "Goutte à goutte, l'eau creuse la pierre.", author: "Ovide" },
+  { text: "Rien ne sert de courir, il faut partir à point.", author: "Jean de La Fontaine" },
+  { text: "Qui veut voyager loin ménage sa monture.", author: "Racine" },
+  { text: "Avec le temps, l'herbe devient lait.", author: "Proverbe chinois" }
 ];
 
 let quoteInterval = null;
+let quoteFadeTimeout = null;
 let currentQuoteIndex = 0;
 
 function startQuoteCarousel() {
@@ -45,7 +61,8 @@ function startQuoteCarousel() {
       textEl.classList.add('fade-out');
       authorEl.classList.add('fade-out');
 
-      setTimeout(() => {
+      quoteFadeTimeout = setTimeout(() => {
+        quoteFadeTimeout = null;
         currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
         showQuote(currentQuoteIndex);
       }, 400);
@@ -81,6 +98,12 @@ function stopQuoteCarousel() {
   if (quoteInterval) {
     clearInterval(quoteInterval);
     quoteInterval = null;
+  }
+  // Le fondu arme un setTimeout de 400 ms : sans ça, une actualisation qui
+  // aboutit pendant la transition écrivait encore une citation après l'arrêt.
+  if (quoteFadeTimeout) {
+    clearTimeout(quoteFadeTimeout);
+    quoteFadeTimeout = null;
   }
 }
 
@@ -118,7 +141,10 @@ function initializeElements() {
     statusCode: document.getElementById('status-code'),
     statusDescription: document.getElementById('status-description'),
     statusDate: document.getElementById('status-date'),
-    progressFill: document.getElementById('progress-fill'),
+    stepMeter: document.getElementById('step-meter'),
+    stateHeroValue: document.getElementById('state-hero-value'),
+    stateHeroLabel: document.getElementById('state-hero-label'),
+    btnDescMore: document.getElementById('btn-desc-more'),
 
     // Bannière de clôture (procédure terminée)
     closureBanner: document.getElementById('closure-banner'),
@@ -135,9 +161,6 @@ function initializeElements() {
     statEntretien: document.getElementById('stat-entretien'),
     statEntretienValue: document.getElementById('stat-entretien-value'),
     statEntretienDate: document.getElementById('stat-entretien-date'),
-    statStatutAge: document.getElementById('stat-statut-age'),
-    statStatutAgeValue: document.getElementById('stat-statut-age-value'),
-    statStatutAgeDate: document.getElementById('stat-statut-age-date'),
 
     // Dernière vérification
     lastCheckDate: document.getElementById('last-check-date'),
@@ -786,9 +809,11 @@ function displayStatus(statusData, apiData, lastCheck) {
           const days = daysSince(earliestDate);
           const duration = formatDuration(days);
           elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
+          ecrireHeros(duration, 'à cette étape');
         }
       } else {
         elements.statusDate.textContent = '—';
+        if (!closed) ecrireHeros('—', 'à cette étape');
       }
 
       // Dernière MAJ (date ANEF la plus récente, peut être = date statut ou plus récente)
@@ -810,13 +835,28 @@ function displayStatus(statusData, apiData, lastCheck) {
         } else {
           statusLastCheck.textContent = '—';
         }
+        // Même règle que les autres lignes de détail : pas de valeur, pas de
+        // ligne. Le basculement se fait ici et non dans displayDetails, qui
+        // s'exécute avant que cette date asynchrone soit connue.
+        document.getElementById('detail-last-maj')?.classList.toggle('hidden', !majDate);
       }
     })().catch(e => console.warn('[Popup] Erreur mise à jour dates:', e));
   }
 
-  // Barre de progression
-  const progress = (statusInfo.etape / 12) * 100;
-  if (elements.progressFill) elements.progressFill.style.width = `${progress}%`;
+  // Compteur d'étape : 12 segments, un par étape. Bien plus lisible qu'une
+  // barre continue — on compte les étapes d'un coup d'œil — et la couleur
+  // encode enfin quelque chose : franchi / en cours / à venir.
+  renderStepMeter(statusInfo.etape);
+
+  // Figure héros : durée passée à l'étape courante. Remplacée par la durée
+  // totale de la procédure quand le dossier est clôturé (cf. displayClosureBanner).
+  // La figure héros est écrite dans l'IIFE asynchrone ci-dessus, pour partir
+  // de la MÊME date que la ligne « depuis le … » : celle-ci donne la priorité
+  // à la date rectifiée manuellement, et le héros la contredisait.
+
+
+  // Description : repliée à deux lignes tant qu'elle déborde
+  setupDescriptionToggle();
 
   // Style de la carte selon le statut
   const statusCard = document.querySelector('.status-card');
@@ -835,6 +875,90 @@ function displayStatus(statusData, apiData, lastCheck) {
   displayDetails(statusData, apiData);
   displayDmr(apiData);
   displayStatusBadges(apiData);
+}
+
+// Description dépliée par l'utilisateur ? Conservé le temps du popup.
+let descriptionDepliee = false;
+
+/** Écrit la figure héros en adaptant le corps aux chaînes longues.
+ *  `formatDuration` peut produire « 3 ans, 3 mois, 15 j » (19 caractères) :
+ *  à 30 px dans une fenêtre de 380 px, ça passe à la ligne et, avec
+ *  `line-height: .98`, les deux lignes se chevauchent. */
+function ecrireHeros(texte, libelle) {
+  const el = elements.stateHeroValue;
+  if (el) {
+    el.textContent = texte;
+    // Filet de sécurité fondé sur une MESURE et non sur un compte de
+    // caractères : mesuré à 380 px, même « 11 ans, 11 mois, 29 j » (le pire
+    // cas réaliste, 21 caractères) tient sur une ligne. Un seuil arbitraire
+    // rapetissait donc la figure sans raison. On ne réduit que si le texte
+    // a effectivement débordé sur une seconde ligne.
+    el.classList.remove('is-long');
+    if (el.offsetHeight > 40) el.classList.add('is-long');
+  }
+  if (elements.stateHeroLabel && libelle) elements.stateHeroLabel.textContent = libelle;
+}
+
+/** Dessine le compteur d'étape : 12 segments, l'étape courante mise en avant. */
+function renderStepMeter(etape) {
+  const host = elements.stepMeter;
+  if (!host) return;
+  host.textContent = '';
+  // `getStatusExplanation` renvoie `etape: 0` pour un code non répertorié —
+  // le cas s'est produit en juillet 2026 quand ANEF a changé son vocabulaire.
+  // `etape || 1` transformait alors « inconnu » en « étape 1 » : le dossier
+  // affichait « Étape 0/12 » en texte et le premier segment en rouge, soit
+  // « vous êtes au tout début » à quelqu'un potentiellement à l'étape 11.
+  // Zéro segment allumé est le bon signal : on ne sait pas.
+  const n = Math.round(Number(etape));
+  const courante = Number.isFinite(n) ? Math.max(0, Math.min(12, n)) : 0;
+  for (let i = 1; i <= 12; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'meter-seg' + (i < courante ? ' is-done' : i === courante ? ' is-now' : '');
+    host.appendChild(seg);
+  }
+  host.setAttribute('aria-label', courante ? `Étape ${courante} sur 12` : 'Étape inconnue');
+}
+
+/** Le bouton « Lire la suite » n'apparaît que si la description est tronquée. */
+function setupDescriptionToggle() {
+  const desc = elements.statusDescription;
+  const btn = elements.btnDescMore;
+  if (!desc || !btn) return;
+
+  // On respecte le choix de l'utilisateur pour la durée du popup : une
+  // actualisation qui aboutit pendant qu'il lit ne doit pas replier le texte
+  // sous ses yeux.
+  // Le choix « déplié » ne vaut que pour LE texte affiché : en changeant
+  // d'onglet de dossier, on héritait de l'état du dossier précédent et le
+  // bouton annonçait « Réduire » sur une description d'une seule ligne.
+  const signature = desc.textContent.slice(0, 80);
+  if (desc.dataset.signature !== signature) {
+    desc.dataset.signature = signature;
+    descriptionDepliee = false;
+  }
+
+  desc.classList.toggle('status-description-clamp', !descriptionDepliee);
+  btn.textContent = descriptionDepliee ? 'Réduire' : 'Lire la suite';
+
+  // Mesure après rendu, clamp temporairement remis pour ne pas dépendre de
+  // l'état courant : scrollHeight > clientHeight ⇒ le texte déborde.
+  requestAnimationFrame(() => {
+    const deplie = !desc.classList.contains('status-description-clamp');
+    if (deplie) desc.classList.add('status-description-clamp');
+    const tronque = desc.scrollHeight > desc.clientHeight + 1;
+    if (deplie) desc.classList.remove('status-description-clamp');
+    btn.classList.toggle('hidden', !tronque);
+  });
+
+  if (!btn.dataset.bound) {
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const replie = desc.classList.toggle('status-description-clamp');
+      descriptionDepliee = !replie;
+      btn.textContent = replie ? 'Lire la suite' : 'Réduire';
+    });
+  }
 }
 
 /**
@@ -1015,18 +1139,46 @@ function displayStatusBadges(apiData) {
   if (!host) return;
   host.textContent = '';
 
-  const badges = [];
-  if (apiData?.decisionAvailable) badges.push({ icon: '📄', text: 'Décision disponible sur ANEF', cls: 'badge-info' });
-  if (apiData?.inDecretPipeline) badges.push({ icon: '📜', text: 'Dans le pipeline décret', cls: 'badge-success' });
-  if (apiData?.canRapo) badges.push({ icon: '⚖️', text: 'Recours possible', cls: 'badge-warning' });
+  // Une ligne par signal : titre court + qualificatif. L'explication complète
+  // reste accessible en infobulle plutôt que d'alourdir la lecture.
+  const signaux = [];
+  if (apiData?.decisionAvailable) signaux.push({
+    icon: '📄', titre: 'Décision disponible', court: 'à télécharger sur ANEF',
+    detail: "La décision préfectorale est prise. Le document est téléchargeable dans votre espace ANEF.",
+    cls: 'signal-info'
+  });
+  if (apiData?.inDecretPipeline) signaux.push({
+    icon: '📜', titre: 'Pipeline décret', court: 'décision favorable',
+    detail: "ANEF propose le désistement du décret : la décision est favorable et votre dossier suit le circuit du décret.",
+    cls: 'signal-success'
+  });
+  if (apiData?.canRapo) signaux.push({
+    icon: '⚖️', titre: 'Recours possible', court: 'RAPO ouvert',
+    detail: "Un recours administratif préalable obligatoire (RAPO) peut être déposé depuis votre espace ANEF.",
+    cls: 'signal-warning'
+  });
 
-  if (!badges.length) { host.classList.add('hidden'); return; }
+  if (!signaux.length) { host.classList.add('hidden'); return; }
 
-  for (const b of badges) {
-    const span = document.createElement('span');
-    span.className = 'status-badge ' + b.cls;
-    span.textContent = `${b.icon} ${b.text}`;
-    host.appendChild(span);
+  for (const sig of signaux) {
+    const ligne = document.createElement('div');
+    ligne.className = 'signal ' + sig.cls;
+    ligne.title = sig.detail;
+
+    const icone = document.createElement('span');
+    icone.className = 'signal-icon';
+    icone.textContent = sig.icon;
+
+    const titre = document.createElement('span');
+    titre.className = 'signal-title';
+    titre.textContent = sig.titre;
+
+    const court = document.createElement('span');
+    court.className = 'signal-hint';
+    court.textContent = sig.court;
+
+    ligne.append(icone, titre, court);
+    host.appendChild(ligne);
   }
   host.classList.remove('hidden');
 }
@@ -1037,8 +1189,11 @@ function displayClosureBanner(statusData, apiData, closed) {
   const banner = elements.closureBanner;
   if (!banner) return;
 
+  const carte = document.querySelector('.status-card');
+
   if (!closed) {
     banner.classList.add('hidden');
+    carte?.classList.remove('is-closed');
     elements.statsSection?.classList.remove('hidden');
     return;
   }
@@ -1047,11 +1202,14 @@ function displayClosureBanner(statusData, apiData, closed) {
   // Fin de procédure : date d'enregistrement du statut « décret publié » côté ANEF
   const dateFin = statusData?.date_statut;
 
-  // Durée totale figée : dépôt → fin de procédure
-  if (elements.closureTotalValue) {
-    const total = (dateDepot && dateFin) ? daysBetween(dateDepot, dateFin) : null;
-    elements.closureTotalValue.textContent = (total != null) ? formatDuration(total) : '—';
-  }
+  // Durée totale figée : dépôt → fin de procédure. Elle devient la figure
+  // héros de la carte — le dossier est clos, la durée à l'étape courante
+  // n'a plus de sens.
+  const total = (dateDepot && dateFin) ? daysBetween(dateDepot, dateFin) : null;
+  const totalTexte = (total != null) ? formatDuration(total) : '—';
+  if (elements.closureTotalValue) elements.closureTotalValue.textContent = totalTexte;
+  ecrireHeros(totalTexte, 'procédure terminée');
+  carte?.classList.add('is-closed');
   // Numéro de décret (donnée fiable de l'API) ; on masque la figure s'il est absent
   if (elements.closureDecretFigure) {
     const numDecret = apiData?.numeroDecret;
@@ -1107,15 +1265,11 @@ function displayTemporalStats(statusData, apiData, closed = false) {
     elements.statEntretien.classList.add('hidden');
   }
 
-  // Âge du statut actuel
-  if (statusData?.date_statut && elements.statStatutAge) {
-    const days = daysSince(statusData.date_statut);
-    elements.statStatutAgeValue.textContent = formatDuration(days);
-    elements.statStatutAgeDate.textContent = formatDate(statusData.date_statut, true);
-    elements.statStatutAge.classList.remove('hidden');
-  } else if (elements.statStatutAge) {
-    elements.statStatutAge.classList.add('hidden');
-  }
+  // La durée passée au statut courant est portée par la figure héros de la
+  // carte d'état (v2.12). La tuile qui la répétait a été retirée : la garder
+  // « pour le cas clôturé » ne servait à rien, displayClosureBanner masquant
+  // justement tout #stats-section dans ce cas — elle n'était donc visible
+  // dans aucun état.
 }
 
 /** Affiche les détails du dossier */
@@ -1219,25 +1373,60 @@ function displayLastCheck(lastCheck, lastCheckAttempt) {
 async function loadAutoCheckNext() {
   const container = document.getElementById('auto-check-next');
   const text = document.getElementById('auto-check-next-text');
+  const dot = document.getElementById('auto-check-dot');
+  const sep = document.getElementById('foot-sep');
   if (!container || !text) return;
+
+  // ⚠️ L'état visuel se porte sur la PASTILLE, pas sur le texte. Jusqu'à la
+  // v2.12 ces classes allaient sur `#auto-check-next`, qui était la bannière
+  // entière et portait `.auto-check-banner.warning`. Depuis la refonte du pied
+  // c'est un simple <span class="foot-item"> : aucune règle ne le colorait plus,
+  // et la pastille restait verte même sur « mot de passe expiré ».
+  const etat = (niveau) => {
+    dot?.classList.remove('warning', 'error', 'off');
+    if (niveau) dot?.classList.add(niveau);
+  };
+  // Le séparateur ne sépare plus rien si le texte disparaît.
+  const reglages = document.getElementById('auto-check-settings-link');
+  const montrer = (visible) => {
+    container.classList.toggle('hidden', !visible);
+    sep?.classList.toggle('hidden', !visible);
+    // L'engrenage renvoie au réglage de la vérification automatique : le
+    // laisser seul quand le texte disparaît donne une icône orpheline dont
+    // plus rien n'indique l'objet.
+    reglages?.classList.toggle('hidden', !visible);
+  };
 
   try {
     const info = await chrome.runtime.sendMessage({ type: 'GET_AUTO_CHECK_INFO' });
 
     if (!info || !info.enabled) {
-      container.classList.add('hidden');
+      // On ne masque plus tout : un utilisateur dont la vérification
+      // automatique s'est retrouvée coupée n'avait AUCUN signal dans le popup,
+      // et ne pouvait donc pas deviner qu'il fallait la rallumer.
+      montrer(true);
+      etat('off');
+      text.textContent = 'vérification auto désactivée';
+      container.title = "Réactivez-la dans les paramètres pour que votre dossier soit vérifié automatiquement.";
       return;
     }
 
-    container.classList.remove('hidden', 'error', 'warning');
+    montrer(true);
 
     if (info.passwordExpired) {
-      container.classList.add('warning');
-      text.textContent = 'Mot de passe ANEF expiré · renouveler sur le portail';
+      etat('warning');
+      text.textContent = 'mot de passe ANEF expiré';
+      container.title = 'Renouvelez votre mot de passe sur le portail ANEF pour relancer la vérification automatique.';
     } else if (!info.hasCredentials) {
-      container.classList.add('warning');
-      text.textContent = 'Vérification auto activée · identifiants requis';
+      etat('warning');
+      text.textContent = 'identifiants requis';
+      container.title = "La vérification automatique est activée mais aucun identifiant n'est enregistré.";
+    } else if (info.consecutiveFailures > 0) {
+      etat('warning');
+      text.textContent = `${info.consecutiveFailures} échec(s)`;
+      container.title = 'Les dernières vérifications automatiques ont échoué ; les tentatives sont espacées.';
     } else if (info.nextAlarm) {
+      etat(null);
       const diffMin = Math.round((info.nextAlarm - Date.now()) / 60000);
       let delai;
       if (diffMin <= 0) {
@@ -1249,13 +1438,17 @@ async function loadAutoCheckNext() {
         const mins = diffMin % 60;
         delai = `dans ~${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
       }
-      text.textContent = `Vérification auto activée · prochaine ${delai}`;
+      text.textContent = `prochaine ${delai}`;
+      container.title = 'Vérification automatique activée';
     } else {
-      text.textContent = 'Vérification auto activée';
+      etat(null);
+      text.textContent = 'vérification auto activée';
+      container.title = '';
     }
   } catch (e) {
     console.warn('[Popup] Erreur chargement auto-check info:', e);
-    container.classList.add('hidden');
+    montrer(false);
+    etat('off');
   }
 }
 
@@ -1277,6 +1470,12 @@ function updateLoadingStep(step) {
   const loadingMessage = document.getElementById('loading-message');
 
   [stepOpen, stepLoad, stepData].forEach(s => s?.classList.remove('active', 'done'));
+
+  // Le conteneur porte `role="progressbar"` : sans `aria-valuenow`, un lecteur
+  // d'ecran annonce « barre de progression » sans jamais dire ou on en est.
+  // Le compte est celui des etapes FRANCHIES, d'ou le `step - 1`.
+  const steps = document.querySelector('.loading-steps');
+  if (steps) steps.setAttribute('aria-valuenow', String(Math.max(0, Math.min(3, step - 1))));
 
   switch (step) {
     case 1:

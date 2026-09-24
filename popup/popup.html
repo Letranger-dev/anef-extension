@@ -59,6 +59,13 @@
     </div>
 
     <!-- Vue: Maintenance -->
+    <!-- Barre d'onglets multi-dossier (affichée uniquement si >=2 dossiers) -->
+    <nav id="dossier-tabs" class="dossier-tabs hidden" role="tablist" aria-label="Mes dossiers">
+      <div id="dossier-tabs-scroll" class="dossier-tabs-scroll">
+        <!-- Rempli dynamiquement par popup.js -->
+      </div>
+    </nav>
+
     <div id="view-maintenance" class="view hidden">
       <div class="card card-maintenance">
         <div class="card-icon-wrapper maintenance">
@@ -135,41 +142,29 @@
     <!-- Vue: Chargement -->
     <div id="view-loading" class="view hidden">
       <div class="card card-loading">
-        <div class="spinner"></div>
-        <h2 id="loading-title">Actualisation...</h2>
-        <p id="loading-message">Ouverture de la page ANEF...</p>
-        <div class="loading-steps">
-          <div class="loading-step" id="step-open">
-            <span class="step-icon">1</span>
-            <span class="step-text">Ouverture page</span>
-          </div>
-          <div class="loading-step" id="step-load">
-            <span class="step-icon">2</span>
-            <span class="step-text">Chargement</span>
-          </div>
-          <div class="loading-step" id="step-data">
-            <span class="step-icon">3</span>
-            <span class="step-text">Récupération</span>
-          </div>
-        </div>
-        <p class="loading-hint">Cette opération peut prendre jusqu'à 45 secondes</p>
+        <h2 id="loading-title">Actualisation</h2>
+        <p id="loading-message" aria-live="polite">Ouverture de la page ANEF...</p>
 
-        <!-- Citations sur la patience -->
+        <!-- Progression : trois segments, même langage visuel que le compteur
+             d'étape de la vue statut. Remplace le spinner + trois pastilles
+             numérotées, qui signalaient deux fois la même chose. -->
+        <div class="loading-steps" role="progressbar" aria-label="Progression de l'actualisation"
+             aria-valuemin="0" aria-valuemax="3" aria-valuenow="0">
+          <div class="loading-step" id="step-open"><span class="step-text">Ouverture</span></div>
+          <div class="loading-step" id="step-load"><span class="step-text">Chargement</span></div>
+          <div class="loading-step" id="step-data"><span class="step-text">Récupération</span></div>
+        </div>
+
+        <p class="loading-hint">Jusqu'à 45 secondes</p>
+
+        <!-- Citation : de quoi occuper l'attente sans la meubler bruyamment -->
         <div class="quote-container">
-          <div class="quote-wrapper">
-            <p class="quote-text" id="quote-text"></p>
-            <p class="quote-author" id="quote-author"></p>
-          </div>
+          <p class="quote-text" id="quote-text"></p>
+          <p class="quote-author" id="quote-author"></p>
         </div>
       </div>
     </div>
 
-    <!-- Barre d'onglets multi-dossier (affichée uniquement si >=2 dossiers) -->
-    <nav id="dossier-tabs" class="dossier-tabs hidden" role="tablist" aria-label="Mes dossiers">
-      <div id="dossier-tabs-scroll" class="dossier-tabs-scroll">
-        <!-- Rempli dynamiquement par popup.js -->
-      </div>
-    </nav>
 
     <!-- Bannière : erreur générique après refresh -->
     <div id="refresh-error-banner" class="refresh-error-banner hidden">
@@ -237,124 +232,72 @@
     <!-- Vue: Statut -->
     <div id="view-status" class="view hidden">
 
-      <!-- Demande de modification du décret (DMR) — en tête : c'est la démarche
-           en cours, elle doit être visible sans faire défiler le popup -->
-      <section id="dmr-section" class="dmr-section hidden">
-        <header class="dmr-header">
-          <span class="dmr-title">📝 Modification du décret</span>
-          <span id="dmr-statut-badge" class="dmr-badge">—</span>
-        </header>
-        <p id="dmr-hint" class="dmr-hint">—</p>
-
-        <div class="dmr-meta">
-          <div class="dmr-meta-item">
-            <span class="dmr-meta-label">Déposée le</span>
-            <span class="dmr-meta-value" id="dmr-date-depot">—</span>
-          </div>
-          <div class="dmr-meta-item">
-            <span class="dmr-meta-label">En attente depuis</span>
-            <span class="dmr-meta-value" id="dmr-age">—</span>
-          </div>
-          <div class="dmr-meta-item" id="dmr-decret-item">
-            <span class="dmr-meta-label">Décret visé</span>
-            <span class="dmr-meta-value" id="dmr-decret">—</span>
-          </div>
-        </div>
-
-        <div id="dmr-etape-row" class="dmr-etape hidden">
-          Formulaire : <span id="dmr-etape">—</span>
-        </div>
-
-        <div id="dmr-enfants-block" class="dmr-block hidden">
-          <span class="dmr-block-title" id="dmr-enfants-title">Enfants ajoutés</span>
-          <ul id="dmr-enfants" class="dmr-list"></ul>
-        </div>
-
-        <div id="dmr-events-block" class="dmr-block hidden">
-          <span class="dmr-block-title">Suivi</span>
-          <ul id="dmr-events" class="dmr-list dmr-timeline"></ul>
-        </div>
-
-        <button id="btn-dmr-attestation" class="btn btn-secondary btn-sm dmr-attestation hidden">
-          <span>📄 Attestation de dépôt (PDF)</span>
-        </button>
-        <p id="dmr-attestation-stale" class="dmr-hint dmr-hint-muted hidden">
-          Lien d'attestation expiré — actualise pour le régénérer.
-        </p>
-      </section>
-
-      <!-- Carte principale -->
+      <!-- Carte d'état : identité du statut, figure héros, compteur d'étape,
+           description, signaux. La bannière de clôture y est fondue (v2.12). -->
       <div class="status-card">
-        <!-- Header statut -->
-        <div class="status-header">
-          <div class="status-icon-wrapper">
-            <span class="status-icon" id="status-icon">📋</span>
-          </div>
-          <div class="status-info">
+        <div class="state-top">
+          <span class="status-icon" id="status-icon">📋</span>
+          <div class="state-id">
             <span class="status-phase" id="status-phase">—</span>
-            <span class="status-step" id="status-step">Étape ?/12</span>
+            <button id="btn-copy-status" class="status-code-btn" title="Copier le code">
+              <span class="status-code" id="status-code">—</span>
+              <svg class="icon-copy" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <svg class="icon-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <!-- Code statut -->
-        <div class="status-code-wrapper">
-          <span class="status-code" id="status-code">—</span>
-          <button id="btn-copy-status" class="btn-copy" title="Copier le code">
-            <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <svg class="icon-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
+        <!-- Figure héros : durée à l'étape courante, ou durée totale si clôturé -->
+        <div class="state-hero">
+          <span class="state-hero-value" id="state-hero-value">—</span>
+          <span class="state-hero-label" id="state-hero-label">à cette étape</span>
         </div>
 
-        <!-- Description -->
-        <p class="status-description" id="status-description">—</p>
+        <!-- Compteur d'étape : 12 segments, un par étape -->
+        <div class="meter-head">
+          <span class="meter-step" id="status-step">Étape ?/12</span>
+          <span class="meter-since">depuis le <span id="status-date">—</span></span>
+        </div>
+        <div class="meter" id="step-meter" role="img" aria-label="Avancement du dossier"></div>
 
-        <!-- Barre de progression -->
-        <div class="progress-container">
-          <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
-          </div>
-          <div class="progress-labels">
-            <span>Dépôt</span>
-            <span>Décret</span>
-          </div>
+        <!-- Récap de clôture, fondu dans la carte -->
+        <div id="closure-banner" class="closure-strip hidden">
+          <span class="closure-strip-icon">🎉</span>
+          <span class="closure-strip-text">
+            <strong class="closure-strip-title">Félicitations, vous êtes officiellement français(e) !</strong>
+            <span class="closure-strip-figures">Procédure terminée en <strong id="closure-total-value">—</strong><span id="closure-decret-figure"> · décret n° <strong id="closure-decret-num">—</strong></span></span>
+            <span class="closure-strip-foot">Dépôt le <span id="closure-depot-date">—</span> · plus aucun suivi nécessaire ✨</span>
+          </span>
         </div>
 
-        <!-- Dates -->
-        <div class="status-dates">
-          <div class="status-date-row">
-            <span class="status-date-label">📅 Statut depuis</span>
-            <span class="status-date-value" id="status-date">—</span>
-          </div>
-          <div class="status-date-row">
-            <span class="status-date-label">🔄 Dernière MAJ</span>
-            <span class="status-date-value" id="status-last-check">—</span>
-          </div>
-        </div>
+        <p class="status-description status-description-clamp" id="status-description">—</p>
+        <button id="btn-desc-more" class="desc-more hidden" type="button">Lire la suite</button>
+
+        <!-- Signaux d'état (décision disponible, pipeline décret, recours) -->
+        <div id="status-badges" class="signals hidden"></div>
       </div>
 
-      <!-- Bannière de clôture (procédure terminée — décret publié) -->
-      <div id="closure-banner" class="closure-banner hidden">
-        <span class="closure-confetti">🎉</span>
-        <div class="closure-banner-head">
-          <span class="closure-banner-title">Procédure terminée</span>
-          <span class="closure-banner-sub">Félicitations, vous êtes officiellement français(e) !</span>
-        </div>
-        <div class="closure-figures">
-          <div class="closure-figure">
-            <span class="closure-figure-value" id="closure-total-value">—</span>
-            <span class="closure-figure-label">Durée totale<br>de la procédure</span>
+      <!-- Stats -->
+      <div id="stats-section" class="stats-section">
+        <div class="stats-cards">
+          <div id="stat-depot" class="stat-card">
+            <span class="stat-icon">📅</span>
+            <span class="stat-label">Dépôt</span>
+            <span class="stat-value" id="stat-depot-value">—</span>
+            <span class="stat-date" id="stat-depot-date">—</span>
           </div>
-          <div class="closure-figure" id="closure-decret-figure">
-            <span class="closure-figure-value" id="closure-decret-num">—</span>
-            <span class="closure-figure-label">Numéro<br>de décret</span>
+          <div id="stat-entretien" class="stat-card">
+            <span class="stat-icon">🗣️</span>
+            <span class="stat-label">Entretien</span>
+            <span class="stat-value" id="stat-entretien-value">—</span>
+            <span class="stat-date" id="stat-entretien-date">—</span>
           </div>
         </div>
-        <span class="closure-banner-foot">Dépôt le <span id="closure-depot-date">—</span> · Plus aucun suivi nécessaire ✨</span>
       </div>
 
       <!-- Alerte dates manquantes -->
@@ -415,32 +358,64 @@
         </div>
       </div>
 
-      <!-- Stats -->
-      <div id="stats-section" class="stats-section">
-        <div class="stats-cards">
-          <div id="stat-depot" class="stat-card">
-            <span class="stat-icon">📅</span>
-            <span class="stat-label">Dépôt</span>
-            <span class="stat-value" id="stat-depot-value">—</span>
-            <span class="stat-date" id="stat-depot-date">—</span>
+      <!-- Demande de modification du décret (DMR) — en tête : c'est la démarche
+           en cours, elle doit être visible sans faire défiler le popup -->
+      <details id="dmr-section" class="fold dmr-section hidden">
+        <summary class="fold-head">
+          <span class="fold-icon">📝</span>
+          <span class="fold-title">Modification du décret</span>
+          <span id="dmr-statut-badge" class="dmr-badge">—</span>
+          <svg class="fold-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <div class="fold-body">
+        <p id="dmr-hint" class="dmr-hint">—</p>
+
+        <div class="dmr-meta">
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">Déposée le</span>
+            <span class="dmr-meta-value" id="dmr-date-depot">—</span>
           </div>
-          <div id="stat-entretien" class="stat-card">
-            <span class="stat-icon">🗣️</span>
-            <span class="stat-label">Entretien</span>
-            <span class="stat-value" id="stat-entretien-value">—</span>
-            <span class="stat-date" id="stat-entretien-date">—</span>
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">En attente depuis</span>
+            <span class="dmr-meta-value" id="dmr-age">—</span>
           </div>
-          <div id="stat-statut-age" class="stat-card">
-            <span class="stat-icon">⏱️</span>
-            <span class="stat-label">Au statut depuis</span>
-            <span class="stat-value" id="stat-statut-age-value">—</span>
-            <span class="stat-date" id="stat-statut-age-date">—</span>
+          <div class="dmr-meta-item" id="dmr-decret-item">
+            <span class="dmr-meta-label">Décret visé</span>
+            <span class="dmr-meta-value" id="dmr-decret">—</span>
           </div>
         </div>
-      </div>
+
+        <div id="dmr-etape-row" class="dmr-etape hidden">
+          Formulaire : <span id="dmr-etape">—</span>
+        </div>
+
+        <div id="dmr-enfants-block" class="dmr-block hidden">
+          <span class="dmr-block-title" id="dmr-enfants-title">Enfants ajoutés</span>
+          <ul id="dmr-enfants" class="dmr-list"></ul>
+        </div>
+
+        <div id="dmr-events-block" class="dmr-block hidden">
+          <span class="dmr-block-title">Suivi</span>
+          <ul id="dmr-events" class="dmr-list dmr-timeline"></ul>
+        </div>
+
+        <button id="btn-dmr-attestation" class="btn btn-secondary btn-sm dmr-attestation hidden">
+          <span>📄 Attestation de dépôt (PDF)</span>
+        </button>
+        <p id="dmr-attestation-stale" class="dmr-hint dmr-hint-muted hidden">
+          Lien d'attestation expiré — actualise pour le régénérer.
+        </p>
+        </div>
+      </details>
 
       <!-- Détails -->
-      <div id="details-section" class="details-section hidden">
+      <details id="details-section" class="fold details-section hidden">
+        <summary class="fold-head">
+          <span class="fold-icon">🗂</span>
+          <span class="fold-title">Détails du dossier</span>
+          <svg class="fold-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <div class="fold-body">
         <div class="details-grid">
           <div id="detail-dossier-id" class="detail-chip hidden">
             <span class="detail-chip-label">Dossier</span>
@@ -462,52 +437,35 @@
             <span class="detail-chip-label">Lieu</span>
             <span class="detail-chip-value" id="detail-entretien-lieu-value">—</span>
           </div>
+          <div id="detail-last-maj" class="detail-chip hidden">
+            <span class="detail-chip-label">Dernière MAJ ANEF</span>
+            <span class="detail-chip-value" id="status-last-check">—</span>
+          </div>
           <div id="detail-decret" class="detail-chip detail-chip-success detail-chip-wide hidden">
             <span class="detail-chip-label">🎉 Décret</span>
             <span class="detail-chip-value" id="detail-decret-value">—</span>
           </div>
         </div>
-      </div>
-
-      <!-- Badges d'état (décision disponible, pipeline décret) -->
-      <div id="status-badges" class="status-badges hidden"></div>
-
-      <!-- Dernière vérification -->
-      <div class="last-check">
-        Dernière vérification : <span id="last-check-date">—</span>
-      </div>
+        </div>
+      </details>
     </div>
 
-    <!-- Auto-check info -->
-    <div id="auto-check-next" class="auto-check-banner hidden">
-      <div class="auto-check-banner-left">
-        <span class="auto-check-banner-dot" id="auto-check-dot"></span>
-        <span class="auto-check-banner-text" id="auto-check-next-text">—</span>
-      </div>
-      <a href="#" id="auto-check-settings-link" class="auto-check-banner-link" title="Modifier dans les paramètres">
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+    <!-- Pied : dernière vérification, prochaine vérification, lien statistiques -->
+    <div class="foot">
+      <span class="foot-dot" id="auto-check-dot"></span>
+      <span class="foot-item">Vérifié <span id="last-check-date">—</span></span>
+      <span class="foot-sep" id="foot-sep">·</span>
+      <span class="foot-item" id="auto-check-next"><span id="auto-check-next-text">—</span></span>
+      <a href="#" id="auto-check-settings-link" class="foot-gear" title="Modifier dans les paramètres">⚙</a>
+      <a id="link-stats" href="https://letranger-dev.github.io/anef-extension/" target="_blank" class="foot-link" title="Comparer votre progression aux statistiques communautaires">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="6" y1="20" x2="6" y2="13"></line>
+          <line x1="12" y1="20" x2="12" y2="8"></line>
+          <line x1="18" y1="20" x2="18" y2="4"></line>
         </svg>
+        <span>Statistiques</span>
       </a>
     </div>
-
-    <!-- Stats link -->
-    <a id="link-stats" href="https://letranger-dev.github.io/anef-extension/" target="_blank" class="stats-banner">
-      <span class="stats-banner-icon">📊</span>
-      <span class="stats-banner-text">
-        <span class="stats-banner-title">Statistiques communautaires</span>
-        <span class="stats-banner-hint">Donnees 100% anonymes — Comparez votre progression</span>
-      </span>
-      <svg class="stats-banner-arrow" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-      </svg>
-    </a>
-
-    <!-- Footer -->
-    <footer class="footer">
-      ANEF Status Tracker
-    </footer>
   </div>
 
   <script src="popup.js" type="module"></script>
