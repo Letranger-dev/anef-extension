@@ -339,19 +339,27 @@
   function estimateToDecret(currentStatut, waitTimesArr) {
     var C = ANEF.constants;
     var DECRET_RANG = 1101; // inseree_dans_decret : au-delà = terminal
-    var SDANF_CTRL = { 'controle_sdanf': 1, 'controle_a_affecter': 1, 'controle_a_effectuer': 1 };
     var code = String(currentStatut || '').toLowerCase();
     var cinfo = C.STATUTS[code];
     var currentRang = cinfo ? cinfo.rang : 0;
 
-    // Buckets non-SDANF → nœuds ordinaires (par statut étape 9 hors contrôle, par étape
-    // sinon). Les 3 sous-états de contrôle SDANF sont mis de côté (nœud unique plus bas).
+    // L'étape 9 forme UN SEUL maillon de chaîne. `computeStepWaitTimes` en
+    // produit plusieurs mesures : le bucket `etape:9` (séjour complet, entrée
+    // → sortie de l'étape) et un bucket par sous-statut. Les seconds DÉTAILLENT
+    // le premier, ils ne s'enchaînent pas : les additionner compterait l'étape
+    // 9 plusieurs fois. On les met donc tous de côté ici, et on construit un
+    // nœud unique plus bas.
     var nodes = {};
     var sdanf = {};
+    var etape9 = null;
     (waitTimesArr || []).forEach(function(w) {
       if (!w) return;
       var raw = w.statut ? String(w.statut).toLowerCase() : null;
-      if (raw && SDANF_CTRL[raw]) { sdanf[raw] = (sdanf[raw] || []).concat(w.days || []); return; }
+      if (Number(w.etape) === 9) {
+        if (raw) sdanf[raw] = (sdanf[raw] || []).concat(w.days || []);
+        else etape9 = (etape9 || []).concat(w.days || []);
+        return;
+      }
       var key, rang, phase;
       if (w.statut) { var fi = C.STATUTS[raw]; key = 'statut:' + raw; rang = fi ? fi.rang : w.rang; phase = fi ? fi.phase : w.phase; }
       else { key = 'etape:' + w.etape; rang = w.rang; phase = w.phase; }
@@ -368,23 +376,63 @@
         p25: Math.round(percentile(n.days, 25)), p50: Math.round(percentile(n.days, 50)), p75: Math.round(percentile(n.days, 75)) });
     });
 
-    // Nœud SDANF UNIQUE : le code unifié controle_sdanf s'il a des données (ère post-API,
-    // durée en un seul bucket) ; SINON la SOMME séquentielle des sous-états historiques
-    // (à affecter PUIS à effectuer = vraie durée de la phase). Jamais les deux ensemble
-    // → pas de double-compte, pas de sous-estimation.
-    var sdInfo = C.STATUTS['controle_sdanf'];
-    var sdRang = sdInfo ? sdInfo.rang : 900, sdPhase = sdInfo ? sdInfo.phase : 'Contrôle SDANF';
+    // ── Contribution de l'étape 9 à la chaîne ────────────────────────────
+    // Le filtre générique « rang > rang courant » (plus bas) ne peut pas savoir
+    // qu'un nœud agrégé de rang 900 couvre AUSSI les sous-rangs 901-904. On
+    // choisit donc ici, selon l'endroit où se trouve l'usager :
+    //
+    //   • avant l'étape 9, ou au seuil (`controle_sdanf`, rang 900) → le séjour
+    //     COMPLET, mesuré directement, car toute l'étape lui reste à faire ;
+    //   • déjà à l'intérieur (rangs 901-904) → seuls les sous-statuts encore à
+    //     venir. Agréger ici ferait disparaître le reste de l'étape : le nœud
+    //     de rang 900 serait écarté par le filtre, et l'estimation perdrait
+    //     ~24 jours de contrôle SCEC pour les dossiers en 9.1 / 9.2 ;
+    //   • après → rien, l'étape est derrière.
+    var SOUS_9 = ['controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
+    var sdPhase = C.PHASE_NAMES[9] || 'Contrôle SDANF & SCEC';
     var pc = function(arr, p) { return arr && arr.length ? percentile(arr, p) : 0; };
-    var newer = sdanf['controle_sdanf'] || [];
-    if (newer.length) {
-      list.push({ rang: sdRang, phase: sdPhase, sample: newer.length,
-        p25: Math.round(pc(newer, 25)), p50: Math.round(pc(newer, 50)), p75: Math.round(pc(newer, 75)) });
-    } else {
-      var caa = sdanf['controle_a_affecter'] || [], cae = sdanf['controle_a_effectuer'] || [];
-      if (caa.length || cae.length) {
-        list.push({ rang: sdRang, phase: sdPhase,
-          sample: Math.min(caa.length || cae.length, cae.length || caa.length),
-          p25: Math.round(pc(caa, 25) + pc(cae, 25)), p50: Math.round(pc(caa, 50) + pc(cae, 50)), p75: Math.round(pc(caa, 75) + pc(cae, 75)) });
+
+    if (currentRang <= 900) {
+      // Le nœud se place juste devant l'usager : à 900 pile (`controle_sdanf`),
+      // un rang de 900 serait rejeté par un filtre strict alors que l'étape
+      // entière reste devant lui.
+      var rang9 = Math.max(900, currentRang + 1);
+      if (etape9 && etape9.length) {
+        list.push({ rang: rang9, phase: sdPhase, sample: etape9.length,
+          p25: Math.round(pc(etape9, 25)), p50: Math.round(pc(etape9, 50)), p75: Math.round(pc(etape9, 75)) });
+      } else {
+        // Repli : aucune sortie d'étape observée (filtre trop étroit). On
+        // reconstitue le séjour en sommant les sous-statuts, chacun PONDÉRÉ par
+        // la part de dossiers qui l'a réellement traversé — tous ne passent pas
+        // par les quatre, et une somme brute ajouterait des phases jamais vécues.
+        var refN = 0;
+        for (var r = 0; r < SOUS_9.length; r++) {
+          var a0 = sdanf[SOUS_9[r]];
+          if (a0 && a0.length > refN) refN = a0.length;
+        }
+        var p25 = 0, p50 = 0, p75 = 0, ech = Infinity, vu = false;
+        for (var si = 0; si < SOUS_9.length; si++) {
+          var arr = sdanf[SOUS_9[si]];
+          if (!arr || !arr.length) continue;
+          vu = true;
+          var poids = refN ? (arr.length / refN) : 1;
+          p25 += pc(arr, 25) * poids; p50 += pc(arr, 50) * poids; p75 += pc(arr, 75) * poids;
+          if (arr.length < ech) ech = arr.length;
+        }
+        if (vu) {
+          list.push({ rang: rang9, phase: sdPhase, sample: ech,
+            p25: Math.round(p25), p50: Math.round(p50), p75: Math.round(p75) });
+        }
+      }
+    } else if (currentRang < 1000) {
+      // Déjà dans l'étape 9 : on remet les sous-statuts en nœuds de chaîne et
+      // on laisse le filtre ne garder que ceux qui sont devant l'usager.
+      for (var sj = 0; sj < SOUS_9.length; sj++) {
+        var d9 = sdanf[SOUS_9[sj]];
+        if (!d9 || !d9.length) continue;
+        var i9 = C.STATUTS[SOUS_9[sj]];
+        list.push({ rang: i9 ? i9.rang : 901 + sj, phase: i9 ? i9.phase : sdPhase, sample: d9.length,
+          p25: Math.round(pc(d9, 25)), p50: Math.round(pc(d9, 50)), p75: Math.round(pc(d9, 75)) });
       }
     }
 

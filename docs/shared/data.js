@@ -480,7 +480,12 @@
    *  at that step). One data point per (dossier, step) — no double-counting dossiers
    *  with many identical snapshots, and earlier steps benefit from historical snapshots
    *  of dossiers that have since progressed. */
-  var STEP9_STATUTS = ['controle_sdanf', 'controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
+  // `controle_sdanf` en est ABSENT : voir STEP9_SOUS_STATUTS plus bas. Le
+  // garder ici donnait au graphe une barre « 9. … (SDANF ctrl) » au libellé
+  // STRICTEMENT identique à celle de 9.2 (`STEP9_SHORT` mappe les deux codes
+  // sur la même chaîne), et atteinte le même jour dans 76 % des cas. Il
+  // retombe désormais dans le compartiment générique `etape:9`.
+  var STEP9_STATUTS = ['controle_a_affecter', 'controle_a_effectuer', 'controle_en_attente_pec', 'controle_pec_a_faire'];
 
   function _bucketKeyFor(s) {
     var STATUTS = ANEF.constants.STATUTS;
@@ -498,7 +503,10 @@
     return {
       key: 'etape:' + s.etape,
       rang: s.etape * 100,
-      phase: s.phase || PHASE_NAMES[s.etape],
+      // Nom canonique : le `phase` de l'instantané décrit le sous-état et varie
+      // à l'intérieur d'une même étape (cf. computeStepWaitTimes). Il n'est de
+      // surcroît pas traduit, contrairement à PHASE_NAMES.
+      phase: PHASE_NAMES[s.etape] || s.phase,
       statut: null
     };
   }
@@ -612,27 +620,95 @@
     }).sort(function(a, b) { return b.total - a.total; });
   }
 
-  /** Time spent AT each step (not cumulative). For each consecutive pair in a
-   *  dossier's snapshot history, count days as "time spent at the previous step
-   *  before transitioning". Step 9 split by sub-statut. Only observed transitions
-   *  — ongoing waits aren't counted. */
+  /** Sous-statuts HÉRITÉS de l'étape 9 (vocabulaire d'avant la v2.8.3).
+   *  `controle_sdanf` en est absent à dessein : c'est le libellé unifié, un
+   *  PARENT de ces quatre-là et non un pair. Il coexiste avec eux sur un même
+   *  dossier et se fait remplacer par l'un d'eux le jour même dans 76 % des
+   *  cas — 97 % de ses « transitions » restent à l'intérieur de l'étape 9.
+   *  Lui donner sa propre ligne mesurait un changement de vocabulaire, pas une
+   *  attente : le tableau annonçait « moins d'un jour » pour l'étape 9. */
+  var STEP9_SOUS_STATUTS = ['controle_a_affecter', 'controle_a_effectuer',
+                            'controle_en_attente_pec', 'controle_pec_a_faire'];
+
+  /** Temps passé DANS chaque étape (non cumulatif), plus le détail par
+   *  sous-statut pour l'étape 9.
+   *
+   *  Le séjour va du PREMIER instantané de l'étape au premier instantané d'une
+   *  étape différente. La version précédente partait du dernier changement de
+   *  statut interne, donc ne retenait que la fin du séjour : l'étape 3
+   *  ressortait à 15 jours au lieu de 48, l'étape 8 à 17 au lieu de 28.
+   *
+   *  Seules les transitions observées comptent : un dossier encore à l'étape
+   *  n'a pas de durée. */
   function computeStepWaitTimes(grouped) {
     var buckets = {};
+    var PHASE_NAMES = ANEF.constants.PHASE_NAMES;
+    var STATUTS = ANEF.constants.STATUTS;
+
+    function ajouter(meta, etape, debut, fin) {
+      if (!debut.date_statut || !fin.date_statut) return;
+      var days = ANEF.utils.daysDiff(debut.date_statut, fin.date_statut);
+      if (days === null || days < 0) return;
+      if (!buckets[meta.key]) {
+        buckets[meta.key] = { etape: Number(etape), phase: meta.phase, statut: meta.statut, rang: meta.rang, days: [] };
+      }
+      buckets[meta.key].days.push(days);
+    }
+
+    /** Sous-statut d'étape 9 porté par cet instantané, sinon null. */
+    function cleSousStatut(s) {
+      var st = s.statut ? s.statut.toLowerCase() : '';
+      return (Number(s.etape) === 9 && STEP9_SOUS_STATUTS.indexOf(st) !== -1) ? st : null;
+    }
 
     grouped.forEach(function(snaps) {
       if (!snaps || snaps.length < 2) return;
-      for (var i = 1; i < snaps.length; i++) {
-        var prev = snaps[i - 1];
-        var curr = snaps[i];
-        if (!prev.date_statut || !curr.date_statut) continue;
-        var prevMeta = _bucketKeyFor(prev); // calculé une seule fois (était 2×)
-        var currKey = _bucketKeyFor(curr).key;
-        if (prevMeta.key === currKey) continue; // same bucket, not a transition
-        var days = ANEF.utils.daysDiff(prev.date_statut, curr.date_statut);
-        if (days === null || days < 0) continue;
 
-        if (!buckets[prevMeta.key]) buckets[prevMeta.key] = { etape: Number(prev.etape), phase: prevMeta.phase, statut: prevMeta.statut, rang: prevMeta.rang, days: [] };
-        buckets[prevMeta.key].days.push(days);
+      // ── Séjour par étape ──────────────────────────────────────────────
+      var i = 0;
+      while (i < snaps.length) {
+        var e = Number(snaps[i].etape);
+        var j = i + 1;
+        while (j < snaps.length && Number(snaps[j].etape) === e) j++;
+        if (j < snaps.length) {
+          ajouter({
+            key: 'etape:' + snaps[i].etape,
+            rang: e * 100,
+            // Nom CANONIQUE de l'étape, pas le `phase` de l'instantané : ce
+            // dernier décrit le sous-état et varie à l'intérieur d'une même
+            // étape (9 → « Contrôle SDANF » ou « Contrôle SCEC », 12 →
+            // « NATURALISÉ(E) », « Recours RAPO » ou « Décision négative »).
+            // La ligne prenait donc le libellé du premier dossier rencontré.
+            // PHASE_NAMES est en prime traduit, contrairement aux données.
+            phase: PHASE_NAMES[snaps[i].etape] || snaps[i].phase,
+            statut: null
+          }, e, snaps[i], snaps[j]);
+        }
+        i = j;
+      }
+
+      // ── Détail des sous-statuts de l'étape 9 ──────────────────────────
+      // Un instantané hors sous-statut (dont `controle_sdanf`) ferme le séjour
+      // en cours sans en ouvrir un nouveau.
+      var debut = null, cle = null;
+      for (var k = 0; k < snaps.length; k++) {
+        var c = cleSousStatut(snaps[k]);
+        if (c === cle) continue;
+        if (cle !== null && debut) {
+          var info = STATUTS[cle];
+          ajouter({
+            key: 'statut:' + cle,
+            // Repli décalé : 900 est le rang de la LIGNE D'ÉTAPE 9. Si un code
+            // disparaissait de STATUTS (renommage ANEF, cf. juillet 2026), un
+            // repli à 900 remettrait deux lignes au même rang, toutes deux
+            // libellées « 9. … » — le doublon qu'on vient d'éliminer.
+            rang: info ? info.rang : 901 + STEP9_SOUS_STATUTS.indexOf(cle),
+            phase: info ? info.phase : PHASE_NAMES[9],
+            statut: cle
+          }, 9, debut, snaps[k]);
+        }
+        cle = c;
+        debut = (c === null) ? null : snaps[k];
       }
     });
 
