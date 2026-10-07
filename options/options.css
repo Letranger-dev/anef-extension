@@ -1441,3 +1441,24 @@ body {
     width: 100%;
   }
 }
+
+/* Avertissement : extension chargee a la main depuis le depot public, donc
+   sans les cles serveur. Muet jusqu'ici — l'utilisateur voyait seulement la
+   date du site rester figee sans comprendre pourquoi. */
+.stats-unconfigured {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #92400e;
+  background: var(--warning-light, #fef3c7);
+  border: 1px solid var(--warning, #f59e0b);
+  border-radius: 8px;
+}
+.stats-unconfigured strong { color: #78350f; }
+/* ⚠️ Règle INDISPENSABLE : contrairement à popup.css, cette feuille n'a pas de
+   `.hidden { display: none }` générique — seulement des règles portées
+   (.dossier-bar.hidden, etc.). Sans celle-ci, `classList.toggle('hidden', ok)`
+   n'a aucun effet et l'avertissement s'affiche chez TOUS les utilisateurs,
+   y compris les installations correctes du Chrome Web Store. */
+.stats-unconfigured.hidden { display: none; }

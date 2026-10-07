@@ -354,9 +354,36 @@
 
   let isRunning = false;
   let hasRun = false;
+  let dernierSucces = 0;        // horodatage de la dernière récupération réussie
+
+  // Trois déclencheurs visent `main()` et se chevauchent systématiquement :
+  // le démarrage automatique sur mon-compte (plus bas), l'observateur de
+  // navigation du content script (+800 ms après un changement d'URL) et le
+  // message explicite du service worker (+1 s après l'arrivée sur la page).
+  // La récupération partait donc DEUX fois par actualisation : charge doublée
+  // sur l'API ANEF, et « 429 Rate limited » que l'extension s'infligeait à
+  // elle-même — le premier envoi arme la limite serveur de 30 min, le second
+  // s'y heurte aussitôt. `isRunning` ne protégeait que du parallélisme : il
+  // retombe à false dès la fin du premier tour, donc le second passait.
+  const RELANCE_MIN_MS = 15000;
 
   async function main() {
     if (isRunning) { log('⏳ Déjà en cours'); return; }
+
+    // Le délai ne court qu'après un tour RÉUSSI : un échec doit pouvoir être
+    // relancé immédiatement par le déclencheur suivant.
+    const depuis = Date.now() - dernierSucces;
+    if (dernierSucces > 0 && depuis < RELANCE_MIN_MS) {
+      log('⏳ Récupération déjà faite il y a ' + Math.round(depuis / 1000) + ' s, ignorée');
+      // Le signal est OBLIGATOIRE : après un auto-login, le service worker jette
+      // le signal précédent (`fetchCompleteSignal = null`) et attend un nouveau
+      // avant de rendre la main. Sortir en silence le laissait tourner jusqu'au
+      // délai d'expiration alors que les données venaient d'être livrées.
+      // `success: true` est exact : le tour précédent a réussi il y a quelques
+      // secondes et a déjà émis ses données.
+      sendToExtension('FETCH_COMPLETE', { success: true });
+      return;
+    }
 
     const currentUrl = window.location.href;
     if (currentUrl.includes('connexion-inscription')) {
@@ -372,6 +399,7 @@
       if (ok) {
         log('✅ Données récupérées');
         hasRun = true;
+        dernierSucces = Date.now();
         sendToExtension('FETCH_COMPLETE', { success: true });
       } else {
         // L'échec a déjà émis MAINTENANCE / EXPIRED_SESSION le cas échéant.

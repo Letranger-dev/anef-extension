@@ -11,6 +11,7 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, formatDate, formatDateShort, formatDuration, daysSince, formatSubStep, resolveEntretienDate, STEP_DEFAULTS } from '../lib/status-parser.js';
+import { isStatsConfigured } from '../lib/anonymous-stats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Éléments DOM (initialisés dans DOMContentLoaded)
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeElements();
   initTabs();
   initVersion();
+  checkStatsConfigured();   // non bloquant : purement informatif
   await initDossierSelector(); // multi-dossier v2.6.0
 
   await loadHistory();
@@ -168,6 +170,24 @@ function attachEventListeners() {
 // ─────────────────────────────────────────────────────────────
 // Sélecteur multi-dossier (v2.6.0+)
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * Signale une extension chargée sans les clés serveur. Sans ça, l'absence
+ * d'envoi est totalement muette : `sendAnonymousStats` sort sur un `return`
+ * et l'utilisateur constate seulement que la date « Vérifié le » du site
+ * ne bouge jamais, quel que soit le nombre d'actualisations.
+ */
+async function checkStatsConfigured() {
+  const banniere = document.getElementById('stats-unconfigured');
+  if (!banniere) return;
+  try {
+    const ok = await isStatsConfigured();
+    banniere.classList.toggle('hidden', ok);
+  } catch {
+    // En cas de doute on se tait : mieux vaut pas d'avertissement qu'un faux.
+    banniere.classList.add('hidden');
+  }
+}
 
 async function initDossierSelector() {
   const wrap = document.getElementById('dossier-selector-wrap');
