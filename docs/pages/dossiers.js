@@ -242,6 +242,50 @@
     return sorted;
   }
 
+  // ─── Ciblage « mon dossier » (fragment #d=<public_id>) ──────────────
+  // Le lien du popup transmet l'identifiant public du dossier de l'utilisateur.
+  // On passe par le FRAGMENT et non par un paramètre : il n'est envoyé ni au
+  // serveur, ni dans l'en-tête de référent. Sans ce mécanisme, personne ne peut
+  // reconnaître sa propre ligne — l'identifiant court affiché est régénéré à
+  // chaque chargement de page.
+  var _cible = null;        // public_id visé, tant qu'il n'a pas été atteint
+  // Lu une seule fois au chargement : une navigation ultérieure ne doit pas
+  // ramener l'utilisateur de force sur la même ligne.
+
+  function lireCible() {
+    var m = /(?:^|[#&])d=([^&]+)/.exec(location.hash || '');
+    if (!m) return null;
+    var v;
+    try { v = decodeURIComponent(m[1]); } catch (e) { return null; }
+    // Un `public_id` est un HMAC hexadécimal de 64 caractères : tout le reste
+    // est rejeté ici. La valeur vient du fragment d'URL, donc de l'extérieur, et
+    // finit dans un sélecteur CSS — valider la forme supprime la classe entière
+    // plutôt que de dépendre de la présence de `CSS.escape`.
+    return /^[0-9a-f]{64}$/.test(v) ? v : null;
+  }
+  _cible = lireCible();
+
+  /** Place la pagination sur la page qui contient la cible. */
+  function cadrerSurCible(sorted) {
+    if (!_cible) return;
+    var idx = -1;
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i].fullHash === _cible) { idx = i; break; }
+    }
+    if (idx < 0) return;   // filtré ou absent : on laisse la page courante
+    state.page = Math.floor(idx / state.pageSize) + 1;
+  }
+
+  /** Fait défiler jusqu'à la cible et la met en évidence, une seule fois. */
+  function rejoindreCible() {
+    if (!_cible) return;
+    var el = document.querySelector('[data-pid="' + (window.CSS && CSS.escape ? CSS.escape(_cible) : _cible) + '"]');
+    if (!el) return;
+    el.classList.add('dossier-cible');
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    _cible = null;         // on ne recadre plus : l'utilisateur reprend la main
+  }
+
   function renderDossiers(allSummaries) {
     var sorted = getFilteredSorted(allSummaries);
     var toolbar = document.getElementById('dossier-toolbar');
@@ -256,6 +300,8 @@
       list.style.display = 'flex';
       return;
     }
+
+    cadrerSurCible(sorted);
 
     var totalPages = Math.max(1, Math.ceil(sorted.length / state.pageSize));
     state.page = Math.min(state.page, totalPages);
@@ -287,6 +333,8 @@
       }
       grid.innerHTML = html;
     }
+
+    rejoindreCible();
   }
 
   // ─── List View (compact rows) ──────────────────────────
@@ -319,7 +367,7 @@
         else finishedBadge = ' <span class="badge-finished-ko">\u2717 ' + ANEF.t('dossiers.closed') + '</span>';
       }
 
-      html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '">' +
+      html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
@@ -607,7 +655,7 @@
     var complementBadge = s.hasComplement ? '<span class="badge-complement">' + ANEF.t('dossiers.complement_requested') + '</span>' : '';
     var checkedHtml2 = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('dossiers.checked_on', { date: U.formatDateTimeFr(s.lastChecked) }) + '</span>' : '';
 
-    return '<div class="dossier-card" style="--card-accent:' + color + '">' +
+    return '<div class="dossier-card" style="--card-accent:' + color + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
       '<div class="dossier-header">' +
         '<span class="dossier-step-badge" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
       '</div>' +

@@ -3203,3 +3203,20 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
   .pb-label { flex-basis: 50%; }
   .pb-med { display: none; }
 }
+
+/* Dossier désigné par le lien de l'extension (#d=<public_id>). L'identifiant
+   affiché par le site étant régénéré à chaque chargement de page, c'est le seul
+   repère dont dispose un utilisateur pour retrouver sa propre ligne. */
+.dossier-cible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  animation: dossier-cible-pulse 2.4s ease-out 1;
+}
+@keyframes dossier-cible-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, .45); }
+  70%  { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dossier-cible { animation: none; }
+}

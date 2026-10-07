@@ -1272,8 +1272,34 @@ function displayTemporalStats(statusData, apiData, closed = false) {
   // dans aucun état.
 }
 
+/**
+ * Pointe le lien « Statistiques » sur la ligne de CE dossier.
+ *
+ * Le site n'offre aucun moyen de reconnaître son propre dossier : l'identifiant
+ * qu'il affiche est régénéré à chaque chargement de page. Sans ce lien, un
+ * utilisateur repère sa ligne à l'œil sur ses dates — plus de 1 400 dossiers
+ * partagent parfois la même étape, dont 70 % figés par des installations
+ * abandonnées. On passe donc par un FRAGMENT (`#d=`) et non un paramètre : il
+ * n'est envoyé ni au serveur, ni dans l'en-tête de référent.
+ */
+function cablerLienStats(apiData) {
+  const lien = document.getElementById('link-stats');
+  if (!lien) return;
+  const base = 'https://letranger-dev.github.io/anef-extension/';
+  const pid = apiData?.publicId;
+  if (pid) {
+    lien.href = base + 'dossiers.html#d=' + encodeURIComponent(pid);
+    lien.title = 'Voir mon dossier dans les statistiques communautaires';
+  } else {
+    lien.href = base;
+    lien.title = 'Comparer votre progression aux statistiques communautaires';
+  }
+}
+
 /** Affiche les détails du dossier */
 function displayDetails(statusData, apiData) {
+  cablerLienStats(apiData);
+
   if (!elements.detailsSection) return;
 
   let hasDetails = false;

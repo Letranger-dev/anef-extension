@@ -700,6 +700,16 @@ async function handleApiData(data) {
       return null;
     });
 
+    // Identifiant public du dossier, calculé côté serveur et renvoyé ici : c'est
+    // le SEUL moyen pour l'utilisateur de désigner sa propre ligne sur le site
+    // (l'identifiant court qui y est affiché est régénéré à chaque chargement).
+    // Stocké dans apiData, donc par dossier, et relu par le popup.
+    if (result?.public_id && apiData.publicId !== result.public_id) {
+      apiData.publicId = result.public_id;
+      await storage.saveApiData(apiData);
+      logger.info('🔗 Identifiant public du dossier mémorisé');
+    }
+
     // ── Auto-réparation d'un état local dégradé (v2.8.6) ──
     // Le serveur a refusé l'instantané parce qu'il décrit une étape inférieure
     // à ce qu'il connaît du dossier. C'est le symptôme d'un état local faussé :
