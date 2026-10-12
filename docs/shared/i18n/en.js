@@ -41,6 +41,7 @@
 
     'footer.tagline': 'Chrome extension to track your naturalisation',
     'footer.collected': 'Data collected anonymously by the extension’s users',
+    'footer.privacy': 'Privacy policy',
 
     'noscript.title': 'French naturalisation statistics — ANEF Status Tracker',
     'noscript.p1': 'ANEF Status Tracker collects anonymous data from its user community to provide real-time statistics on French naturalisation processing times.',

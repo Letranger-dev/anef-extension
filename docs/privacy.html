@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <title>ANEF Status Tracker — Politique de confidentialité</title>
+  <meta name="description" content="Politique de confidentialité de l’extension ANEF Status Tracker : données stockées localement, données partagées pour les statistiques communautaires, et ce qui ne quitte jamais votre appareil.">
+  <link rel="canonical" href="https://letranger-dev.github.io/anef-extension/privacy.html">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('anef-theme');
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        var theme = saved || (prefersLight ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    /* Apply language + text direction before first paint (anti-FOUC).
+       Le corps de cette page reste en français (texte de référence), mais la
+       navigation partagée est traduite : on respecte donc la langue choisie. */
+    (function () {
+      try {
+        var SUP = ['fr', 'en', 'es', 'ar', 'zh'];
+        var p = new URLSearchParams(location.search).get('lang');
+        if (p && SUP.indexOf(p) !== -1) { try { localStorage.setItem('anef-lang', p); } catch (e) {} }
+        var saved = localStorage.getItem('anef-lang');
+        var nav = (navigator.language || '').slice(0, 2).toLowerCase();
+        var lang = (p && SUP.indexOf(p) !== -1) ? p
+                 : (saved && SUP.indexOf(saved) !== -1) ? saved
+                 : (SUP.indexOf(nav) !== -1 ? nav : 'fr');
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="shared/common.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: 'rgb(var(--bg-rgb) / <alpha-value>)',
+            'bg-card': 'rgb(var(--bg-card-rgb) / <alpha-value>)',
+            'bg-hover': 'rgb(var(--bg-hover-rgb) / <alpha-value>)',
+            border: 'rgb(var(--border-rgb) / <alpha-value>)',
+            'text-main': 'rgb(var(--text-main-rgb) / <alpha-value>)',
+            'text-muted': 'rgb(var(--text-muted-rgb) / <alpha-value>)',
+            'text-dim': 'rgb(var(--text-dim-rgb) / <alpha-value>)',
+            primary: '#3b82f6',
+            'primary-light': '#60a5fa',
+            success: '#10b981',
+            warning: '#f59e0b',
+            violet: '#8b5cf6',
+            danger: '#ef4444',
+          },
+          maxWidth: { container: '1200px' },
+          borderRadius: { card: '12px' },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-bg font-sans text-text-main leading-relaxed min-h-screen">
+
+  <!-- Header. Pas de badge « Données anonymes » ici : cette page explique
+       précisément pourquoi ce mot est évité. -->
+  <header class="bg-bg-card border-b-[3px]" style="border-image:linear-gradient(to right,#002395,#fff,#ED2939) 1">
+    <div class="max-w-container mx-auto px-4 py-2.5 md:py-3 flex items-center justify-center gap-2.5 flex-wrap">
+      <h1 class="text-[0.95rem] md:text-lg font-bold whitespace-nowrap">ANEF Status Tracker</h1>
+      <span class="text-text-dim/40 hidden sm:inline select-none">|</span>
+      <span class="text-text-muted text-xs md:text-sm">Politique de confidentialité</span>
+    </div>
+  </header>
+
+  <!-- Desktop Nav -->
+  <nav class="hidden md:block sticky top-0 z-50 bg-bg-card/95 backdrop-blur-md border-b border-border">
+    <div class="max-w-container mx-auto px-6 flex overflow-x-auto">
+      <a href="index.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.accueil">Accueil</a>
+      <a href="dossiers.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.dossiers">Dossiers</a>
+      <a href="prefectures.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.prefectures">Préfectures</a>
+      <a href="delais.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.delais">Délais</a>
+      <a href="guide.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.guide">Guide</a>
+      <a href="feedback.html" class="nav-link py-3 px-5 text-[0.9rem] font-semibold text-text-dim whitespace-nowrap border-b-2 border-transparent hover:text-text-muted transition-colors" data-i18n="nav.contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-[999] bg-bg-card border-t border-border" style="padding-bottom:env(safe-area-inset-bottom,0)">
+    <div class="mobile-nav-bar flex justify-around items-stretch">
+      <a href="index.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F3E0;</span><span data-i18n="nav.accueil">Accueil</span>
+      </a>
+      <a href="dossiers.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4C1;</span><span data-i18n="nav.dossiers">Dossiers</span>
+      </a>
+      <a href="prefectures.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4CD;</span><span data-i18n="nav.prefectures_short">Préf.</span>
+      </a>
+      <a href="delais.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x23F1;</span><span data-i18n="nav.delais">Délais</span>
+      </a>
+      <a href="guide.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4D6;</span><span data-i18n="nav.guide">Guide</span>
+      </a>
+      <a href="feedback.html" class="nav-link flex flex-col items-center justify-center flex-1 text-text-dim text-[0.55rem] font-medium">
+        <span class="text-base leading-none mb-0.5">&#x1F4AC;</span><span data-i18n="nav.contact">Contact</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-container mx-auto px-4 md:px-6 py-6 md:py-10 pb-20 md:pb-10">
+
+    <div class="section">
+      <h2>Politique de confidentialité</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-dim text-sm mb-4">Dernière mise à jour : 23 août 2026</p>
+        <p class="text-text-muted leading-relaxed">
+          Cette page est la version de référence de la politique de confidentialité d’<strong class="text-text-main">ANEF Status Tracker</strong>.
+          Elle reprend le contenu du fichier <a href="https://github.com/Letranger-dev/anef-extension/blob/main/PRIVACY.md" target="_blank" rel="noopener" class="text-primary-light hover:underline">PRIVACY.md</a> du dépôt.
+        </p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Données stockées localement</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-4">Sur votre appareil uniquement :</p>
+        <ul class="list-disc pl-5 space-y-2 text-text-muted leading-relaxed mb-5">
+          <li><strong class="text-text-main">Statut du dossier</strong> : statut actuel et historique des changements</li>
+          <li><strong class="text-text-main">Identifiants ANEF</strong> : chiffrés localement avec AES-256-GCM, jamais transmis à des tiers</li>
+          <li><strong class="text-text-main">Paramètres</strong> : préférences de notifications et de vérification automatique</li>
+          <li><strong class="text-text-main">Journal des vérifications</strong> : horodatage des vérifications automatiques (conservé 24 h)</li>
+          <li><strong class="text-text-main">Préférence d’affichage du mode privé</strong> : état activé/désactivé du bouton de masquage visuel</li>
+          <li><strong class="text-text-main">Demande de modification du décret (DMR)</strong> : si vous en avez déposé une sur votre espace ANEF, l’extension en lit le suivi — état de la demande, date de dépôt, décret concerné, personnes que vous avez demandé à ajouter (prénom, nom, date et lieu de naissance), types de justificatifs joints, et le lien temporaire vers votre attestation de dépôt</li>
+        </ul>
+        <div class="border-l-4 border-warning pl-4 py-1">
+          <p class="text-text-muted leading-relaxed"><strong class="text-text-main">À noter</strong> : la rubrique DMR est la seule à faire apparaître des noms — les vôtres et ceux des personnes que vous avez demandé à ajouter au décret, généralement vos enfants. Ces informations proviennent de votre propre espace ANEF, restent sur votre appareil, ne sont ni synchronisées ni envoyées à un serveur, et disparaissent si vous désinstallez l’extension ou effacez ses données.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Mode privé (masquage visuel)</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed">Un bouton en forme d’œil dans l’interface permet de masquer visuellement (effet flou CSS) les données sensibles — numéro de dossier, numéro national, préfecture, dates, lieu d’entretien, numéro de décret, type de demande, ainsi que les noms et dates de naissance affichés dans le suivi de la demande de modification du décret. Cette fonctionnalité est purement locale : aucune donnée n’est transmise ou modifiée, seul l’affichage est altéré pour faciliter le partage d’écran ou les captures.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Statistiques communautaires</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <div class="border-l-4 border-primary pl-4 py-1 mb-6">
+          <p class="text-text-muted leading-relaxed"><strong class="text-text-main">À partir de la version 2.11.0, le partage fait partie de l’utilisation de l’extension.</strong> Installer et utiliser ANEF Status Tracker vaut acceptation du partage décrit ci-dessous. Il n’y a plus d’interrupteur pour le désactiver : les statistiques publiques sur les délais de naturalisation n’existent que parce que chaque utilisateur y contribue. Si vous ne souhaitez pas participer, n’installez pas l’extension, ou désinstallez-la — c’est le seul moyen d’interrompre les envois.</p>
+        </div>
+
+        <h3 class="text-text-main font-semibold mb-3">Ce que « partagé » veut dire exactement</h3>
+        <p class="text-text-muted leading-relaxed mb-4">Le partage est conçu pour qu’on ne puisse pas remonter jusqu’à vous :</p>
+        <ul class="list-disc pl-5 space-y-2 text-text-muted leading-relaxed mb-6">
+          <li><strong class="text-text-main">Votre numéro de dossier n’est jamais transmis.</strong> Il est réduit sur votre appareil à une empreinte à sens unique, puis re-transformé sur le serveur avec une clé secrète que l’extension ne possède pas. L’identifiant publié sur le site public n’est donc pas re-calculable : même en téléchargeant l’intégralité des données, personne ne peut retrouver un numéro de dossier.</li>
+          <li><strong class="text-text-main">Ne quittent jamais votre appareil</strong> : votre nom, votre adresse e-mail, vos identifiants de connexion ANEF, votre numéro national, l’adresse de votre domicile, et l’intégralité du suivi de votre demande de modification du décret — y compris les noms et dates de naissance de vos enfants.</li>
+          <li><strong class="text-text-main">Les dates sont tronquées au jour</strong>, jamais d’heure.</li>
+          <li><strong class="text-text-main">Rien n’est publié individuellement</strong> : le site n’affiche que des agrégats (médianes, délais par étape, comparaisons entre préfectures).</li>
+          <li><strong class="text-text-main">Aucune publicité, aucun traceur, aucun tiers.</strong> Les données ne sont ni revendues, ni partagées avec qui que ce soit, ni utilisées à d’autres fins que ces statistiques.</li>
+          <li><strong class="text-text-main">Le code de collecte est ouvert</strong> et tient dans un seul fichier (<code>lib/anonymous-stats.js</code>) : la liste des champs transmis est fermée et vérifiable ligne à ligne.</li>
+        </ul>
+
+        <h3 class="text-text-main font-semibold mb-3">Pourquoi nous ne disons pas « anonyme »</h3>
+        <p class="text-text-muted leading-relaxed mb-6">Par honnêteté. L’empreinte du dossier est stable dans le temps, pour pouvoir relier entre eux les instantanés d’une même demande — c’est ce qui permet de calculer combien de temps dure chaque étape. Cette stabilité suffit, au sens du RGPD, à qualifier la donnée de <strong class="text-text-main">pseudonymisée</strong> plutôt que d’anonyme. Concrètement, cela ne change rien à ce qui précède : l’identifiant publié n’est pas re-calculable, et nous ne détenons aucun élément permettant de vous nommer. Mais nous préférons employer le mot juste plutôt que de promettre plus que ce que la technique garantit.</p>
+
+        <h3 class="text-text-main font-semibold mb-3">Vos droits</h3>
+        <p class="text-text-muted leading-relaxed mb-6">Vous pouvez à tout moment demander l’accès aux données rattachées à votre demande, leur rectification ou leur effacement, en ouvrant une issue sur le dépôt GitHub (voir <em>Contact</em>). La désinstallation de l’extension arrête immédiatement tout nouvel envoi.</p>
+
+        <h3 class="text-text-main font-semibold mb-3">Utilisateurs des versions 2.10.0 à 2.10.x</h3>
+        <p class="text-text-muted leading-relaxed">Ces versions demandaient votre accord avant tout envoi. À la mise à jour vers la 2.11.0, le partage devient systématique, y compris si vous aviez répondu « non ». Ce document et le README en font état ; si ce changement ne vous convient pas, la désinstallation reste possible à tout moment.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Données envoyées</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-5">Les données suivantes sont envoyées à Supabase (hébergé en UE) pour alimenter les statistiques communautaires sur les délais de naturalisation :</p>
+
+        <h3 class="text-text-main font-semibold mb-2">Identifiant pseudonymisé</h3>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed mb-5">
+          <li>Le numéro de dossier est transformé en identifiant opaque au moyen d’une pseudonymisation cryptographique à double étage incluant une clé secrète serveur. Il est non-réversible vers le numéro d’origine.</li>
+          <li>L’interface des statistiques publiques n’affiche aucun identifiant reconnaissable : les dossiers y sont représentés uniquement par leurs métadonnées (statut, préfecture, dates).</li>
+        </ul>
+
+        <h3 class="text-text-main font-semibold mb-2">Données liées au dossier</h3>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed mb-5">
+          <li>Étape actuelle (numéro de 1 à 12)</li>
+          <li>Phase de traitement (libellé associé à l’étape)</li>
+          <li>Statut actuel (code technique, ex. <code>instruction_a_affecter</code>)</li>
+          <li>Date de dépôt du dossier (jour uniquement, sans heure)</li>
+          <li>Date du dernier changement de statut (jour uniquement)</li>
+          <li>Présence d’une demande de complément (oui/non)</li>
+          <li>Type de demande (ex. naturalisation)</li>
+        </ul>
+
+        <h3 class="text-text-main font-semibold mb-2">Données géographiques</h3>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed mb-5">
+          <li>Département de la préfecture</li>
+          <li>Code postal du domicile (utilisé pour déterminer le département si la préfecture est absente)</li>
+          <li>Ville du domicile</li>
+          <li>Lieu de l’entretien d’assimilation</li>
+        </ul>
+
+        <h3 class="text-text-main font-semibold mb-2">Données liées à l’entretien et au décret</h3>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed mb-5">
+          <li>Date de l’entretien d’assimilation (jour uniquement)</li>
+          <li>Numéro de décret (si applicable)</li>
+        </ul>
+
+        <h3 class="text-text-main font-semibold mb-2">Données techniques</h3>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed mb-5">
+          <li>Version de l’extension</li>
+          <li>Horodatage de la vérification</li>
+          <li>Source de la donnée (automatique ou saisie manuelle)</li>
+        </ul>
+
+        <p class="text-text-muted leading-relaxed mb-4"><strong class="text-text-main">Ce qui n’est jamais transmis</strong>, bien que présent sur votre appareil : vos identifiants ANEF, l’adresse de votre domicile, l’ensemble du suivi de votre demande de modification du décret (noms, dates de naissance, justificatifs, attestation). L’envoi repose sur une liste fermée de champs — les champs ci-dessus n’y figurent pas et ne peuvent pas s’y ajouter par accident.</p>
+
+        <p class="text-text-muted leading-relaxed">Ces données sont <strong class="text-text-main">pseudonymisées</strong> : aucun nom, email, numéro de dossier en clair ou donnée d’identification directe n’est collecté ni transmis. Cependant, la combinaison de certains champs (code postal, ville, lieu d’entretien) pourrait théoriquement permettre une ré-identification dans les préfectures traitant peu de dossiers.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Données antérieures au 23 avril 2026</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed">Un renforcement de la pseudonymisation a été déployé le 23 avril 2026. Les nouvelles données suivent le modèle décrit ci-dessus. Des exports antérieurs à cette date, s’ils ont été téléchargés et archivés par des tiers avant la mise à jour, restent hors de notre contrôle. Si vous souhaitez que votre dossier soit retiré de la base communautaire, contactez-nous via GitHub.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Données jamais transmises</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-4">Ces éléments ne quittent jamais votre appareil — ni vers nos statistiques, ni vers un tiers :</p>
+        <ul class="list-disc pl-5 space-y-1 text-text-muted leading-relaxed">
+          <li>Aucun nom, email ou information personnelle (y compris le suivi DMR, qui en contient et reste local)</li>
+          <li>Aucun numéro de dossier ANEF</li>
+          <li>Aucun identifiant de connexion</li>
+          <li>Aucun cookie ou donnée de navigation</li>
+          <li>Aucune donnée vendue ou partagée avec des tiers</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Stockage</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <ul class="list-disc pl-5 space-y-2 text-text-muted leading-relaxed">
+          <li>Les données locales sont stockées via <code>chrome.storage.local</code> sur votre appareil</li>
+          <li>L’historique des statuts est sauvegardé via <code>chrome.storage.sync</code> pour la synchronisation entre vos appareils Chrome. Cette sauvegarde ne porte que sur l’historique des statuts, le statut courant et vos dates corrigées manuellement : ni les identifiants, ni les détails du dossier, ni le suivi DMR n’y figurent</li>
+          <li>Les statistiques communautaires sont stockées sur Supabase (hébergé en UE)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Autorisations</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <ul class="list-disc pl-5 space-y-2 text-text-muted leading-relaxed">
+          <li><strong class="text-text-main">storage</strong> : stockage local des données du dossier et des paramètres</li>
+          <li><strong class="text-text-main">alarms</strong> : vérification automatique périodique du statut (par défaut toutes les 60 minutes)</li>
+          <li><strong class="text-text-main">notifications</strong> : alertes lors des changements de statut</li>
+          <li><strong class="text-text-main">clipboardWrite</strong> : bouton « copier » sur les éléments affichés</li>
+          <li><strong class="text-text-main">Accès au site ANEF</strong> : lecture des données de votre dossier sur le portail officiel et son mécanisme d’authentification</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Contact et modifications</h2>
+      <div class="bg-bg-card rounded-card border border-border p-5 md:p-8">
+        <p class="text-text-muted leading-relaxed mb-4">Pour toute question concernant cette politique de confidentialité, <a href="https://github.com/Letranger-dev/anef-extension/issues" target="_blank" rel="noopener" class="text-primary-light hover:underline">ouvrez une issue sur le dépôt GitHub</a> du projet.</p>
+        <p class="text-text-muted leading-relaxed">Cette politique peut être mise à jour. Les modifications seront publiées sur cette page.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 md:py-8 text-text-dim text-sm pb-20 md:pb-8">
+    <p><a href="https://github.com/Letranger-dev/anef-extension" class="text-primary-light hover:underline">ANEF Status Tracker</a> &mdash; <span data-i18n="footer.tagline">Extension Chrome pour suivre votre naturalisation</span></p>
+  </footer>
+
+  <!-- i18n : moteur puis catalogues (fr = référence/repli). Le corps de cette
+       page reste en français : c'est le texte de référence de la politique. -->
+  <script src="shared/i18n/i18n.js"></script>
+  <script src="shared/i18n/fr.js"></script>
+  <script src="shared/i18n/en.js"></script>
+  <script src="shared/i18n/es.js"></script>
+  <script src="shared/i18n/ar.js"></script>
+  <script src="shared/i18n/zh.js"></script>
+  <script src="shared/constants.js"></script>
+  <script src="shared/utils.js"></script>
+  <script src="shared/nav.js"></script>
+</body>
+</html>

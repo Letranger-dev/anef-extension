@@ -42,6 +42,7 @@
 
     'footer.tagline': 'إضافة كروم لمتابعة طلب التجنّس',
     'footer.collected': 'بيانات تُجمع بشكل مجهول من مستخدمي الإضافة',
+    'footer.privacy': 'سياسة الخصوصية',
 
     'noscript.title': 'إحصائيات التجنّس الفرنسي — ANEF Status Tracker',
     'noscript.p1': 'يجمع ANEF Status Tracker بيانات مجهولة من مجتمع مستخدميه لتقديم إحصائيات فورية حول مدد التجنّس الفرنسي.',

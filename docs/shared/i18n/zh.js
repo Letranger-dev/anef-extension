@@ -42,6 +42,7 @@
 
     'footer.tagline': '用于跟踪入籍进度的 Chrome 扩展',
     'footer.collected': '由扩展用户匿名收集的数据',
+    'footer.privacy': '隐私政策',
 
     'noscript.title': '法国入籍统计 — ANEF Status Tracker',
     'noscript.p1': 'ANEF Status Tracker 从其用户社区匿名收集数据，提供有关法国入籍办理时长的实时统计。',

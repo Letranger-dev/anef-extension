@@ -52,6 +52,7 @@
     // ── Footer (commun) ──
     'footer.tagline': 'Extension Chrome pour suivre votre naturalisation',
     'footer.collected': 'Données collectées anonymement par les utilisateurs de l’extension',
+    'footer.privacy': 'Politique de confidentialité',
 
     // ── SEO <noscript> ──
     'noscript.title': 'Statistiques de naturalisation française — ANEF Status Tracker',
