@@ -1286,13 +1286,20 @@ function cablerLienStats(apiData) {
   const lien = document.getElementById('link-stats');
   if (!lien) return;
   const base = 'https://letranger-dev.github.io/anef-extension/';
+  const libelle = document.getElementById('link-stats-label');
   const pid = apiData?.publicId;
+  // Le libellé change pour que l'utilisateur voie *sans cliquer* que le lien
+  // mène à sa propre ligne. Sans `publicId` (serveur non à jour, aucune
+  // vérification depuis la mise à jour, partage des statistiques désactivé),
+  // on retombe sur le lien générique plutôt que de promettre un ciblage.
   if (pid) {
     lien.href = base + 'dossiers.html#d=' + encodeURIComponent(pid);
     lien.title = 'Voir mon dossier dans les statistiques communautaires';
+    if (libelle) libelle.textContent = 'Mon dossier';
   } else {
     lien.href = base;
     lien.title = 'Comparer votre progression aux statistiques communautaires';
+    if (libelle) libelle.textContent = 'Statistiques';
   }
 }
 

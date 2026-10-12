@@ -166,6 +166,13 @@
       <div class="dossier-toolbar" id="dossier-toolbar" style="display:none">
         <span class="dossier-count" id="dossier-count">&mdash;</span>
         <div class="toolbar-controls">
+          <div class="mon-dossier-ctl" id="mon-dossier-ctl" style="display:none">
+            <button class="btn-mon-dossier" id="btn-mon-dossier" title="Aller a mon dossier">
+              <span class="mon-dossier-puce" aria-hidden="true"></span>
+              <span data-i18n="dossiers.mine_badge">Mon dossier</span>
+            </button>
+            <button class="btn-oublier-dossier" id="btn-oublier-dossier" data-i18n-attr="title:dossiers.mine_forget;aria-label:dossiers.mine_forget" title="Ne plus retenir mon dossier" aria-label="Ne plus retenir mon dossier">&times;</button>
+          </div>
           <div class="view-toggle">
             <button class="view-btn active" data-view="list" data-i18n-attr="title:dossiers.view_list" title="Vue liste">&#x2630;</button>
             <button class="view-btn" data-view="cards" data-i18n-attr="title:dossiers.view_cards" title="Vue cartes">&#x25A6;</button>

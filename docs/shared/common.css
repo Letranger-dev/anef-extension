@@ -3220,3 +3220,73 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 @media (prefers-reduced-motion: reduce) {
   .dossier-cible { animation: none; }
 }
+
+/* « Mon dossier » retenu localement : repère permanent + raccourci ----------- */
+/* Les textes bleus utilisent --primary-light : --primary ne donne que 3,98:1
+   sur une carte sombre (AA exige 4,5 pour ce corps), --primary-light monte à
+   5,75 en sombre et 6,70 en clair. Le liseré n'est que décoratif — la pastille
+   « Mon dossier » porte l'information. */
+.dossier-mien {
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.badge-mien {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--primary-light);
+  background: rgba(59, 130, 246, 0.15);
+  padding: 0.08rem 0.4rem;
+  border-radius: 4px;
+}
+.mon-dossier-ctl {
+  display: flex;
+  align-items: stretch;
+}
+.btn-mon-dossier,
+.btn-oublier-dossier {
+  background: var(--bg);
+  color: var(--primary-light);
+  border: 1px solid var(--primary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-mon-dossier {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px 0 0 6px;
+  border-right-width: 0;
+}
+.btn-oublier-dossier {
+  padding: 0.4rem 0.5rem;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+}
+[dir="rtl"] .btn-mon-dossier {
+  border-radius: 0 6px 6px 0;
+  border-right-width: 1px;
+  border-left-width: 0;
+}
+[dir="rtl"] .btn-oublier-dossier {
+  border-radius: 6px 0 0 6px;
+}
+.btn-mon-dossier:not(:disabled):hover,
+.btn-oublier-dossier:hover {
+  background: rgba(59, 130, 246, 0.14);
+}
+.btn-mon-dossier:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mon-dossier-puce {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}

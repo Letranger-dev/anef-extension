@@ -251,6 +251,9 @@
   var _cible = null;        // public_id visé, tant qu'il n'a pas été atteint
   // Lu une seule fois au chargement : une navigation ultérieure ne doit pas
   // ramener l'utilisateur de force sur la même ligne.
+  var _mien = null;         // public_id retenu dans ce navigateur, marqué en permanence
+  var MEM_CLE = 'anef-mon-dossier';
+  var HEX64 = /^[0-9a-f]{64}$/;
 
   function lireCible() {
     var m = /(?:^|[#&])d=([^&]+)/.exec(location.hash || '');
@@ -261,9 +264,23 @@
     // est rejeté ici. La valeur vient du fragment d'URL, donc de l'extérieur, et
     // finit dans un sélecteur CSS — valider la forme supprime la classe entière
     // plutôt que de dépendre de la présence de `CSS.escape`.
-    return /^[0-9a-f]{64}$/.test(v) ? v : null;
+    return HEX64.test(v) ? v : null;
   }
+
+  // La mémoire reste locale au navigateur : le site n'a aucun compte et
+  // n'apprend rien de plus — l'identifiant transite déjà dans le fragment.
+  // Elle est revalidée à la lecture : `localStorage` est modifiable par
+  // l'utilisateur, donc traité comme une entrée externe au même titre que le
+  // fragment d'URL.
+  function lireMemoire() {
+    var v = null;
+    try { v = localStorage.getItem(MEM_CLE); } catch (e) { return null; }
+    return v && HEX64.test(v) ? v : null;
+  }
+
   _cible = lireCible();
+  if (_cible) { try { localStorage.setItem(MEM_CLE, _cible); } catch (e) {} }
+  _mien = _cible || lireMemoire();
 
   /** Place la pagination sur la page qui contient la cible. */
   function cadrerSurCible(sorted) {
@@ -286,6 +303,24 @@
     _cible = null;         // on ne recadre plus : l'utilisateur reprend la main
   }
 
+  /** Active/désactive le bouton « Aller à mon dossier » selon les filtres. */
+  function majBoutonMien(sorted) {
+    var ctl = document.getElementById('mon-dossier-ctl');
+    if (!ctl) return;
+    if (!_mien) { ctl.style.display = 'none'; return; }
+    ctl.style.display = '';
+    var present = false;
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i].fullHash === _mien) { present = true; break; }
+    }
+    var btn = document.getElementById('btn-mon-dossier');
+    if (!btn) return;
+    // Filtré ou absent du jeu de données : on le dit, plutôt que de laisser un
+    // bouton qui ne ferait rien.
+    btn.disabled = !present;
+    btn.title = ANEF.t(present ? 'dossiers.mine_goto' : 'dossiers.mine_filtered');
+  }
+
   function renderDossiers(allSummaries) {
     var sorted = getFilteredSorted(allSummaries);
     var toolbar = document.getElementById('dossier-toolbar');
@@ -294,6 +329,7 @@
 
     if (!sorted.length) {
       toolbar.style.display = 'none';
+      majBoutonMien(sorted);
       grid.innerHTML = '';
       grid.style.display = 'none';
       list.innerHTML = '<p class="no-data">' + ANEF.t('dossiers.no_dossier_filter') + '</p>';
@@ -334,7 +370,17 @@
       grid.innerHTML = html;
     }
 
+    majBoutonMien(sorted);
     rejoindreCible();
+  }
+
+  function estMien(s) { return _mien != null && s.fullHash === _mien; }
+
+  /** Pastille « Mon dossier », posée sur la ligne et sur la carte. */
+  function mienMarqueur(s) {
+    if (!estMien(s)) return '';
+    return ' <span class="badge-mien" title="' + U.escapeHtml(ANEF.t('dossiers.mine_saved')) +
+           '">' + U.escapeHtml(ANEF.t('dossiers.mine_badge')) + '</span>';
   }
 
   // ─── List View (compact rows) ──────────────────────────
@@ -367,14 +413,14 @@
         else finishedBadge = ' <span class="badge-finished-ko">\u2717 ' + ANEF.t('dossiers.closed') + '</span>';
       }
 
-      html += '<div class="dossier-row" style="--card-accent:' + color + '" data-row-idx="' + i + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
+      html += '<div class="dossier-row' + (estMien(s) ? ' dossier-mien' : '') + '" style="--card-accent:' + color + '" data-row-idx="' + i + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
         '<div class="dossier-row-main">' +
           '<div class="dossier-row-top">' +
             '<span class="dossier-row-step" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
           '</div>' +
           '<div class="dossier-row-status" title="' + U.escapeHtml(s.statut) + '">' +
             '<span class="statut-label">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + '</span>' +
-            triBadge + sansEntretienBadge + finishedBadge +
+            mienMarqueur(s) + triBadge + sansEntretienBadge + finishedBadge +
           '</div>' +
           '<div class="dossier-row-meta">' +
             '<span>' + (displayAsInProgress ? daysAtStatus + ' ' + ANEF.t('dossiers.at_status') : daysAtStatus) + '</span>' +
@@ -655,13 +701,13 @@
     var complementBadge = s.hasComplement ? '<span class="badge-complement">' + ANEF.t('dossiers.complement_requested') + '</span>' : '';
     var checkedHtml2 = s.lastChecked ? '<span style="font-size:0.72rem;color:var(--text-dim)">' + ANEF.t('dossiers.checked_on', { date: U.formatDateTimeFr(s.lastChecked) }) + '</span>' : '';
 
-    return '<div class="dossier-card" style="--card-accent:' + color + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
+    return '<div class="dossier-card' + (estMien(s) ? ' dossier-mien' : '') + '" style="--card-accent:' + color + '" data-pid="' + U.escapeHtml(s.fullHash) + '">' +
       '<div class="dossier-header">' +
         '<span class="dossier-step-badge" style="background:' + color + '">' + s.sousEtape + '/12</span>' +
       '</div>' +
       '<div class="dossier-progress">' +
         '<div class="progress-track">' + progressHtml + '</div>' +
-        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + triBadge + sansEntretienBadgeCard + finishedBadgeCard + '</div>' +
+        '<div class="progress-label" title="' + U.escapeHtml(s.statut) + '">' + U.escapeHtml(s.sousEtape + ' \u2014 ' + s.explication) + mienMarqueur(s) + triBadge + sansEntretienBadgeCard + finishedBadgeCard + '</div>' +
       '</div>' +
       '<div class="dossier-durations">' +
         '<div class="duration-item"><span class="duration-label">' + daysAtStatusLabel + '</span><span class="duration-value" style="color:' + color + '">' + daysAtStatus + '</span></div>' +
@@ -680,6 +726,20 @@
     sortSelect.addEventListener('change', function(e) {
       state.sort = e.target.value;
       state.page = 1;
+      renderAll();
+    });
+
+    var btnMien = document.getElementById('btn-mon-dossier');
+    if (btnMien) btnMien.addEventListener('click', function() {
+      if (!_mien) return;
+      _cible = _mien;      // recadre la pagination et remet en évidence
+      renderAll();
+    });
+    var btnOubli = document.getElementById('btn-oublier-dossier');
+    if (btnOubli) btnOubli.addEventListener('click', function() {
+      try { localStorage.removeItem(MEM_CLE); } catch (e) {}
+      _mien = null;
+      _cible = null;
       renderAll();
     });
 

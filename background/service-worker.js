@@ -680,6 +680,13 @@ async function handleApiData(data) {
     : await storage.getApiData();
   await trackDmrChange(previousApiData, apiData);
 
+  // `apiData` est reconstruit de zero a chaque verification, et `saveApiData`
+  // REMPLACE l'entree du dossier : sans ce report, chaque tour effaçait le
+  // `publicId` deja connu, et il ne revenait que si l'aller-retour Supabase
+  // plus bas reussissait. Hors ligne, en panne reseau ou sur un refus sans
+  // corps, l'utilisateur reperdait le lien vers sa propre ligne.
+  if (previousApiData?.publicId) apiData.publicId = previousApiData.publicId;
+
   await storage.saveApiData(apiData);
   logger.info('✅ Données API sauvegardées', { timeline: derived.timeline?.length || 0 });
 
