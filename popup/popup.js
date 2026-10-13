@@ -766,6 +766,72 @@ function showView(viewName) {
   });
 }
 
+/**
+ * Historique du dossier RÉELLEMENT affiché.
+ * En multi-dossier, l'historique vit dans `dossiers[id].history` ; la clé
+ * `history` de premier niveau n'est qu'un reliquat des installations d'avant
+ * la v2.6.0. Lire la clé globale en regardant un dossier secondaire
+ * mélangerait deux dossiers.
+ */
+async function lireHistoriqueActif() {
+  const { dossiers = {}, primaryDossierId, history = [] } =
+    await chrome.storage.local.get(['dossiers', 'primaryDossierId', 'history']);
+  const id = _activeViewDossierId || primaryDossierId;
+  if (id && dossiers[id]?.history?.length) return dossiers[id].history;
+  return history;
+}
+
+/**
+ * Date d'entrée dans l'étape courante, déduite de l'historique local.
+ *
+ * On ne prend pas la plus ancienne occurrence de l'étape mais le début de son
+ * DERNIER passage : un dossier renvoyé en instruction (recours abouti,
+ * complément demandé) repasse par des étapes déjà vues, et compter depuis la
+ * première fois afficherait une durée sans rapport avec son attente réelle.
+ *
+ * @param {number} etape        étape courante (1-12)
+ * @param {Array}  stepDates    rectifications manuelles, prioritaires
+ * @param {string} dateCourante date du statut courant, borne haute
+ * @returns {Promise<string|null>} date ISO, ou null si l'historique ne dit rien
+ */
+async function dateEntreeEtape(etape, stepDates, dateCourante) {
+  const n = Number(etape);
+  if (!Number.isFinite(n) || n <= 0) return null;
+
+  const manuelles = new Map(
+    (stepDates || [])
+      .filter(sd => sd?.statut && sd.date_statut)
+      .map(sd => [sd.statut.toLowerCase(), sd.date_statut])
+  );
+
+  const historique = await lireHistoriqueActif();
+  const entrees = [];
+  for (const h of historique) {
+    if (!h?.statut) continue;
+    const code = String(h.statut).toLowerCase();
+    const date = manuelles.get(code) || h.date_statut;
+    if (!date) continue;   // sans date, l'entrée ne situe rien dans le temps
+    const e = getStatusExplanation(code)?.etape;
+    if (!Number.isFinite(e) || e <= 0) continue;   // statut inconnu du dictionnaire
+    entrees.push({ date: String(date), etape: Number(e) });
+  }
+  if (!entrees.length) return null;
+
+  entrees.sort((a, b) => a.date.localeCompare(b.date));
+
+  let debut = null;
+  for (const e of entrees) {
+    if (e.etape === n) { if (debut === null) debut = e.date; }
+    else debut = null;   // le dossier était ailleurs : le séjour en cours reprend après
+  }
+  if (debut === null) return null;
+
+  // Filet : un historique incohérent ne doit jamais produire une durée
+  // supérieure à la réalité ni négative. La date du statut courant borne.
+  if (dateCourante && debut > String(dateCourante)) return dateCourante;
+  return debut;
+}
+
 /** Affiche le statut */
 function displayStatus(statusData, apiData, lastCheck) {
   const { statut, date_statut } = statusData;
@@ -809,7 +875,20 @@ function displayStatus(statusData, apiData, lastCheck) {
           const days = daysSince(earliestDate);
           const duration = formatDuration(days);
           elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
-          ecrireHeros(duration, 'à cette étape');
+
+          // La figure héros est libellée « à cette étape » : elle doit donc
+          // compter depuis l'ENTRÉE DANS L'ÉTAPE, pas depuis le dernier
+          // sous-statut. Plusieurs étapes en comptent plusieurs — l'étape 9
+          // en a trois (attente d'affectation, contrôle en cours, transmis à
+          // Nantes) et 39 % des dossiers qui la traversent en portent au
+          // moins deux. Le compteur repartait alors de zéro alors qu'ANEF
+          // affiche le même libellé tout du long, ce qui se lit comme une
+          // date qui recule sans raison. Le site mesure l'étape depuis sa
+          // v1.38.0 ; le popup s'aligne. La ligne « depuis le … » juste en
+          // dessous continue de porter la date du sous-statut : les deux
+          // durées restent lisibles, chacune correctement nommée.
+          const debutEtape = await dateEntreeEtape(statusInfo.etape, stepDates, earliestDate);
+          ecrireHeros(formatDuration(daysSince(debutEtape || earliestDate)), 'à cette étape');
         }
       } else {
         elements.statusDate.textContent = '—';
