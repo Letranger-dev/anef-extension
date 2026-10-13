@@ -638,6 +638,7 @@
     });
 
     initSdanfControls();
+    initEntretienChart();
     renderSdanfPage();
   }
 
@@ -673,11 +674,137 @@
     return fresh.concat(stale);
   }
 
+  // ─── Repartition des entretiens actuellement au controle ────────────
+  // « Quelles periodes d entretien sont en cours de traitement ? ». Le set
+  // utilise est celui de la section (etape 9 + sous-statuts pre-decret des
+  // etapes 10-11), filtre par statut et par prefecture mais PAS par
+  // l intervalle de dates : celui-ci sert a zoomer sur une periode que ce
+  // graphique designe, l y appliquer rendrait le graphique circulaire.
+  var _entretienChartMonte = false;
+
+  function getSdanfPourGraphique() {
+    var data = sdanfState.all;
+    if (sdanfState.statut) {
+      var g = sdanfGroup(sdanfState.statut);
+      data = data.filter(function(s) { return sdanfGroup(s.statut) === g; });
+    }
+    if (sdanfState.pref) {
+      data = data.filter(function(s) { return s.prefecture === sdanfState.pref; });
+    }
+    return data;
+  }
+
+  /** Libelle « septembre 2026 » dans la langue courante, a partir de « 2026-09 ». */
+  function libelleMois(cle) {
+    var p = cle.split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, 1);
+    if (isNaN(d.getTime())) return cle;
+    try {
+      return d.toLocaleDateString(ANEF.i18n.locale(), { month: 'long', year: 'numeric' });
+    } catch (e) { return cle; }
+  }
+
+  function renderEntretienChart() {
+    var details = document.getElementById('entretien-chart-details');
+    var vide = document.getElementById('entretien-chart-empty');
+    if (!details || !details.open) return;   // repliee : rien a dessiner
+
+    var data = getSdanfPourGraphique();
+    var parMois = {}, sansDate = 0;
+    for (var i = 0; i < data.length; i++) {
+      var e = data[i].dateEntretien;
+      if (!e) { sansDate++; continue; }       // un dossier sans entretien connu ne situe rien
+      parMois[String(e).slice(0, 7)] = (parMois[String(e).slice(0, 7)] || 0) + 1;
+    }
+    var cles = Object.keys(parMois).sort();
+
+    // Le total des barres sera inferieur au compteur de la section : on le dit,
+    // plutot que de laisser l ecart s expliquer tout seul.
+    var noteSans = document.getElementById('entretien-chart-sans');
+    if (noteSans) {
+      noteSans.style.display = sansDate ? '' : 'none';
+      if (sansDate) noteSans.textContent = ANEF.t('section.entretien_chart_sans', { n: sansDate });
+    }
+
+    var canvas = document.getElementById('entretien-chart-canvas');
+    if (!cles.length) {
+      CH.destroy('entretien-mois');
+      if (canvas) canvas.style.display = 'none';
+      if (vide) vide.style.display = '';
+      return;
+    }
+    if (canvas) canvas.style.display = '';
+    if (vide) vide.style.display = 'none';
+
+    // Les mois sans aucun dossier doivent rester VISIBLES et a zero : un trou
+    // dans la file est une information, le masquer laisserait croire a une
+    // continuite qui n existe pas.
+    var complet = [], curseur = cles[0], fin = cles[cles.length - 1];
+    while (curseur <= fin && complet.length < 240) {
+      complet.push(curseur);
+      var an = Number(curseur.slice(0, 4)), mo = Number(curseur.slice(5, 7)) + 1;
+      if (mo > 12) { mo = 1; an++; }
+      curseur = an + '-' + (mo < 10 ? '0' : '') + mo;
+    }
+
+    // Au-dela de 24 mois la lecture se perd : les trainards anciens (4 % des
+    // dossiers repartis sur une trentaine de mois) ecrasent les barres
+    // recentes, qui sont celles qui renseignent sur la file en cours. On les
+    // REGROUPE plutot que de les couper : leur nombre reste lisible, et
+    // l utilisateur voit qu il existe des dossiers tres anciens au controle.
+    var FENETRE = 24;
+    var valeurs = [], etiquettes = [];
+    if (complet.length > FENETRE) {
+      var anciens = complet.slice(0, complet.length - FENETRE);
+      var reste = 0;
+      for (var a = 0; a < anciens.length; a++) reste += (parMois[anciens[a]] || 0);
+      var premierVisible = complet[complet.length - FENETRE];
+      valeurs.push(reste);
+      etiquettes.push(ANEF.t('section.entretien_chart_before', { mois: libelleMois(premierVisible) }));
+      complet = complet.slice(complet.length - FENETRE);
+    }
+    for (var c = 0; c < complet.length; c++) {
+      valeurs.push(parMois[complet[c]] || 0);
+      etiquettes.push(libelleMois(complet[c]));
+    }
+
+    var config = CH.barConfig(etiquettes, [{
+      label: ANEF.t('section.entretien_chart_title'),
+      data: valeurs,
+      backgroundColor: '#8b5cf699',
+      borderColor: '#8b5cf6',
+      borderWidth: 1,
+      borderRadius: 4
+    }], { datalabels: false });
+    config.options.plugins.legend = { display: false };
+    config.options.plugins.tooltip = {
+      callbacks: {
+        title: function(items) { return ANEF.t('section.entretien_chart_tip', { mois: items[0].label }); },
+        label: function(item) { return ANEF.t('section.entretien_chart_count', { n: item.parsed.y }); }
+      }
+    };
+    config.options.scales.x.ticks = { color: '#94a3b8', font: { size: 10 }, maxRotation: 45 };
+
+    CH.create('entretien-mois', 'entretien-chart-canvas', config);
+  }
+
+  function initEntretienChart() {
+    var details = document.getElementById('entretien-chart-details');
+    if (!details || _entretienChartMonte) return;
+    _entretienChartMonte = true;
+    // Dessin differe a la premiere ouverture : monter un graphique dans un
+    // conteneur replie donne un canvas de hauteur nulle.
+    details.addEventListener('toggle', function() {
+      if (details.open) renderEntretienChart();
+    });
+  }
+
   function renderSdanfPage() {
     var toolbar = document.getElementById('sdanf-toolbar');
     var list = document.getElementById('sdanf-list');
     var kpis = document.getElementById('sdanf-kpis');
     var data = getSdanfFiltered();
+    renderEntretienChart();
 
     if (!sdanfState.all.length) {
       toolbar.style.display = 'none';
@@ -1660,7 +1787,7 @@
 
   // ─── Activity Feed with pagination ──────────────────────
 
-  var activityState = { transitions: [], page: 1, pageSize: 5, typeFilter: 'all' };
+  var activityState = { transitions: [], page: 1, pageSize: 5, typeFilter: 'all', pref: '' };
 
   function buildTransitions(snapshots, grouped) {
     var transitions = [];
@@ -1698,7 +1825,11 @@
           date_statut: cur.date_statut || null,
           statut: cur.statut,
           daysForTransition: duration,
-          source: cur.source || 'auto'
+          source: cur.source || 'auto',
+          // Portee sur l evenement et non sur le dossier : une prefecture peut
+          // changer en cours de route (demenagement), et le flux doit alors
+          // rattacher chaque mouvement a celle qui l a produit.
+          prefecture: cur.prefecture || null
         });
       }
       if (snaps.length > 0) {
@@ -1718,7 +1849,8 @@
           date_statut: snaps[0].date_statut || null,
           statut: snaps[0].statut,
           daysForTransition: null,
-          source: snaps[0].source || 'auto'
+          source: snaps[0].source || 'auto',
+          prefecture: snaps[0].prefecture || null
         });
       }
     });
@@ -1737,8 +1869,11 @@
 
   function getFilteredActivity() {
     var f = activityState.typeFilter;
-    if (f === 'all') return activityState.transitions;
-    return activityState.transitions.filter(function(t) { return t.type === f; });
+    var p = activityState.pref;
+    var out = activityState.transitions;
+    if (f !== 'all') out = out.filter(function(t) { return t.type === f; });
+    if (p) out = out.filter(function(t) { return t.prefecture === p; });
+    return out;
   }
 
   var ACTIVITY_BADGE = {
@@ -1848,6 +1983,19 @@
         renderActivityPage();
       });
     }
+    // Meme composant que les trois autres filtres de prefecture du site : la
+    // liste depasse la centaine d entrees, un select simple y serait penible.
+    var prefs = {};
+    for (var p = 0; p < activityState.transitions.length; p++) {
+      var pr = activityState.transitions[p].prefecture;
+      if (pr) prefs[pr] = true;
+    }
+    F.createSearchablePrefectureDropdown('activity-pref-filter-container',
+      Object.keys(prefs).sort(), activityState.pref, function(v) {
+        activityState.pref = v;
+        activityState.page = 1;
+        renderActivityPage();
+      });
     document.getElementById('activity-btn-prev').addEventListener('click', function() {
       if (activityState.page > 1) { activityState.page--; renderActivityPage(); }
     });

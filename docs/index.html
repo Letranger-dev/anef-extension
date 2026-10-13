@@ -291,6 +291,31 @@
         </div>
       </div>
       <div id="sdanf-kpis" class="kpi-bar"></div>
+
+      <!-- Repartition par mois d entretien : repond a « quelles periodes
+           d entretien sont actuellement traitees ? ». Repliee par defaut et
+           dessinee seulement a l ouverture (le graphique coute cher a monter).
+           Elle suit les pills de statut et le filtre de prefecture, mais PAS
+           le filtre d intervalle de dates : ce dernier sert justement a
+           zoomer sur une periode que ce graphique revele. -->
+      <details id="entretien-chart-details" class="chart-details">
+        <summary>
+          <h3 class="inline-heading" data-i18n="section.entretien_chart_title">Entretiens en cours de traitement</h3>
+          <span class="details-hint" data-i18n="section.entretien_chart_hint">Voir la repartition</span>
+        </summary>
+        <p class="section-subtitle" data-i18n="section.entretien_chart_sub">Repartition des dossiers actuellement au controle, selon le mois de leur entretien</p>
+        <div class="chart-container">
+          <!-- Hauteur explicite : les graphiques du site tournent en
+               maintainAspectRatio:false, sans quoi le canvas retombe sur sa
+               hauteur d attribut (150 px) et le graphique est ecrase. -->
+          <div style="position:relative;height:340px">
+            <canvas id="entretien-chart-canvas"></canvas>
+          </div>
+        </div>
+        <p class="section-subtitle" id="entretien-chart-sans" style="display:none;margin-top:-0.75rem"></p>
+        <p class="no-data" id="entretien-chart-empty" style="display:none" data-i18n="section.entretien_chart_empty">Aucune date d entretien connue pour cette selection</p>
+      </details>
+
       <div class="dossier-list" id="sdanf-list"></div>
     </div>
 
@@ -365,6 +390,7 @@
             <option value="step_change" data-i18n="toolbar.type_steps">Étapes</option>
             <option value="status_change" data-i18n="toolbar.type_progress">Progressions</option>
           </select>
+          <div id="activity-pref-filter-container"></div>
           <select id="activity-page-size" class="page-size-select" title="Par page" data-i18n-attr="title:toolbar.per_page_title">
             <option value="5" selected data-i18n="toolbar.per_page_5b">5 par page</option>
             <option value="10" data-i18n="toolbar.per_page_10b">10 par page</option>
