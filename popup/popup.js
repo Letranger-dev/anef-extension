@@ -863,8 +863,18 @@ function displayStatus(statusData, apiData, lastCheck) {
         // Date rectifiée/manuelle → fait foi
         earliestDate = manualEntry.date_statut;
       } else {
-        // Pas de rectification → utiliser la date ANEF
+        // Pas de rectification → la PREMIÈRE date observée pour ce statut.
+        // ANEF re-date parfois un statut inchangé : afficher sa valeur
+        // courante faisait reculer le « depuis le … » sous les yeux de
+        // l'utilisateur, et contredisait l'historique comme le site public,
+        // qui conservent tous deux la première date.
         earliestDate = date_statut;
+        const historique = await lireHistoriqueActif();
+        for (const h of historique) {
+          if (!h?.statut || !h.date_statut) continue;
+          if (String(h.statut).toLowerCase() !== String(statut || '').toLowerCase()) continue;
+          if (!earliestDate || String(h.date_statut) < String(earliestDate)) earliestDate = h.date_statut;
+        }
       }
 
       if (earliestDate) {

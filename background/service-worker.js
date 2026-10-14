@@ -9,7 +9,7 @@
  */
 
 import * as storage from '../lib/storage.js';
-import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, isStatusRegression, getStepColor, formatTimestamp, formatSubStep } from '../lib/status-parser.js';
+import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, isStatusRegression, getStepColor, formatTimestamp, formatSubStep, resolveStatusStartDate } from '../lib/status-parser.js';
 import { deriveStatus, parseStatutField, isComplementPending } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
@@ -478,15 +478,32 @@ async function handleDossierData(data) {
     // resterait figé sur la sous-étape basse. Restreint à l'étape courante, ce
     // rattrapage ne peut jamais épingler le dossier sur une mauvaise étape.
     let reference = prevStatus;
+    const historiqueDossier = newId ? await storage.getHistory(newId) : [];
     if (prevStatus?.statut && prevEtape) {
-      const historique = newId ? await storage.getHistory(newId) : [];
-      for (const entree of historique) {
+      for (const entree of historiqueDossier) {
         // `date_statut` obligatoire : la référence sert aussi à réécrire la date
         // du statut, une entrée sans date produirait un `date_statut: undefined`
         // enregistré puis envoyé au serveur.
         if (!entree?.statut || !entree.date_statut) continue;
         if ((getStatusExplanation(entree.statut)?.etape ?? null) !== prevEtape) continue;
         if (isStatusRegression(entree.statut, reference.statut)) reference = entree;
+      }
+    }
+
+    // ── Re-datation ANEF à statut inchangé ──
+    // Règle extraite dans `resolveStatusStartDate` (lib/status-parser.js), qui
+    // en porte l'explication et les tests. Elle répare au passage les
+    // installations dont le `lastStatus` a déjà été re-daté.
+    if (data.statut && data.date_statut) {
+      const dateRetenue = resolveStatusStartDate(data.statut, data.date_statut, prevStatus, historiqueDossier);
+      if (dateRetenue !== data.date_statut) {
+        logger.info('📅 Re-datation ANEF ignorée (statut inchangé)', {
+          dossierId: newId,
+          statut: String(data.statut).toLowerCase(),
+          recue: data.date_statut,
+          conservee: dateRetenue
+        });
+        data.date_statut = dateRetenue;
       }
     }
 

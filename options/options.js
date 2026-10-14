@@ -411,9 +411,16 @@ async function loadStepDates() {
     const date = toDateStr(h.date_statut);
     if (key && date) autoByStatut[key] = date;
   }
-  // Le statut actuel a priorité (date la plus récente)
-  if (lastStatus?.date_statut) {
-    autoByStatut[lastStatus.statut.toLowerCase()] = toDateStr(lastStatus.date_statut);
+  // Statut courant : on garde la date la plus ANCIENNE des deux sources.
+  // ANEF re-date parfois un statut qui n'a pas bougé, et `lastStatus` porte
+  // alors une date postérieure à celle de l'historique. Prendre la plus
+  // récente faisait diverger cette liste de l'onglet « Historique » juste
+  // au-dessus, qui lui conserve la première date observée.
+  if (lastStatus?.date_statut && lastStatus.statut) {
+    const cle = lastStatus.statut.toLowerCase();
+    const courante = toDateStr(lastStatus.date_statut);
+    const connue = autoByStatut[cle];
+    autoByStatut[cle] = (connue && connue < courante) ? connue : courante;
   }
   // Étape 7 : historique et statut courant datent la CONVOCATION, pas
   // l'entretien. Le rendez-vous réel fait foi une fois passé (cf.
