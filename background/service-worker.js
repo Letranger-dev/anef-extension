@@ -10,7 +10,7 @@
 
 import * as storage from '../lib/storage.js';
 import { getStatusExplanation, isPositiveStatus, isNegativeStatus, isClosedStatus, isStatusRegression, getStepColor, formatTimestamp, formatSubStep, resolveStatusStartDate } from '../lib/status-parser.js';
-import { deriveStatus, parseStatutField, isComplementPending } from '../lib/anef-mapper.js';
+import { deriveStatus, parseStatutField, isComplementPending, isGenericMacroFallback } from '../lib/anef-mapper.js';
 import { ANEF_BASE_URL, ANEF_ROUTES, URLPatterns, LogConfig } from '../lib/constants.js';
 import { sendAnonymousStats, sendManualStepDates, rehydrateLocalHistoryFromServer } from '../lib/anonymous-stats.js';
 import { extractDmrEvents, getDmrStatut, DMR_EVENT_MOTIFS } from '../lib/dmr.js';
@@ -407,6 +407,9 @@ async function handleDossierData(data) {
     data.coarse = derived.coarse;
     data.timeline = derived.timeline;
     data.canRapo = derived.canRapo;
+    // Le garde ci-dessous doit pouvoir reconnaître un statut enregistré qui
+    // n'était qu'un repli sur ce macro (issue #19).
+    data.macro = derived.macro;
     logger.info('🧭 Statut recombiné', {
       code: data.statut, friseKey: derived.friseKey, macro: derived.macro, via: derived.derivedFrom
     });
@@ -534,16 +537,71 @@ async function handleDossierData(data) {
     // construction — un dossier sous recours est TOUJOURS en repli macro.
     const repriseApresRecours = !!data.canRapo && newEtape !== null && newEtape >= 9;
 
+    // ── Le statut de référence n'était-il lui-même qu'un repli ? (issue #19) ──
+    // Deux sources, car la première a longtemps été détruite : le drapeau
+    // persisté, et la FORME du code. Si le statut enregistré est exactement le
+    // repli générique du macro courant, il est indistinguable d'un tour où la
+    // frise a échoué — c'est le seul moyen de rattraper les installations déjà
+    // bloquées, dont le `coarse` a été écrasé à chaque recul refusé.
+    const referenceGrossiere = !!reference?.coarse
+      || isGenericMacroFallback(reference?.statut, data.macro);
+
+    // Une frise granulaire fait autorité sur un repli macro. Pour un parcours
+    // COMPLET elle porte TROIS nœuds distincts entre les étapes 3, 4 et 5
+    // (`examen_pieces`, `demande_deposee`, `traitement_instruction`) : quand
+    // elle place le dossier à l'étape 3, elle ne confond pas, elle contredit.
+    const correctionParFrise = data.derivedFrom === 'frise' && !data.coarse && referenceGrossiere;
+
     // Dérivation grossière (frise ET détail indisponibles → repli sur le macro,
-    // identique de l'étape 4 à l'étape 11) : aucune exception ne tient. Un tour
+    // identique de l'étape 3 à l'étape 11) : aucune exception ne tient. Un tour
     // dégradé ne prouve rien, il ne peut donc pas faire reculer un dossier.
     const reculAcceptable = !dossierClos &&
-      (repriseApresRecours || (!data.coarse && (issueTerminale || complementDemande)));
+      (repriseApresRecours || correctionParFrise
+        || (!data.coarse && (issueTerminale || complementDemande)));
 
     // Vrai quand on ne fait que restaurer la sous-étape perdue par l'API : le
     // dossier n'a pas bougé, seul l'état local était faux → réparation
     // silencieuse, sans notification de « changement de statut ».
     let reparationSilencieuse = false;
+
+    // ── Un repli grossier ne fait pas AVANCER non plus (issue #19) ──
+    // Le garde ci-dessous ne refusait que les reculs. Une dérivation grossière
+    // pouvait donc promouvoir un dossier — le macro générique retombe toujours
+    // sur l'étape 5 — et cette promotion devenait DÉFINITIVE : le retour de la
+    // frise était ensuite refusé comme un recul. Un dossier en vérification
+    // formelle se retrouvait figé « récépissé de complétude à envoyer » pour de
+    // bon, sans autre issue que la réinstallation.
+    // Le macro ne distingue pas les étapes : il ne peut donc rien affirmer sur
+    // l'avancement, dans un sens comme dans l'autre. Seule la reprise après
+    // recours échappe à la règle — la frise DECISION_RAPO est vide par
+    // construction, un dossier sous recours est toujours en repli macro.
+    if (reference?.statut && data.statut && data.coarse && !repriseApresRecours
+        && String(reference.statut).toLowerCase() !== String(data.statut).toLowerCase()) {
+      logger.warn('🌫️ Changement grossier ignoré (statut connu conservé)', {
+        dossierId: newId,
+        de: `${reference.statut} (ét.${getStatusExplanation(reference.statut)?.etape})`,
+        vers: `${data.statut} (ét.${newEtape})`,
+        via: data.derivedFrom ?? null,
+        macro: data.macro ?? null
+      });
+      reparationSilencieuse = reference !== prevStatus;
+      data.statut = reference.statut;
+      data.date_statut = reference.date_statut;
+      data.coarse = !!reference.coarse;
+    }
+
+    // Corriger un repli n'est pas un recul du dossier : c'est notre
+    // enregistrement qui était faux. Annoncer « changement de statut » ferait
+    // croire à l'utilisateur que son dossier a reculé.
+    if (correctionParFrise && reference?.statut && isStatusRegression(reference.statut, data.statut)) {
+      logger.info('🩹 Repli corrigé par la frise (pas de notification)', {
+        dossierId: newId,
+        de: `${reference.statut} (ét.${getStatusExplanation(reference.statut)?.etape})`,
+        vers: `${data.statut} (ét.${newEtape})`,
+        macro: data.macro ?? null
+      });
+      reparationSilencieuse = true;
+    }
 
     if (reference?.statut && !reculAcceptable && isStatusRegression(reference.statut, data.statut)) {
       logger.warn('⏪ Recul ignoré (statut connu conservé)', {
@@ -559,9 +617,11 @@ async function handleDossierData(data) {
       reparationSilencieuse = reference !== prevStatus;
       data.statut = reference.statut;
       data.date_statut = reference.date_statut;
-      // Le statut retenu vient désormais de l'historique local, plus du tour
-      // dégradé : il n'a plus rien de « grossier ».
-      data.coarse = false;
+      // On garde la qualité RÉELLE du statut retenu. L'écraser à `false`
+      // détruisait l'information à chaque tour : un dossier promu à tort par un
+      // repli macro n'était plus reconnaissable comme tel, et plus rien ne
+      // pouvait le corriger (issue #19).
+      data.coarse = !!reference.coarse;
     }
 
     const hasChanged = !reparationSilencieuse && (!prevStatus
@@ -581,7 +641,13 @@ async function handleDossierData(data) {
       // Qualité de la dérivation, relue par sendAnonymousStats : un statut issu
       // d'un repli grossier ne doit pas être promu `source: 'manual'`, ce qui
       // le ferait échapper au garde anti-régression du serveur.
-      coarse: !!data.coarse
+      coarse: !!data.coarse,
+      // Qui a produit ce statut, et sous quel macro. Deux chaînes courtes, mais
+      // sans elles on ne peut plus distinguer un statut granulaire d'un repli
+      // une fois l'enregistrement écrit — c'est précisément ce qui rendait
+      // l'issue #19 irréparable.
+      derivedFrom: data.derivedFrom ?? null,
+      macro: data.macro ?? null
     };
     await storage.saveStatus(statusRecord);
     logger.info('✅ Statut sauvegardé', { dossierId: newId, isNew: isNewSecondary });
@@ -742,7 +808,14 @@ async function handleApiData(data) {
     // foi. Une fois réparé, le garde local empêche toute nouvelle rechute.
     if (result?.skipped === 'stage_regression' && result.history?.length) {
       try {
-        await healLocalStatusFromServer(result.history, apiData.dossierId, result);
+        // `localeFrise` : le statut local vient-il de la frise granulaire ?
+        // Si oui, il fait autorité sur un repli macro conservé par le serveur.
+        const statutLocal = await storage.getLastStatus(apiData.dossierId);
+        await healLocalStatusFromServer(result.history, apiData.dossierId, {
+          ...result,
+          localeFrise: statutLocal?.derivedFrom === 'frise' && !statutLocal?.coarse,
+          macro: statutLocal?.macro ?? null
+        });
       } catch (e) {
         logger.warn('Auto-réparation échouée', e.message);
       }
@@ -908,6 +981,21 @@ async function healLocalStatusFromServer(history, dossierId, info = {}) {
 
   const actuel = await storage.getLastStatus(dossierId);
   if ((actuel?.statut || '').toLowerCase() === (best.statut || '').toLowerCase()) return;
+
+  // ── Ne pas défaire une correction venue de la frise (issue #19) ──
+  // Le serveur applique le MÊME garde anti-régression, et détient donc la même
+  // valeur fausse qu'on vient de corriger localement : sans cette sortie, il la
+  // réimposait au tour suivant et la correction ne tenait jamais.
+  // La réparation garde tout son rôle quand l'état local est réellement
+  // dégradé — ici le local est granulaire et le serveur ne porte qu'un repli.
+  if (info.localeFrise && isGenericMacroFallback(best.statut, info.macro)) {
+    logger.info('🩹 Réparation serveur ignorée (la frise a corrigé un repli)', {
+      dossierId,
+      local: actuel?.statut || 'aucun',
+      serveur: best.statut
+    });
+    return;
+  }
 
   // Historique + dates manuelles d'abord, puis le statut courant
   await rehydrateLocalHistoryFromServer(history, dossierId);
