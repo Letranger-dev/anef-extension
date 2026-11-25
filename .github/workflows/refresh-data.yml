@@ -7,17 +7,37 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Lecture de la liste des artefacts du run, pour l'attente ci-dessous.
+  actions: read
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Ne JAMAIS annuler un déploiement en cours : une publication Pages
+  # interrompue en plein vol laisse le site dans un état indéterminé. Les runs
+  # en file d'attente, eux, sont bien remplacés par le plus récent.
+  cancel-in-progress: false
 
 jobs:
-  refresh:
+  # L'envoi de l'artefact et son déploiement sont séparés en DEUX jobs.
+  # Enchaînés dans le même job, le déploiement échouait environ une fois sur
+  # deux, en moins d'une seconde, sur :
+  #   « No artifacts named "github-pages" were found for this workflow run »
+  # alors que l'artefact était bel et bien présent (vérifié via l'API : les runs
+  # en échec le listent, 1,9 Mo). `deploy-pages` interroge les métadonnées
+  # immédiatement après l'envoi, et elles ne sont pas encore exposées.
+  #
+  # Les échecs ont commencé le 20/11/2026 après ~3 500 runs sains, sans
+  # changement côté dépôt : la cause est externe. Le découpage en jobs aligne ce
+  # workflow sur `deploy-stats.yml` et ajoute le délai d'ordonnancement d'un
+  # second runner — mais rien ne prouve qu'il suffise, `deploy-stats.yml`
+  # n'ayant pas tourné depuis le 13/10, donc jamais dans ces conditions.
+  # Ce qui garantit la correction, c'est l'attente explicite du job `deploy`.
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Conservé comme dans `deploy-stats.yml` : si les secrets Supabase sont
+    # portés par l'environnement `github-pages` et non par le dépôt, les
+    # retirer ici les viderait silencieusement.
+    environment: github-pages
 
     steps:
       - name: Checkout repository
@@ -66,6 +86,41 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # `deploy-pages` lit les metadonnees de l'artefact UNE fois, sans
+      # reessayer : si l'API ne l'expose pas encore, l'etape tombe en moins
+      # d'une seconde sur « No artifacts named "github-pages" were found »
+      # alors que l'artefact existe (les runs en echec le listent bel et bien).
+      # On attend donc qu'il soit reellement interrogeable avant de deployer.
+      - name: Attendre que l'artefact soit visible de l'API
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTEFACTS_URL: ${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts
+        run: |
+          set -u
+          compte() {
+            curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$ARTEFACTS_URL" \
+              | jq '[.artifacts[]? | select(.name == "github-pages")] | length' 2>/dev/null || echo 0
+          }
+          for i in $(seq 1 30); do
+            n=$(compte)
+            if [ "${n:-0}" -ge 1 ]; then
+              echo "Artefact github-pages visible apres $i tentative(s)."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::L'artefact github-pages n'est toujours pas liste apres 60 s."
+          exit 1
 
       - name: Deploy to GitHub Pages
         id: deployment

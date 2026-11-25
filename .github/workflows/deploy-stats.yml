@@ -13,10 +13,15 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Lecture de la liste des artefacts du run, pour l'attente ci-dessous.
+  actions: read
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Ne JAMAIS annuler un déploiement en cours : une publication Pages
+  # interrompue en plein vol laisse le site dans un état indéterminé. Les runs
+  # en file d'attente, eux, sont bien remplacés par le plus récent.
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -81,6 +86,32 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      # `deploy-pages` lit les metadonnees de l'artefact UNE fois, sans
+      # reessayer : si l'API ne l'expose pas encore, l'etape tombe en moins
+      # d'une seconde sur « No artifacts named "github-pages" were found »
+      # alors que l'artefact existe (les runs en echec le listent bel et bien).
+      # On attend donc qu'il soit reellement interrogeable avant de deployer.
+      - name: Attendre que l'artefact soit visible de l'API
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTEFACTS_URL: ${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts
+        run: |
+          set -u
+          compte() {
+            curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$ARTEFACTS_URL" \
+              | jq '[.artifacts[]? | select(.name == "github-pages")] | length' 2>/dev/null || echo 0
+          }
+          for i in $(seq 1 30); do
+            n=$(compte)
+            if [ "${n:-0}" -ge 1 ]; then
+              echo "Artefact github-pages visible apres $i tentative(s)."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::L'artefact github-pages n'est toujours pas liste apres 60 s."
+          exit 1
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
