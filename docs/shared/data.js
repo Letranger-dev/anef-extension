@@ -174,6 +174,75 @@
   /** Clé d'identité de dossier : public_id (nouveau JSON) ou dossier_hash (legacy). */
   function _dossierKey(s) { return s.public_id || s.dossier_hash; }
 
+  function _fraicheur(s) { return s.checked_at || s.created_at || ''; }
+  function _plusAncienne(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    return a < b ? a : b;
+  }
+  function _plusRecente(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
+  /**
+   * Une seule entrée par statut, en fusionnant les lignes qui décrivent le même
+   * statut du même dossier.
+   *
+   * La base n'en porte qu'une par (dossier, statut) — son index unique le
+   * garantit. Mais cet index DISTINGUE LA CASSE, et l'extension a envoyé ses
+   * statuts en MAJUSCULES jusqu'en avril 2026. La bascule en minuscules a donc
+   * créé une JUMELLE au lieu de mettre la ligne héritée à jour : 2 093 lignes
+   * héritées subsistent, dont 1 600 dont la dernière vérification date du
+   * 17/03/2026.
+   *
+   * La déduplication par adjacence qui occupait cette place n'en gardait qu'une,
+   * et c'était la plus ANCIENNE : elle conservait `prev` après un tri croissant
+   * sur created_at, à l'inverse de ce que son propre commentaire annonçait. La
+   * ligne vivante était jetée avec son horodatage frais, et la date « Vérifié
+   * le » de 441 dossiers restait figée — 354 en mars 2026 — alors que les
+   * actualisations de leur titulaire réussissaient.
+   *
+   * On fusionne au lieu de choisir, car aucune des deux n'est à jeter :
+   *   date_statut  → la plus ANCIENNE (entrée dans le statut : même règle que
+   *                  l'Edge Function et que `_mergeHistoryEntry` de l'extension ;
+   *                  174 paires divergent, de 25 jours en médiane)
+   *   vérification → la plus RÉCENTE (c'est le bug corrigé)
+   *   source       → `manual` l'emporte (rectification saisie par l'utilisateur)
+   *   le reste     → la ligne vérifiée le plus récemment, complétée par l'autre
+   *                  sur les seuls champs qu'elle laisse vides.
+   */
+  function fusionnerJumelles(snaps) {
+    var parStatut = Object.create(null);
+    var ordre = [];
+    for (var i = 0; i < snaps.length; i++) {
+      var s = snaps[i];
+      // Statut absent : clé unique, jamais fusionné avec quoi que ce soit.
+      var cle = s.statut || ('@sans-statut-' + i);
+      if (!parStatut[cle]) { parStatut[cle] = s; ordre.push(cle); continue; }
+      parStatut[cle] = _fusionnerDeux(parStatut[cle], s);
+    }
+    return ordre.map(function(cle) { return parStatut[cle]; });
+  }
+
+  function _fusionnerDeux(a, b) {
+    var frais = _fraicheur(b) > _fraicheur(a) ? b : a;
+    var autre = frais === a ? b : a;
+    var out = {};
+    for (var k in frais) out[k] = frais[k];
+    for (var k2 in autre) {
+      if (out[k2] === null || out[k2] === undefined || out[k2] === '') out[k2] = autre[k2];
+    }
+    out.date_statut = _plusAncienne(a.date_statut, b.date_statut);
+    out.date_depot = _plusAncienne(a.date_depot, b.date_depot);
+    out.created_at = _plusAncienne(a.created_at, b.created_at);
+    out.checked_at = _plusRecente(a.checked_at, b.checked_at);
+    if (a.source === 'manual' || b.source === 'manual') out.source = 'manual';
+    if (a.has_complement || b.has_complement) out.has_complement = true;
+    return out;
+  }
+
   /** Group snapshots by dossier identity => Map<key, snapshot[]> */
   function groupByDossier(snapshots) {
     var map = new Map();
@@ -189,6 +258,10 @@
       for (var j = 0; j < snaps.length; j++) {
         if (snaps[j].statut) snaps[j].statut = snaps[j].statut.toLowerCase();
       }
+      // Les jumelles de casse sont fusionnées AVANT le tri : la fusion peut
+      // ramener `date_statut` à une date plus ancienne, donc déplacer la ligne
+      // dans la chronologie sur laquelle s'appuient les deux filets ci-dessous.
+      snaps = fusionnerJumelles(snaps);
       snaps.sort(function(a, b) {
         // Trier par date_statut (chronologie réelle), fallback created_at
         var dateA = a.date_statut || a.created_at || '';
@@ -206,19 +279,10 @@
         var caA = a.created_at || '', caB = b.created_at || '';
         return caA < caB ? -1 : caA > caB ? 1 : 0;
       });
-      // Dédupliquer : même étape + même statut → garder le manual (date rectifiée) sinon le dernier
-      var deduped = [snaps[0]];
-      for (var k = 1; k < snaps.length; k++) {
-        var prev = deduped[deduped.length - 1];
-        var cur = snaps[k];
-        if (cur.etape === prev.etape && cur.statut === prev.statut) {
-          // Garder la version manual si elle existe, sinon la plus récente
-          if (cur.source === 'manual') { deduped[deduped.length - 1] = cur; }
-          // sinon on garde prev (déjà en place)
-        } else {
-          deduped.push(cur);
-        }
-      }
+      // Une entrée par statut : garanti par `fusionnerJumelles` ci-dessus. La
+      // boucle de déduplication par adjacence qui occupait cette place est
+      // devenue inatteignable — et c'était elle qui jetait la ligne vivante.
+      var deduped = snaps;
       // Filet de sécurité ciblé contre la contamination cross-dossier
       // (cas 2213db6be...) : on retire UNIQUEMENT un "pic d'étape" isolé —
       // un snapshot dont l'étape est strictement supérieure à ses voisins
