@@ -886,19 +886,25 @@ function displayStatus(statusData, apiData) {
           const duration = formatDuration(days);
           elements.statusDate.textContent = `${formatDate(earliestDate)} (${days === 0 ? "aujourd'hui" : 'il y a ' + duration})`;
 
-          // La figure héros est libellée « à cette étape » : elle doit donc
-          // compter depuis l'ENTRÉE DANS L'ÉTAPE, pas depuis le dernier
-          // sous-statut. Plusieurs étapes en comptent plusieurs — l'étape 9
-          // en a trois (attente d'affectation, contrôle en cours, transmis à
-          // Nantes) et 39 % des dossiers qui la traversent en portent au
-          // moins deux. Le compteur repartait alors de zéro alors qu'ANEF
-          // affiche le même libellé tout du long, ce qui se lit comme une
-          // date qui recule sans raison. Le site mesure l'étape depuis sa
-          // v1.38.0 ; le popup s'aligne. La ligne « depuis le … » juste en
-          // dessous continue de porter la date du sous-statut : les deux
-          // durées restent lisibles, chacune correctement nommée.
+          // Le chiffre compte depuis la date affichée JUSTE EN DESSOUS.
+          // La v2.14.1 l'avait fait compter depuis l'entrée dans l'étape, pour
+          // que « à cette étape » dise vrai. Mais les deux lignes se
+          // contredisaient alors à l'écran : « 14 jours à cette étape » posé
+          // au-dessus de « Étape 9.3/12 depuis le 18 novembre (aujourd'hui) »
+          // (issue #23). Un dossier qui vient de passer au SCEC lisait la
+          // durée de son sous-statut précédent.
+          // L'étape compte souvent plusieurs sous-statuts — trois rien que
+          // pour l'étape 9 — et cette attente-là reste utile : elle passe donc
+          // dans le libellé, qui la nomme au lieu de la laisser deviner.
           const debutEtape = await dateEntreeEtape(statusInfo.etape, stepDates, earliestDate);
-          ecrireHeros(formatDuration(daysSince(debutEtape || earliestDate)), 'à cette étape');
+          const joursEtape = debutEtape ? daysSince(debutEtape) : null;
+          const memeOrigine = joursEtape === null || joursEtape === days;
+          ecrireHeros(
+            duration,
+            memeOrigine
+              ? 'à cette étape'
+              : `à ce statut · ${formatDuration(joursEtape)} à l'étape ${statusInfo.etape}`
+          );
         }
       } else {
         elements.statusDate.textContent = '—';
