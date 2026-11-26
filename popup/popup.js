@@ -700,7 +700,7 @@ async function loadData() {
       return;
     }
 
-    displayStatus(lastStatus, apiData, lastCheck);
+    displayStatus(lastStatus, apiData);
     displayLastCheck(lastCheck, lastCheckAttempt);
     showView('status');
 
@@ -833,7 +833,7 @@ async function dateEntreeEtape(etape, stepDates, dateCourante) {
 }
 
 /** Affiche le statut */
-function displayStatus(statusData, apiData, lastCheck) {
+function displayStatus(statusData, apiData) {
   const { statut, date_statut } = statusData;
   const statusInfo = getStatusExplanation(statut);
   // Procédure clôturée : décret de naturalisation publié → on fige les compteurs
@@ -905,15 +905,27 @@ function displayStatus(statusData, apiData, lastCheck) {
         if (!closed) ecrireHeros('—', 'à cette étape');
       }
 
-      // Dernière MAJ (date ANEF la plus récente, peut être = date statut ou plus récente)
+      // « Dernière MAJ ANEF » : la date du statut renvoyée par ANEF, et elle
+      // seule. Le repli sur `lastCheck` affichait l'heure de la dernière
+      // exécution de l'extension sous une étiquette qui promet une date ANEF —
+      // deux choses sans rapport (issue #20). Quand ANEF ne fournit rien, la
+      // ligne disparaît, comme les autres détails sans valeur.
+      // L'intérêt de cette ligne se voit surtout quand l'utilisateur a rectifié
+      // la date à la main : l'en-tête montre alors sa date, celle-ci garde
+      // l'originale. La dernière vérification, elle, reste en pied de popup.
       const statusLastCheck = document.getElementById('status-last-check');
       if (statusLastCheck) {
-        const majDate = (date_statut && earliestDate && date_statut.substring(0, 10) !== earliestDate.substring(0, 10))
-          ? date_statut : lastCheck;
+        const majDate = date_statut || null;
         if (majDate) {
           const datePart = formatDate(majDate);
           const d = new Date(majDate);
-          const timePart = !isNaN(d) ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : '';
+          // ANEF renvoie tantôt un horodatage complet, tantôt une date seule.
+          // Sur une date seule, `toLocaleTimeString` fabriquerait une heure
+          // (00:00 ou 02:00 selon le fuseau) qu'ANEF n'a jamais donnée.
+          const porteUneHeure = /\d{2}:\d{2}/.test(String(majDate));
+          const timePart = (porteUneHeure && !isNaN(d))
+            ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+            : '';
           statusLastCheck.textContent = datePart + ' ';
           if (timePart) {
             const timeSpan = document.createElement('span');

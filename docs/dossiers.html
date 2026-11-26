@@ -147,6 +147,15 @@
           </select>
         </div>
         <div class="table-filter-group">
+          <label data-i18n="dossiers.filter_activite">Activité</label>
+          <select id="dossier-filter-activite" data-i18n-attr="title:dossiers.activite_tip" title="Masque les dossiers laissés à l abandon">
+            <option value="0" data-i18n="dossiers.activite_all">Tous</option>
+            <option value="1" data-i18n="dossiers.activite_1">Suivis ce mois-ci</option>
+            <option value="3" data-i18n="dossiers.activite_3">Suivis depuis 3 mois</option>
+            <option value="6" data-i18n="dossiers.activite_6">Suivis depuis 6 mois</option>
+          </select>
+        </div>
+        <div class="table-filter-group">
           <label data-i18n="dossiers.filter_date_depot">Date dépôt</label>
           <div class="date-range">
             <input type="date" id="dossier-filter-depot-min" class="table-filter-date" data-i18n-attr="title:dossiers.date_from" title="À partir du">

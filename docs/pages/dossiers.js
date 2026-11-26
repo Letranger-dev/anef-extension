@@ -23,6 +23,10 @@
       statut: 'all',
       prefecture: 'all',
       history: 'all',
+      // Mois d'inactivité tolérés du propriétaire ; 0 = aucun filtre.
+      // Volontairement à 0 par défaut : masquer d'office changerait les
+      // chiffres publiés sans que personne l'ait demandé (issue #22).
+      activite: 0,
       depotMin: '',
       depotMax: '',
       statutDateMin: '',
@@ -184,6 +188,16 @@
         if (s.prefecture !== tf.prefecture) return false;
       }
       if (tf.history === 'multi' && s.snapshotCount < 2) return false;
+      // Dossier laissé à l'abandon : son propriétaire n'actualise plus, donc
+      // son statut est figé et son ancienneté continue de courir. Mesuré sur
+      // les données publiques : la médiane du temps au statut passe de 197 à
+      // 149 jours quand on écarte les inactifs de plus de 3 mois.
+      if (tf.activite > 0) {
+        if (!s.lastChecked) return false;
+        var limite = Date.now() - tf.activite * 30 * 86400000;
+        var vu = new Date(s.lastChecked).getTime();
+        if (!(vu >= limite)) return false;   // NaN compris : date illisible → écarté
+      }
       if (tf.depotMin && (s.dateDepot || '') < tf.depotMin) return false;
       if (tf.depotMax && (s.dateDepot || '') > tf.depotMax) return false;
       if (tf.statutDateMin && (s.dateStatut || '') < tf.statutDateMin) return false;
@@ -196,6 +210,13 @@
     var historySel = document.getElementById('dossier-filter-history');
     historySel.addEventListener('change', function() {
       state.dossierFilters.history = historySel.value;
+      state.page = 1;
+      renderAll();
+    });
+
+    var activiteSel = document.getElementById('dossier-filter-activite');
+    if (activiteSel) activiteSel.addEventListener('change', function() {
+      state.dossierFilters.activite = parseInt(activiteSel.value, 10) || 0;
       state.page = 1;
       renderAll();
     });
@@ -233,7 +254,7 @@
   // signature change (un filtre ou le tri a bougé).
   function getFilteredSorted(allSummaries) {
     var tf = state.dossierFilters;
-    var sig = [tf.statut, tf.prefecture, tf.history, tf.depotMin, tf.depotMax,
+    var sig = [tf.statut, tf.prefecture, tf.history, tf.activite, tf.depotMin, tf.depotMax,
                tf.statutDateMin, tf.statutDateMax, state.sort].join('|');
     if (state._sortedCache && state._sortedSig === sig) return state._sortedCache;
     var sorted = getSorted(applyDossierFilters(allSummaries));
